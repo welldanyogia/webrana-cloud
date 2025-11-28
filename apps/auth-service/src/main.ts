@@ -1,21 +1,56 @@
-/**
- * This is not a production server yet!
- * This is only a minimal backend to get started.
- */
+import { Logger, ValidationPipe } from '@nestjs/common';
+import { NestFactory } from '@nestjs/core';
+import { ConfigService } from '@nestjs/config';
+import helmet from 'helmet';
+import compression from 'compression';
+import { AppModule } from './app/app.module';
 
-import express from 'express';
-import * as path from 'path';
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule);
+  const configService = app.get(ConfigService);
+  const logger = new Logger('Bootstrap');
 
-const app = express();
+  // Security
+  app.use(helmet());
+  app.use(compression());
 
-app.use('/assets', express.static(path.join(__dirname, 'assets')));
+  // CORS
+  const corsOrigins = configService.get<string>('CORS_ORIGINS', 'http://localhost:4200,http://localhost:4201');
+  app.enableCors({
+    origin: corsOrigins.split(',').map((origin) => origin.trim()),
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  });
 
-app.get('/api', (req, res) => {
-  res.send({ message: 'Welcome to auth-service!' });
-});
+  // Global validation pipe
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+      transformOptions: {
+        enableImplicitConversion: true,
+      },
+    })
+  );
 
-const port = process.env.PORT || 3333;
-const server = app.listen(port, () => {
-  console.log(`Listening at http://localhost:${port}/api`);
-});
-server.on('error', console.error);
+  // Global prefix
+  app.setGlobalPrefix('api/v1/auth');
+
+  const port = configService.get<number>('PORT', 3001);
+  await app.listen(port);
+
+  logger.log(`
+========================================
+  Auth Service started successfully
+========================================
+  Environment: ${configService.get('NODE_ENV', 'development')}
+  Port: ${port}
+  URL: http://localhost:${port}
+  Health: http://localhost:${port}/api/v1/auth/health
+========================================
+  `);
+}
+
+bootstrap();

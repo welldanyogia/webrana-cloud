@@ -93,31 +93,30 @@ Update the file after completing each sub-task, not just after completing an ent
 
 ## Tasks
 
-- [ ] 0.0 Create feature branch
-  - [ ] 0.1 Initialize git repository if not exists (`git init`)
-  - [ ] 0.2 Create and checkout a new branch (`git checkout -b feature/auth-service`)
+- [x] 0.0 Create feature branch
+  - [x] 0.1 Initialize git repository if not exists (`git init`)
+  - [x] 0.2 Create and checkout a new branch (`git checkout -b feature/auth-service`)
 
-- [ ] 1.0 Project Setup & Configuration
-  - [ ] 1.1 Install core dependencies untuk auth-service (`express`, `cors`, `helmet`, `compression`)
-  - [ ] 1.2 Install authentication dependencies (`bcryptjs`, `jsonwebtoken`, `uuid`)
-  - [ ] 1.3 Install validation dependencies (`zod` atau `joi`)
-  - [ ] 1.4 Install database dependencies (`@prisma/client`, `prisma`)
-  - [ ] 1.5 Install rate limiting dependencies (`rate-limiter-flexible`, `ioredis`)
-  - [ ] 1.6 Install dev dependencies (`@types/bcryptjs`, `@types/jsonwebtoken`, `@types/express`, `@types/cors`)
-  - [ ] 1.7 Create `.env.example` file dengan semua environment variables dari PRD
-  - [ ] 1.8 Create `src/config/index.ts` untuk load dan validate environment variables
-  - [ ] 1.9 Create `src/config/password-policy.config.ts` untuk password policy configuration
-  - [ ] 1.10 Setup Express app di `src/app/app.ts` dengan middleware dasar (cors, helmet, json parser)
+- [x] 1.0 Project Setup & Configuration (Migrated to NestJS)
+  - [x] 1.1 Install NestJS dependencies (`@nestjs/config`, `@nestjs/jwt`, `@nestjs/passport`)
+  - [x] 1.2 Install authentication dependencies (`bcryptjs`, `jsonwebtoken`, `uuid`, `passport-jwt`)
+  - [x] 1.3 Install validation dependencies (`class-validator`, `class-transformer`)
+  - [x] 1.4 Install database dependencies (`@prisma/client`, `prisma`)
+  - [x] 1.5 Install rate limiting dependencies (`ioredis`)
+  - [x] 1.6 Install security dependencies (`helmet`, `compression`)
+  - [x] 1.7 Create `.env.example` file dengan semua environment variables dari PRD
+  - [x] 1.8 Setup NestJS main.ts dengan ConfigModule, ValidationPipe, CORS, helmet
+  - [x] 1.9 Create health endpoint di AppController
 
-- [ ] 2.0 Database Schema & ORM Setup
-  - [ ] 2.1 Initialize Prisma di auth-service (`npx prisma init`)
-  - [ ] 2.2 Create Prisma schema untuk tabel `users` dengan semua fields dari PRD
-  - [ ] 2.3 Create Prisma schema untuk tabel `refresh_tokens`
-  - [ ] 2.4 Create Prisma schema untuk tabel `verification_tokens`
-  - [ ] 2.5 Create Prisma schema untuk tabel `user_mfa` (prepared for future)
-  - [ ] 2.6 Create enum types di Prisma (UserRole, UserStatus, VerificationTokenType)
-  - [ ] 2.7 Run initial migration (`npx prisma migrate dev --name init`)
-  - [ ] 2.8 Create Prisma client singleton di `libs/database/src/lib/prisma.ts`
+- [x] 2.0 Database Schema & ORM Setup
+  - [x] 2.1 Initialize Prisma di auth-service (`npx prisma init`)
+  - [x] 2.2 Create Prisma schema untuk tabel `users` dengan semua fields dari PRD
+  - [x] 2.3 Create Prisma schema untuk tabel `refresh_tokens`
+  - [x] 2.4 Create Prisma schema untuk tabel `verification_tokens`
+  - [x] 2.5 Create Prisma schema untuk tabel `user_mfa` (prepared for future)
+  - [x] 2.6 Create enum types di Prisma (UserRole, UserStatus, VerificationTokenType)
+  - [ ] 2.7 Run initial migration (`npx prisma migrate dev --name init`) - requires DB connection
+  - [x] 2.8 Create PrismaService dan PrismaModule di `src/prisma/`
   - [ ] 2.9 Generate Prisma client (`npx prisma generate`)
 
 - [ ] 3.0 Core Authentication Utilities

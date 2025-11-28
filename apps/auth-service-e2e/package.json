@@ -3,8 +3,9 @@
   "version": "0.0.1",
   "private": true,
   "nx": {
+    "name": "auth-service-e2e",
     "implicitDependencies": [
-      "@webrana-cloud/auth-service"
+      "auth-service"
     ],
     "targets": {
       "e2e": {
@@ -17,8 +18,8 @@
           "passWithNoTests": true
         },
         "dependsOn": [
-          "@webrana-cloud/auth-service:build",
-          "@webrana-cloud/auth-service:serve"
+          "auth-service:build",
+          "auth-service:serve"
         ]
       }
     }
