@@ -5,6 +5,14 @@
   "nx": {
     "name": "auth-service",
     "targets": {
+      "test": {
+        "executor": "@nx/jest:jest",
+        "outputs": ["{workspaceRoot}/coverage/apps/auth-service"],
+        "options": {
+          "jestConfig": "apps/auth-service/jest.config.ts",
+          "passWithNoTests": true
+        }
+      },
       "build": {
         "executor": "nx:run-commands",
         "options": {
