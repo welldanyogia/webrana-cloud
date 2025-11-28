@@ -4,7 +4,9 @@
     "outDir": "../../dist/out-tsc",
     "module": "commonjs",
     "types": ["jest", "node"],
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
   },
   "include": [
     "jest.config.ts",

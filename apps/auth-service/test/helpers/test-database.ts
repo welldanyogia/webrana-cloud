@@ -1,7 +1,6 @@
 import { PostgreSqlContainer, StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { PrismaClient } from '@prisma/client';
 import { execSync } from 'child_process';
-import * as path from 'path';
 
 let container: StartedPostgreSqlContainer | null = null;
 let prisma: PrismaClient | null = null;
@@ -70,15 +69,16 @@ export async function startDatabase(): Promise<TestDatabaseConfig> {
   // Set DATABASE_URL for Prisma
   process.env.DATABASE_URL = config.databaseUrl;
 
-  // Run Prisma migrations
+  // Run Prisma migrations using db push (Prisma 6)
   console.log('Running Prisma migrations...');
-  const schemaPath = path.join(__dirname, '../../prisma/schema.prisma');
+  const schemaPath = require('path').join(__dirname, '../../prisma/schema.prisma');
 
   try {
     execSync(`npx prisma db push --schema="${schemaPath}" --skip-generate`, {
       env: { ...process.env, DATABASE_URL: config.databaseUrl },
       stdio: 'pipe',
     });
+    console.log('Database schema created successfully');
   } catch (error) {
     console.error('Failed to run migrations:', error);
     throw error;

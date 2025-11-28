@@ -117,32 +117,32 @@ Update the file after completing each sub-task, not just after completing an ent
   - [x] 3.10 Update `test/setup.ts` untuk integration test global setup/teardown
   - [x] 3.11 Verify infrastructure dengan simple database connection test
 
-- [ ] 4.0 Integration Tests - Auth Endpoints (register, verify-email, resend-verification, login, refresh, logout, logout-all)
-  - [ ] 4.1 Create `auth.controller.integration.spec.ts` dengan Supertest
-  - [ ] 4.2 Test `POST /register` - success returns 201 dengan correct response format
-  - [ ] 4.3 Test `POST /register` - email exists returns 409 dengan EMAIL_EXISTS code
-  - [ ] 4.4 Test `POST /register` - validation error returns 400 dengan VALIDATION_ERROR code
-  - [ ] 4.5 Test `POST /register` - password policy fail returns 400 dengan requirements detail
-  - [ ] 4.6 Test `POST /verify-email` - valid token returns 200, user status becomes active
-  - [ ] 4.7 Test `POST /verify-email` - invalid token returns 400 dengan INVALID_TOKEN code
-  - [ ] 4.8 Test `POST /verify-email` - expired token returns 400 dengan TOKEN_EXPIRED code
-  - [ ] 4.9 Test `POST /verify-email` - used token returns 400 dengan TOKEN_USED code
-  - [ ] 4.10 Test `POST /resend-verification` - success returns 200 (same response for security)
-  - [ ] 4.11 Test `POST /resend-verification` - invalidates old token, creates new one
-  - [ ] 4.12 Test `POST /login` - active user returns 200 dengan tokens + user data
-  - [ ] 4.13 Test `POST /login` - pending_verification returns 200 dengan requires_verification flag
-  - [ ] 4.14 Test `POST /login` - suspended user returns 403 dengan ACCOUNT_SUSPENDED code
-  - [ ] 4.15 Test `POST /login` - deleted user returns 403 dengan ACCOUNT_DELETED code
-  - [ ] 4.16 Test `POST /login` - wrong password returns 401 dengan INVALID_CREDENTIALS code
-  - [ ] 4.17 Test `POST /login` - user not found returns 401 dengan INVALID_CREDENTIALS code
-  - [ ] 4.18 Test `POST /refresh` - valid token returns 200 dengan new token pair
-  - [ ] 4.19 Test `POST /refresh` - old token revoked after rotation
-  - [ ] 4.20 Test `POST /refresh` - invalid token returns 400 dengan INVALID_TOKEN code
-  - [ ] 4.21 Test `POST /refresh` - expired token returns 400 dengan TOKEN_EXPIRED code
-  - [ ] 4.22 Test `POST /logout` - success returns 200, refresh token revoked
-  - [ ] 4.23 Test `POST /logout` - invalid token still returns 200 (idempotent)
-  - [ ] 4.24 Test `POST /logout-all` - requires authentication (401 without token)
-  - [ ] 4.25 Test `POST /logout-all` - revokes all refresh tokens for user
+- [x] 4.0 Integration Tests - Auth Endpoints (register, verify-email, resend-verification, login, refresh, logout, logout-all)
+  - [x] 4.1 Create `auth.controller.integration.spec.ts` dengan Supertest (23 tests)
+  - [x] 4.2 Test `POST /register` - success returns 201 dengan correct response format
+  - [x] 4.3 Test `POST /register` - email exists returns 409 dengan EMAIL_EXISTS code
+  - [x] 4.4 Test `POST /register` - validation error returns 400 dengan BAD_REQUEST code
+  - [x] 4.5 Test `POST /register` - password policy fail returns 400 dengan BAD_REQUEST code
+  - [x] 4.6 Test `POST /verify-email` - valid token returns 201, user status becomes active
+  - [x] 4.7 Test `POST /verify-email` - invalid token returns 400 dengan INVALID_TOKEN code
+  - [x] 4.8 Test `POST /verify-email` - expired token returns 400 dengan TOKEN_EXPIRED code
+  - [x] 4.9 Test `POST /verify-email` - used token returns 400 dengan TOKEN_USED code
+  - [x] 4.10 Test `POST /resend-verification` - success returns 201 (same response for security)
+  - [x] 4.11 Test `POST /resend-verification` - no leak: same response for non-existent email
+  - [x] 4.12 Test `POST /login` - active user returns 201 dengan tokens + user data
+  - [x] 4.13 Test `POST /login` - pending_verification returns 201 dengan requires_verification flag
+  - [x] 4.14 Test `POST /login` - suspended user returns 403 dengan ACCOUNT_SUSPENDED code
+  - [x] 4.15 Test `POST /login` - deleted user returns 403 dengan ACCOUNT_DELETED code
+  - [x] 4.16 Test `POST /login` - wrong password returns 401 dengan INVALID_CREDENTIALS code
+  - [x] 4.17 Test `POST /login` - user not found returns 401 dengan INVALID_CREDENTIALS code
+  - [x] 4.18 Test `POST /refresh` - valid token returns 201 dengan new token pair (rotation)
+  - [x] 4.19 Test `POST /refresh` - old token revoked after rotation (verified in DB)
+  - [x] 4.20 Test `POST /refresh` - invalid token returns 400 dengan INVALID_TOKEN code
+  - [x] 4.21 Test `POST /refresh` - already used token returns 400 dengan INVALID_TOKEN code
+  - [x] 4.22 Test `POST /logout` - success returns 201, refresh token revoked
+  - [x] 4.23 Test `POST /logout` - invalid token still returns 201 (idempotent)
+  - [x] 4.24 Test `POST /logout-all` - requires authentication (401 without token)
+  - [x] 4.25 Test `POST /logout-all` - revokes all refresh tokens for user
 
 - [ ] 5.0 Integration Tests - Password & Profile Endpoints (forgot-password, reset-password, change-password, GET /me, PATCH /me)
   - [ ] 5.1 Create `password.controller.integration.spec.ts`

@@ -27,13 +27,12 @@ export class JwtTokenService {
   }
 
   generateAccessToken(user: TokenUser): string {
-    const payload: Omit<AccessTokenPayload, 'iat' | 'exp'> = {
+    const payload: Omit<AccessTokenPayload, 'iat' | 'exp' | 'iss'> = {
       sub: user.id,
       email: user.email,
       role: user.role,
       status: user.status,
       type: 'access',
-      iss: this.issuer,
     };
 
     return this.jwtService.sign(payload, {
