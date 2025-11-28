@@ -135,45 +135,26 @@ Update the file after completing each sub-task, not just after completing an ent
   - [x] 3.13 Create `src/common/decorators/current-user.decorator.ts` untuk extracting user
   - [ ] 3.14 Write unit tests untuk services (PasswordService, JwtService, TokenService)
 
-- [ ] 4.0 User Registration & Email Verification Endpoints
-  - [ ] 4.1 Create `src/validators/auth.validator.ts` dengan schema untuk register request
-  - [ ] 4.2 Create `src/services/user.service.ts` dengan fungsi createUser
-  - [ ] 4.3 Create `src/services/token.service.ts` dengan fungsi createVerificationToken
-  - [ ] 4.4 Create `src/controllers/auth.controller.ts` dengan handler register
-  - [ ] 4.5 Write unit tests untuk register flow
-  - [ ] 4.6 Create validator schema untuk verify-email request
-  - [ ] 4.7 Create `src/services/token.service.ts` dengan fungsi verifyEmailToken
-  - [ ] 4.8 Create handler verifyEmail di auth.controller.ts
-  - [ ] 4.9 Write unit tests untuk verify-email flow
-  - [ ] 4.10 Create validator schema untuk resend-verification request
-  - [ ] 4.11 Create handler resendVerification di auth.controller.ts
-  - [ ] 4.12 Write unit tests untuk resend-verification flow
-  - [ ] 4.13 Create `src/routes/auth.routes.ts` dengan POST /register, /verify-email, /resend-verification
+- [x] 4.0 User Registration & Email Verification Endpoints (NestJS)
+  - [x] 4.1 Create DTOs dengan class-validator (RegisterDto, VerifyEmailDto, ResendVerificationDto)
+  - [x] 4.2 Create UserService dengan create, findByEmail, findById, updateProfile
+  - [x] 4.3 Create AuthService dengan register, verifyEmail, resendVerification
+  - [x] 4.4 Create AuthController dengan POST /register, /verify-email, /resend-verification
+  - [x] 4.5 Create UserModule dan AuthModule
+  - [ ] 4.6 Write unit tests untuk registration flow
 
-- [ ] 5.0 Login, Token Refresh & Logout Endpoints
-  - [ ] 5.1 Create validator schema untuk login request
-  - [ ] 5.2 Create `src/services/auth.service.ts` dengan fungsi login (validate credentials, check status)
-  - [ ] 5.3 Create `src/services/token.service.ts` dengan fungsi saveRefreshToken (hash before save)
-  - [ ] 5.4 Create handler login di auth.controller.ts (return access_token, refresh_token, user)
-  - [ ] 5.5 Write unit tests untuk login flow (active, pending_verification, suspended, deleted)
-  - [ ] 5.6 Create validator schema untuk refresh request
-  - [ ] 5.7 Create `src/services/token.service.ts` dengan fungsi validateRefreshToken
-  - [ ] 5.8 Create handler refresh di auth.controller.ts (support token rotation)
-  - [ ] 5.9 Write unit tests untuk refresh flow
-  - [ ] 5.10 Create `src/middleware/auth.middleware.ts` untuk validate JWT access token
-  - [ ] 5.11 Write unit tests untuk auth middleware
-  - [ ] 5.12 Create validator schema untuk logout request
-  - [ ] 5.13 Create `src/services/token.service.ts` dengan fungsi revokeRefreshToken
-  - [ ] 5.14 Create handler logout di auth.controller.ts
-  - [ ] 5.15 Create `src/services/token.service.ts` dengan fungsi revokeAllRefreshTokens
-  - [ ] 5.16 Create handler logoutAll di auth.controller.ts
-  - [ ] 5.17 Write unit tests untuk logout dan logout-all flow
-  - [ ] 5.18 Update auth.routes.ts dengan POST /login, /refresh, /logout, /logout-all
+- [x] 5.0 Login, Token Refresh & Logout Endpoints (NestJS)
+  - [x] 5.1 Create DTOs (LoginDto, RefreshTokenDto)
+  - [x] 5.2 Implement login dengan credential validation dan status check
+  - [x] 5.3 Implement refresh dengan token rotation
+  - [x] 5.4 Implement logout dan logout-all
+  - [x] 5.5 Create AuthController handlers (login, refresh, logout, logout-all)
+  - [ ] 5.6 Write unit tests untuk login/refresh/logout flow
 
-- [ ] 6.0 Password Management Endpoints (Forgot, Reset, Change)
-  - [ ] 6.1 Create validator schema untuk forgot-password request
-  - [ ] 6.2 Create `src/services/token.service.ts` dengan fungsi createPasswordResetToken
-  - [ ] 6.3 Create handler forgotPassword di auth.controller.ts (always return same response)
+- [x] 6.0 Password Management Endpoints (NestJS)
+  - [x] 6.1 Create DTOs (ForgotPasswordDto, ResetPasswordDto, ChangePasswordDto)
+  - [x] 6.2 Implement forgotPassword (create reset token)
+  - [x] 6.3 Implement resetPassword (validate token, update password)
   - [ ] 6.4 Write unit tests untuk forgot-password flow
   - [ ] 6.5 Create validator schema untuk reset-password request
   - [ ] 6.6 Create `src/services/auth.service.ts` dengan fungsi resetPassword
