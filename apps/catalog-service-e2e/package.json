@@ -1,0 +1,26 @@
+{
+  "name": "@webrana-cloud/catalog-service-e2e",
+  "version": "0.0.1",
+  "private": true,
+  "nx": {
+    "implicitDependencies": [
+      "@webrana-cloud/catalog-service"
+    ],
+    "targets": {
+      "e2e": {
+        "executor": "@nx/jest:jest",
+        "outputs": [
+          "{projectRoot}/test-output/jest/coverage"
+        ],
+        "options": {
+          "jestConfig": "apps/catalog-service-e2e/jest.config.cts",
+          "passWithNoTests": true
+        },
+        "dependsOn": [
+          "@webrana-cloud/catalog-service:build",
+          "@webrana-cloud/catalog-service:serve"
+        ]
+      }
+    }
+  }
+}

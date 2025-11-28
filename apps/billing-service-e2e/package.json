@@ -1,0 +1,26 @@
+{
+  "name": "@webrana-cloud/billing-service-e2e",
+  "version": "0.0.1",
+  "private": true,
+  "nx": {
+    "implicitDependencies": [
+      "@webrana-cloud/billing-service"
+    ],
+    "targets": {
+      "e2e": {
+        "executor": "@nx/jest:jest",
+        "outputs": [
+          "{projectRoot}/test-output/jest/coverage"
+        ],
+        "options": {
+          "jestConfig": "apps/billing-service-e2e/jest.config.cts",
+          "passWithNoTests": true
+        },
+        "dependsOn": [
+          "@webrana-cloud/billing-service:build",
+          "@webrana-cloud/billing-service:serve"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "@webrana-cloud/provider-service-e2e",
+  "version": "0.0.1",
+  "private": true,
+  "nx": {
+    "implicitDependencies": [
+      "@webrana-cloud/provider-service"
+    ],
+    "targets": {
+      "e2e": {
+        "executor": "@nx/jest:jest",
+        "outputs": [
+          "{projectRoot}/test-output/jest/coverage"
+        ],
+        "options": {
+          "jestConfig": "apps/provider-service-e2e/jest.config.cts",
+          "passWithNoTests": true
+        },
+        "dependsOn": [
+          "@webrana-cloud/provider-service:build",
+          "@webrana-cloud/provider-service:serve"
+        ]
+      }
+    }
+  }
+}

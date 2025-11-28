@@ -1,0 +1,43 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "declaration": true,
+    "declarationMap": true,
+    "emitDeclarationOnly": true,
+    "importHelpers": true,
+    "isolatedModules": true,
+    "lib": ["es2022", "DOM", "DOM.Iterable"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "noEmitOnError": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "strictNullChecks": true,
+    "strictFunctionTypes": true,
+    "strictBindCallApply": true,
+    "strictPropertyInitialization": true,
+    "noImplicitAny": true,
+    "noImplicitThis": true,
+    "alwaysStrict": true,
+    "target": "es2022",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@webrana-cloud/common": ["libs/common/src/index.ts"],
+      "@webrana-cloud/events": ["libs/events/src/index.ts"],
+      "@webrana-cloud/database": ["libs/database/src/index.ts"],
+      "@webrana-cloud/ui": ["libs/ui/src/index.ts"],
+      "@webrana-cloud/frontend-api": ["libs/frontend-api/src/index.ts"]
+    },
+    "customConditions": ["@webrana-cloud/source"]
+  },
+  "exclude": ["node_modules", "dist", "tmp"]
+}
