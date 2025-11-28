@@ -4,7 +4,7 @@
  */
 
 // Increase timeout for integration tests with containers
-jest.setTimeout(30000);
+jest.setTimeout(60000);
 
 // Mock environment variables for tests
 process.env.NODE_ENV = 'test';
@@ -20,21 +20,17 @@ process.env.AUTH_PASSWORD_REQUIRE_SPECIAL = 'true';
 process.env.AUTH_EMAIL_VERIFICATION_EXPIRY = '24h';
 process.env.AUTH_PASSWORD_RESET_EXPIRY = '1h';
 
-// Suppress console logs during tests (optional - comment out for debugging)
-// global.console = {
-//   ...console,
-//   log: jest.fn(),
-//   debug: jest.fn(),
-//   info: jest.fn(),
-//   warn: jest.fn(),
-// };
+// Suppress container logs during tests (keep errors visible)
+// Uncomment for debugging:
+// process.env.DEBUG = 'testcontainers*';
 
 // Global beforeAll - runs once before all test suites
 beforeAll(async () => {
-  // Add any global setup here
+  // Container setup is handled per-test-file for integration tests
+  // Unit tests don't need container setup
 });
 
 // Global afterAll - runs once after all test suites
 afterAll(async () => {
-  // Add any global cleanup here
+  // Container cleanup is handled per-test-file for integration tests
 });

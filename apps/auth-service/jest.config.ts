@@ -32,10 +32,11 @@ export default {
     '<rootDir>/src/**/*.spec.ts',
     '<rootDir>/test/**/*.spec.ts',
     '<rootDir>/test/**/*.e2e-spec.ts',
+    '<rootDir>/test/**/*.integration.spec.ts',
   ],
   setupFilesAfterEnv: ['<rootDir>/test/setup.ts'],
   moduleNameMapper: {
     '^@webrana-cloud/common$': '<rootDir>/../../libs/common/src/index.ts',
   },
-  testTimeout: 30000,
+  testTimeout: 60000, // Increased for container tests
 };

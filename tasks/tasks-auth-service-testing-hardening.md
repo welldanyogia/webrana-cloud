@@ -104,18 +104,18 @@ Update the file after completing each sub-task, not just after completing an ent
   - [ ] 2.22 Test `changePassword()` - wrong current password throws InvalidCurrentPasswordException
   - [ ] 2.23 Verify coverage >= 80% untuk business services
 
-- [ ] 3.0 Integration Test Infrastructure (Testcontainers + Helpers)
-  - [ ] 3.1 Create `test/helpers/test-database.ts` - PostgreSQL container setup dengan Testcontainers
-  - [ ] 3.2 Implement `startDatabase()` - spin up container, run migrations
-  - [ ] 3.3 Implement `cleanDatabase()` - truncate tables between tests
-  - [ ] 3.4 Implement `stopDatabase()` - cleanup container
-  - [ ] 3.5 Create `test/helpers/test-redis.ts` - Redis container setup untuk rate limiting tests
-  - [ ] 3.6 Create `test/helpers/test-fixtures.ts` - factory functions
-  - [ ] 3.7 Implement `createTestUser()` - create user dengan password hash
-  - [ ] 3.8 Implement `createVerificationToken()` - create token untuk testing
-  - [ ] 3.9 Implement `createRefreshToken()` - create refresh token untuk testing
-  - [ ] 3.10 Update `test/setup.ts` untuk integration test global setup/teardown
-  - [ ] 3.11 Verify infrastructure dengan simple database connection test
+- [x] 3.0 Integration Test Infrastructure (Testcontainers + Helpers)
+  - [x] 3.1 Create `test/helpers/test-database.ts` - PostgreSQL container setup dengan Testcontainers
+  - [x] 3.2 Implement `startDatabase()` - spin up container, run migrations
+  - [x] 3.3 Implement `cleanDatabase()` - truncate tables between tests
+  - [x] 3.4 Implement `stopDatabase()` - cleanup container
+  - [x] 3.5 Create `test/helpers/test-redis.ts` - Redis container setup untuk rate limiting tests
+  - [x] 3.6 Create `test/helpers/test-fixtures.ts` - factory functions
+  - [x] 3.7 Implement `createTestUser()` - create user dengan password hash
+  - [x] 3.8 Implement `createVerificationToken()` - create token untuk testing
+  - [x] 3.9 Implement `createRefreshToken()` - create refresh token untuk testing
+  - [x] 3.10 Update `test/setup.ts` untuk integration test global setup/teardown
+  - [x] 3.11 Verify infrastructure dengan simple database connection test
 
 - [ ] 4.0 Integration Tests - Auth Endpoints (register, verify-email, resend-verification, login, refresh, logout, logout-all)
   - [ ] 4.1 Create `auth.controller.integration.spec.ts` dengan Supertest
