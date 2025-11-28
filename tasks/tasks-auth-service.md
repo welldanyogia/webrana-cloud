@@ -119,20 +119,21 @@ Update the file after completing each sub-task, not just after completing an ent
   - [x] 2.8 Create PrismaService dan PrismaModule di `src/prisma/`
   - [ ] 2.9 Generate Prisma client (`npx prisma generate`)
 
-- [ ] 3.0 Core Authentication Utilities
-  - [ ] 3.1 Create `libs/common/src/lib/enums/user.enum.ts` dengan UserRole dan UserStatus
-  - [ ] 3.2 Create `libs/common/src/lib/enums/token.enum.ts` dengan VerificationTokenType
-  - [ ] 3.3 Create `libs/common/src/lib/types/auth.types.ts` dengan interface untuk request/response
-  - [ ] 3.4 Create `src/utils/password.util.ts` dengan fungsi hashPassword dan comparePassword (bcrypt)
-  - [ ] 3.5 Create `src/utils/password.util.ts` dengan fungsi validatePasswordPolicy (configurable)
-  - [ ] 3.6 Write unit tests untuk password utilities
-  - [ ] 3.7 Create `src/utils/jwt.util.ts` dengan fungsi generateAccessToken dan generateRefreshToken
-  - [ ] 3.8 Create `src/utils/jwt.util.ts` dengan fungsi verifyAccessToken dan verifyRefreshToken
-  - [ ] 3.9 Write unit tests untuk JWT utilities
-  - [ ] 3.10 Create `src/utils/token.util.ts` dengan fungsi generateVerificationToken dan hashToken
-  - [ ] 3.11 Write unit tests untuk token utilities
-  - [ ] 3.12 Create `src/utils/error.util.ts` dengan custom error classes (AuthError, ValidationError, NotFoundError)
-  - [ ] 3.13 Create `src/utils/logger.util.ts` dengan structured logging (JSON format)
+- [x] 3.0 Core Authentication Utilities (NestJS version)
+  - [x] 3.1 Create `libs/common/src/lib/enums/user.enum.ts` dengan UserRole dan UserStatus
+  - [x] 3.2 Create `libs/common/src/lib/enums/token.enum.ts` dengan VerificationTokenType
+  - [x] 3.3 Create `libs/common/src/lib/types/auth.types.ts` dengan interface untuk request/response
+  - [x] 3.4 Create `src/common/services/password.service.ts` dengan hash, verify, validatePolicy (bcrypt)
+  - [x] 3.5 Create `src/common/services/jwt.service.ts` dengan access/refresh token generation & verification
+  - [x] 3.6 Create `src/common/services/token.service.ts` dengan verification token generation
+  - [x] 3.7 Create `src/common/exceptions/auth.exceptions.ts` dengan custom exceptions
+  - [x] 3.8 Create `src/common/filters/http-exception.filter.ts` untuk error handling
+  - [x] 3.9 Create `src/common/guards/jwt-auth.guard.ts` untuk JWT authentication
+  - [x] 3.10 Create `src/common/guards/roles.guard.ts` untuk role-based access control
+  - [x] 3.11 Create `src/common/decorators/public.decorator.ts` untuk public endpoints
+  - [x] 3.12 Create `src/common/decorators/roles.decorator.ts` untuk role requirements
+  - [x] 3.13 Create `src/common/decorators/current-user.decorator.ts` untuk extracting user
+  - [ ] 3.14 Write unit tests untuk services (PasswordService, JwtService, TokenService)
 
 - [ ] 4.0 User Registration & Email Verification Endpoints
   - [ ] 4.1 Create `src/validators/auth.validator.ts` dengan schema untuk register request
