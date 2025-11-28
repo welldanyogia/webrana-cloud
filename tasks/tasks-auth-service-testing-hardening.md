@@ -79,30 +79,30 @@ Update the file after completing each sub-task, not just after completing an ent
   - [x] 1.11 Test `hashToken()` - SHA256 hash konsisten
   - [x] 1.12 Verify coverage >= 100% untuk semua core services
 
-- [ ] 2.0 Unit Tests - Business Services (UserService, AuthService)
-  - [ ] 2.1 Create `user.service.spec.ts` dengan mock PrismaService dan PasswordService
-  - [ ] 2.2 Test `create()` - success case, email exists throws EmailExistsException
-  - [ ] 2.3 Test `create()` - password policy fail throws PasswordValidationException
-  - [ ] 2.4 Test `findByEmail()` - returns user atau null
-  - [ ] 2.5 Test `findByIdOrThrow()` - returns user atau throws UserNotFoundException
-  - [ ] 2.6 Test `verifyPassword()` - delegates to PasswordService
-  - [ ] 2.7 Test `updatePassword()` - validates policy, hashes, updates lastPasswordChangeAt
-  - [ ] 2.8 Create `auth.service.spec.ts` dengan mock semua dependencies
-  - [ ] 2.9 Test `register()` - creates user, creates verification token, returns correct format
-  - [ ] 2.10 Test `login()` - user active returns tokens
-  - [ ] 2.11 Test `login()` - user pending_verification returns tokens + requires_verification flag
-  - [ ] 2.12 Test `login()` - user suspended throws AccountSuspendedException
-  - [ ] 2.13 Test `login()` - user deleted throws AccountDeletedException
-  - [ ] 2.14 Test `login()` - wrong password throws InvalidCredentialsException
-  - [ ] 2.15 Test `verifyEmail()` - valid token activates user
-  - [ ] 2.16 Test `verifyEmail()` - expired token throws TokenExpiredException
-  - [ ] 2.17 Test `verifyEmail()` - used token throws TokenUsedException
-  - [ ] 2.18 Test `refresh()` - valid token returns new token pair (rotation)
-  - [ ] 2.19 Test `refresh()` - revoked token throws InvalidTokenException
-  - [ ] 2.20 Test `resetPassword()` - valid token updates password, revokes all refresh tokens
-  - [ ] 2.21 Test `resetPassword()` - used token throws TokenUsedException
-  - [ ] 2.22 Test `changePassword()` - wrong current password throws InvalidCurrentPasswordException
-  - [ ] 2.23 Verify coverage >= 80% untuk business services
+- [x] 2.0 Unit Tests - Business Services (UserService, AuthService)
+  - [x] 2.1 Create `user.service.spec.ts` dengan mock PrismaService dan PasswordService
+  - [x] 2.2 Test `create()` - success case, email exists throws EmailExistsException
+  - [x] 2.3 Test `create()` - password policy fail throws PasswordValidationException
+  - [x] 2.4 Test `findByEmail()` - returns user atau null
+  - [x] 2.5 Test `findByIdOrThrow()` - returns user atau throws UserNotFoundException
+  - [x] 2.6 Test `verifyPassword()` - delegates to PasswordService
+  - [x] 2.7 Test `updatePassword()` - validates policy, hashes, updates lastPasswordChangeAt
+  - [x] 2.8 Create `auth.service.spec.ts` dengan mock semua dependencies
+  - [x] 2.9 Test `register()` - creates user, creates verification token, returns correct format
+  - [x] 2.10 Test `login()` - user active returns tokens
+  - [x] 2.11 Test `login()` - user pending_verification returns tokens + requires_verification flag
+  - [x] 2.12 Test `login()` - user suspended throws AccountSuspendedException
+  - [x] 2.13 Test `login()` - user deleted throws AccountDeletedException
+  - [x] 2.14 Test `login()` - wrong password throws InvalidCredentialsException
+  - [x] 2.15 Test `verifyEmail()` - valid token activates user
+  - [x] 2.16 Test `verifyEmail()` - expired token throws TokenExpiredException
+  - [x] 2.17 Test `verifyEmail()` - used token throws TokenUsedException
+  - [x] 2.18 Test `refresh()` - valid token returns new token pair (rotation)
+  - [x] 2.19 Test `refresh()` - revoked token throws InvalidTokenException
+  - [x] 2.20 Test `resetPassword()` - valid token updates password, revokes all refresh tokens
+  - [x] 2.21 Test `resetPassword()` - used token throws TokenUsedException
+  - [x] 2.22 Test `changePassword()` - wrong current password throws InvalidCurrentPasswordException
+  - [x] 2.23 Verify coverage >= 80% untuk business services
 
 - [x] 3.0 Integration Test Infrastructure (Testcontainers + Helpers)
   - [x] 3.1 Create `test/helpers/test-database.ts` - PostgreSQL container setup dengan Testcontainers
