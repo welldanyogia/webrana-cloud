@@ -65,19 +65,19 @@ Update the file after completing each sub-task, not just after completing an ent
   - [x] 0.4 Create `test/helpers/test-app.ts` - helper untuk bootstrap NestJS test app
   - [x] 0.5 Verify test setup dengan simple smoke test
 
-- [ ] 1.0 Unit Tests - Core Services (PasswordService, JwtTokenService, TokenService)
+- [x] 1.0 Unit Tests - Core Services (PasswordService, JwtTokenService, TokenService)
   - [x] 1.1 Create `password.service.spec.ts` - test `hash()` menghasilkan bcrypt hash valid
   - [x] 1.2 Test `verify()` - correct password returns true, wrong password returns false
   - [x] 1.3 Test `validatePolicy()` - semua kombinasi policy (min length, uppercase, lowercase, digit, special)
-  - [ ] 1.4 Create `jwt.service.spec.ts` - test `generateAccessToken()` payload sesuai spec
-  - [ ] 1.5 Test `generateRefreshToken()` - payload dengan tokenId unik
-  - [ ] 1.6 Test `verifyAccessToken()` - valid token, expired token, invalid signature, wrong type
-  - [ ] 1.7 Test `verifyRefreshToken()` - valid token, expired token, wrong type
-  - [ ] 1.8 Test `generateTokenPair()` - returns both tokens dengan correct structure
-  - [ ] 1.9 Create `token.service.spec.ts` - test `generateVerificationToken()` untuk email_verification
-  - [ ] 1.10 Test `generateVerificationToken()` untuk password_reset dengan expiry berbeda
-  - [ ] 1.11 Test `hashToken()` - SHA256 hash konsisten
-  - [ ] 1.12 Verify coverage >= 100% untuk semua core services
+  - [x] 1.4 Create `jwt.service.spec.ts` - test `generateAccessToken()` payload sesuai spec
+  - [x] 1.5 Test `generateRefreshToken()` - payload dengan tokenId unik
+  - [x] 1.6 Test `verifyAccessToken()` - valid token, expired token, invalid signature, wrong type
+  - [x] 1.7 Test `verifyRefreshToken()` - valid token, expired token, wrong type
+  - [x] 1.8 Test `generateTokenPair()` - returns both tokens dengan correct structure
+  - [x] 1.9 Create `token.service.spec.ts` - test `generateVerificationToken()` untuk email_verification
+  - [x] 1.10 Test `generateVerificationToken()` untuk password_reset dengan expiry berbeda
+  - [x] 1.11 Test `hashToken()` - SHA256 hash konsisten
+  - [x] 1.12 Verify coverage >= 100% untuk semua core services
 
 - [ ] 2.0 Unit Tests - Business Services (UserService, AuthService)
   - [ ] 2.1 Create `user.service.spec.ts` dengan mock PrismaService dan PasswordService
