@@ -421,6 +421,15 @@ export class AuthService {
 
     await this.userService.updatePassword(userId, dto.new_password);
 
+    // FR-37: Revoke all refresh tokens after password change
+    await this.prisma.refreshToken.updateMany({
+      where: {
+        userId,
+        revokedAt: null,
+      },
+      data: { revokedAt: new Date() },
+    });
+
     this.logger.log(`Password changed for user: ${userId}`);
 
     return { data: { message: 'Password berhasil diubah' } };

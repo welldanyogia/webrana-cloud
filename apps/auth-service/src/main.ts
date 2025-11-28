@@ -3,15 +3,30 @@ import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
 import helmet from 'helmet';
 import compression from 'compression';
+import { Request, Response, NextFunction } from 'express';
 import { AppModule } from './app/app.module';
+import { SanitizePipe } from './common/pipes/sanitize.pipe';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
   const logger = new Logger('Bootstrap');
 
-  // Security
-  app.use(helmet());
+  // Security headers
+  app.use(
+    helmet({
+      frameguard: { action: 'deny' }, // X-Frame-Options: DENY
+      contentSecurityPolicy: false, // CSP can be added later if needed
+    })
+  );
+
+  // Custom security headers
+  app.use((_req: Request, res: Response, next: NextFunction) => {
+    res.removeHeader('X-Powered-By');
+    res.setHeader('X-XSS-Protection', '1; mode=block');
+    next();
+  });
+
   app.use(compression());
 
   // CORS
@@ -23,8 +38,9 @@ async function bootstrap() {
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
-  // Global validation pipe
+  // Global pipes: Sanitize first, then validate
   app.useGlobalPipes(
+    new SanitizePipe(),
     new ValidationPipe({
       whitelist: true,
       forbidNonWhitelisted: true,

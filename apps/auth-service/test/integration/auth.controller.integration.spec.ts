@@ -3,6 +3,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import request from 'supertest';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER } from '@nestjs/core';
+import { ThrottlerModule } from '@nestjs/throttler';
 import {
   startDatabase,
   stopDatabase,
@@ -44,6 +45,12 @@ describe('Auth Controller Integration Tests', () => {
           isGlobal: true,
           // Use test environment variables set by startDatabase()
         }),
+        ThrottlerModule.forRoot([
+          {
+            ttl: 60000,
+            limit: 1000, // High limit to not interfere with tests
+          },
+        ]),
         PrismaModule,
         AuthModule,
       ],
@@ -166,7 +173,7 @@ describe('Auth Controller Integration Tests', () => {
   });
 
   describe('POST /api/v1/auth/verify-email', () => {
-    it('should verify email successfully (201)', async () => {
+    it('should verify email successfully (200)', async () => {
       if (!dockerAvailable) return;
 
       const prisma = getPrismaClient();
@@ -181,7 +188,7 @@ describe('Auth Controller Integration Tests', () => {
       const response = await request(app.getHttpServer())
         .post('/api/v1/auth/verify-email')
         .send({ token: token.token })
-        .expect(201);
+        .expect(200);
 
       expect(response.body.data.message).toBe('Email berhasil diverifikasi');
       expect(response.body.data.user_id).toBe(user.id);
@@ -242,7 +249,7 @@ describe('Auth Controller Integration Tests', () => {
   });
 
   describe('POST /api/v1/auth/resend-verification', () => {
-    it('should resend verification successfully (201)', async () => {
+    it('should resend verification successfully (200)', async () => {
       if (!dockerAvailable) return;
 
       const prisma = getPrismaClient();
@@ -253,7 +260,7 @@ describe('Auth Controller Integration Tests', () => {
       const response = await request(app.getHttpServer())
         .post('/api/v1/auth/resend-verification')
         .send({ email: user.email })
-        .expect(201);
+        .expect(200);
 
       expect(response.body.data.message).toContain('Jika email terdaftar');
       expect(response.body.data.verification_token).toBeDefined();
@@ -271,7 +278,7 @@ describe('Auth Controller Integration Tests', () => {
       const response = await request(app.getHttpServer())
         .post('/api/v1/auth/resend-verification')
         .send({ email: 'nonexistent@example.com' })
-        .expect(201);
+        .expect(200);
 
       expect(response.body.data.message).toContain('Jika email terdaftar');
       // Should NOT have verification_token for non-existent user
@@ -280,7 +287,7 @@ describe('Auth Controller Integration Tests', () => {
   });
 
   describe('POST /api/v1/auth/login', () => {
-    it('should login active user successfully (201)', async () => {
+    it('should login active user successfully (200)', async () => {
       if (!dockerAvailable) return;
 
       const prisma = getPrismaClient();
@@ -296,7 +303,7 @@ describe('Auth Controller Integration Tests', () => {
           email: 'active@example.com',
           password: 'ValidPassword123!',
         })
-        .expect(201);
+        .expect(200);
 
       expect(response.body.data.access_token).toBeDefined();
       expect(response.body.data.refresh_token).toBeDefined();
@@ -310,7 +317,7 @@ describe('Auth Controller Integration Tests', () => {
       expect(updatedUser?.lastLoginAt).not.toBeNull();
     });
 
-    it('should login pending_verification user with flag (201)', async () => {
+    it('should login pending_verification user with flag (200)', async () => {
       if (!dockerAvailable) return;
 
       const prisma = getPrismaClient();
@@ -326,7 +333,7 @@ describe('Auth Controller Integration Tests', () => {
           email: 'pending@example.com',
           password: 'ValidPassword123!',
         })
-        .expect(201);
+        .expect(200);
 
       expect(response.body.data.access_token).toBeDefined();
       expect(response.body.data.requires_verification).toBe(true);
@@ -411,7 +418,7 @@ describe('Auth Controller Integration Tests', () => {
   });
 
   describe('POST /api/v1/auth/refresh', () => {
-    it('should refresh tokens successfully with rotation (201)', async () => {
+    it('should refresh tokens successfully with rotation (200)', async () => {
       if (!dockerAvailable) return;
 
       const prisma = getPrismaClient();
@@ -424,7 +431,7 @@ describe('Auth Controller Integration Tests', () => {
           email: user.email,
           password: user.password,
         })
-        .expect(201);
+        .expect(200);
 
       const oldRefreshToken = loginResponse.body.data.refresh_token;
 
@@ -435,7 +442,7 @@ describe('Auth Controller Integration Tests', () => {
       const refreshResponse = await request(app.getHttpServer())
         .post('/api/v1/auth/refresh')
         .send({ refresh_token: oldRefreshToken })
-        .expect(201);
+        .expect(200);
 
       expect(refreshResponse.body.data.access_token).toBeDefined();
       expect(refreshResponse.body.data.refresh_token).toBeDefined();
@@ -473,7 +480,7 @@ describe('Auth Controller Integration Tests', () => {
           email: user.email,
           password: user.password,
         })
-        .expect(201);
+        .expect(200);
 
       const refreshToken = loginResponse.body.data.refresh_token;
 
@@ -481,7 +488,7 @@ describe('Auth Controller Integration Tests', () => {
       await request(app.getHttpServer())
         .post('/api/v1/auth/refresh')
         .send({ refresh_token: refreshToken })
-        .expect(201);
+        .expect(200);
 
       // Try to use same token again (should fail - token reuse)
       const response = await request(app.getHttpServer())
@@ -494,7 +501,7 @@ describe('Auth Controller Integration Tests', () => {
   });
 
   describe('POST /api/v1/auth/logout', () => {
-    it('should logout successfully (201)', async () => {
+    it('should logout successfully (200)', async () => {
       if (!dockerAvailable) return;
 
       const prisma = getPrismaClient();
@@ -507,7 +514,7 @@ describe('Auth Controller Integration Tests', () => {
           email: user.email,
           password: user.password,
         })
-        .expect(201);
+        .expect(200);
 
       const refreshToken = loginResponse.body.data.refresh_token;
 
@@ -515,7 +522,7 @@ describe('Auth Controller Integration Tests', () => {
       const response = await request(app.getHttpServer())
         .post('/api/v1/auth/logout')
         .send({ refresh_token: refreshToken })
-        .expect(201);
+        .expect(200);
 
       expect(response.body.data.message).toBe('Logout berhasil');
 
@@ -527,13 +534,13 @@ describe('Auth Controller Integration Tests', () => {
       expect(token?.revokedAt).not.toBeNull();
     });
 
-    it('should return 201 for invalid token (idempotent)', async () => {
+    it('should return 200 for invalid token (idempotent)', async () => {
       if (!dockerAvailable) return;
 
       const response = await request(app.getHttpServer())
         .post('/api/v1/auth/logout')
         .send({ refresh_token: 'invalid-token' })
-        .expect(201);
+        .expect(200);
 
       expect(response.body.data.message).toBe('Logout berhasil');
     });
@@ -548,7 +555,7 @@ describe('Auth Controller Integration Tests', () => {
         .expect(401);
     });
 
-    it('should logout all sessions with valid token (201)', async () => {
+    it('should logout all sessions with valid token (200)', async () => {
       if (!dockerAvailable) return;
 
       const prisma = getPrismaClient();
@@ -558,12 +565,12 @@ describe('Auth Controller Integration Tests', () => {
       const login1 = await request(app.getHttpServer())
         .post('/api/v1/auth/login')
         .send({ email: user.email, password: user.password })
-        .expect(201);
+        .expect(200);
 
       const login2 = await request(app.getHttpServer())
         .post('/api/v1/auth/login')
         .send({ email: user.email, password: user.password })
-        .expect(201);
+        .expect(200);
 
       const accessToken = login1.body.data.access_token;
 
@@ -571,7 +578,7 @@ describe('Auth Controller Integration Tests', () => {
       const response = await request(app.getHttpServer())
         .post('/api/v1/auth/logout-all')
         .set('Authorization', `Bearer ${accessToken}`)
-        .expect(201);
+        .expect(200);
 
       expect(response.body.data.message).toBe('Semua sesi berhasil di-logout');
 
