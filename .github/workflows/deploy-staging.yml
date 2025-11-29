@@ -1,0 +1,156 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# WeBrana Cloud - Staging Deployment
+# Triggers: Manual dispatch OR push to develop branch
+# Deploys to staging environment via SSH
+# ═══════════════════════════════════════════════════════════════════════════════
+
+name: Deploy Staging
+
+on:
+  workflow_dispatch:
+    inputs:
+      skip_tests:
+        description: 'Skip tests before deployment'
+        required: false
+        default: 'false'
+        type: boolean
+  push:
+    branches: [develop]
+
+# Prevent concurrent deployments to staging
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Pre-deployment checks (optional based on trigger)
+  # ─────────────────────────────────────────────────────────────────────────────
+  pre-deploy-checks:
+    name: Pre-deployment Checks
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.skip_tests != 'true' }}
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Run tests
+        run: npm run test -- --passWithNoTests
+        env:
+          CI: true
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Deploy to Staging
+  # ─────────────────────────────────────────────────────────────────────────────
+  deploy:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [pre-deploy-checks]
+    # Run even if pre-deploy-checks was skipped
+    if: ${{ always() && (needs.pre-deploy-checks.result == 'success' || needs.pre-deploy-checks.result == 'skipped') }}
+    environment: staging
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Deploy to staging server
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/opt/webrana-cloud' }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${SSH_USER}@${SSH_HOST} << 'DEPLOY_SCRIPT'
+            set -e
+
+            echo "═══════════════════════════════════════════════════════════════"
+            echo "  WeBrana Cloud - Staging Deployment"
+            echo "  Branch: ${{ github.ref_name }}"
+            echo "  Commit: ${{ github.sha }}"
+            echo "  Triggered by: ${{ github.actor }}"
+            echo "═══════════════════════════════════════════════════════════════"
+
+            # Navigate to project directory
+            cd ${{ env.DEPLOY_PATH || '/opt/webrana-cloud' }}
+
+            # Pull latest changes
+            echo "Pulling latest changes..."
+            git fetch origin
+            git checkout ${{ github.ref_name }}
+            git pull origin ${{ github.ref_name }}
+
+            # Run deployment
+            echo "Running deployment script..."
+            cd docker
+            bash scripts/deploy.sh update
+
+            echo "═══════════════════════════════════════════════════════════════"
+            echo "  Staging deployment completed successfully!"
+            echo "═══════════════════════════════════════════════════════════════"
+          DEPLOY_SCRIPT
+
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
+
+      - name: Deployment notification
+        if: success()
+        run: |
+          echo "✅ Staging deployment successful"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Actor: ${{ github.actor }}"
+
+      - name: Deployment failed notification
+        if: failure()
+        run: |
+          echo "❌ Staging deployment failed"
+          echo "Branch: ${{ github.ref_name }}"
+          echo "Commit: ${{ github.sha }}"
+          echo "Check the logs above for details"
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Post-deployment health check
+  # ─────────────────────────────────────────────────────────────────────────────
+  health-check:
+    name: Health Check
+    runs-on: ubuntu-latest
+    needs: [deploy]
+    timeout-minutes: 5
+
+    steps:
+      - name: Wait for services to stabilize
+        run: sleep 30
+
+      - name: Check health endpoint
+        run: |
+          echo "Running health checks..."
+          # Add actual health check URL when available
+          # curl -f https://staging.webrana.cloud/health || exit 1
+          echo "⚠️ Health check endpoint not configured yet"
+          echo "TODO: Configure STAGING_URL secret and uncomment health check"

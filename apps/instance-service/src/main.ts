@@ -1,6 +1,7 @@
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app/app.module';
 
 async function bootstrap() {
@@ -35,6 +36,21 @@ async function bootstrap() {
   // Global prefix
   app.setGlobalPrefix('api/v1');
 
+  // Swagger setup
+  const config = new DocumentBuilder()
+    .setTitle('Instance Service API')
+    .setDescription('VPS instance management service - Handles instance listing, details, and actions (reboot, power on/off)')
+    .setVersion('1.0')
+    .addBearerAuth(
+      { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+      'bearer'
+    )
+    .addTag('Instances', 'VPS instance management endpoints')
+    .build();
+
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api/docs', app, document);
+
   const port = configService.get<number>('PORT', 3005);
   await app.listen(port);
 
@@ -46,6 +62,7 @@ async function bootstrap() {
   Port: ${port}
   URL: http://localhost:${port}
   Health: http://localhost:${port}/api/v1/health
+  API Docs: http://localhost:${port}/api/docs
 ========================================
   `);
 }

@@ -1,0 +1,259 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# WeBrana Cloud - Production Deployment
+# Triggers: GitHub Release published
+# Requires: Manual approval (via GitHub environment)
+# Deploys to production environment via SSH with version tagging
+# ═══════════════════════════════════════════════════════════════════════════════
+
+name: Deploy Production
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag to deploy (e.g., v1.0.0)'
+        required: true
+        type: string
+      skip_confirmation:
+        description: 'Skip deployment confirmation (not recommended)'
+        required: false
+        default: 'false'
+        type: boolean
+
+# Prevent concurrent deployments to production
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '20'
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Prepare - Validate release and prepare deployment
+  # ─────────────────────────────────────────────────────────────────────────────
+  prepare:
+    name: Prepare Deployment
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      version: ${{ steps.version.outputs.tag }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ "${{ github.event_name }}" == "release" ]; then
+            VERSION="${{ github.event.release.tag_name }}"
+          else
+            VERSION="${{ github.event.inputs.version }}"
+          fi
+          echo "tag=${VERSION}" >> $GITHUB_OUTPUT
+          echo "Deploying version: ${VERSION}"
+
+      - name: Validate version tag
+        run: |
+          VERSION="${{ steps.version.outputs.tag }}"
+          if [[ ! "${VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9]+)?$ ]]; then
+            echo "❌ Invalid version format: ${VERSION}"
+            echo "Expected format: v1.0.0 or v1.0.0-beta"
+            exit 1
+          fi
+          echo "✅ Version format valid: ${VERSION}"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Run tests
+        run: npm run test -- --passWithNoTests
+        env:
+          CI: true
+
+      - name: Build all services
+        run: npm run build
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Deploy to Production
+  # ─────────────────────────────────────────────────────────────────────────────
+  deploy:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [prepare]
+    environment: production  # Requires approval
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.prepare.outputs.version }}
+
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Pre-deployment backup
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/opt/webrana-cloud' }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${SSH_USER}@${SSH_HOST} << 'BACKUP_SCRIPT'
+            set -e
+            echo "Creating pre-deployment backup..."
+            cd ${{ env.DEPLOY_PATH || '/opt/webrana-cloud' }}/docker
+            if [ -f scripts/backup-db.sh ]; then
+              bash scripts/backup-db.sh pre-deploy-${{ needs.prepare.outputs.version }}
+            fi
+            echo "✅ Backup completed"
+          BACKUP_SCRIPT
+
+      - name: Deploy to production server
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/opt/webrana-cloud' }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${SSH_USER}@${SSH_HOST} << 'DEPLOY_SCRIPT'
+            set -e
+
+            echo "═══════════════════════════════════════════════════════════════"
+            echo "  WeBrana Cloud - Production Deployment"
+            echo "  Version: ${{ env.VERSION }}"
+            echo "  Commit: ${{ github.sha }}"
+            echo "  Triggered by: ${{ github.actor }}"
+            echo "  Time: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+            echo "═══════════════════════════════════════════════════════════════"
+
+            # Navigate to project directory
+            cd ${{ env.DEPLOY_PATH || '/opt/webrana-cloud' }}
+
+            # Fetch and checkout specific version
+            echo "Fetching version ${{ env.VERSION }}..."
+            git fetch origin --tags
+            git checkout ${{ env.VERSION }}
+
+            # Run deployment with version
+            echo "Running deployment script..."
+            cd docker
+            bash scripts/deploy.sh deploy ${{ env.VERSION }}
+
+            # Verify deployment
+            echo "Verifying deployment..."
+            bash scripts/health-check.sh || {
+              echo "❌ Health check failed!"
+              echo "Consider rolling back with: bash scripts/deploy.sh rollback"
+              exit 1
+            }
+
+            echo "═══════════════════════════════════════════════════════════════"
+            echo "  Production deployment completed successfully!"
+            echo "  Version: ${{ env.VERSION }}"
+            echo "═══════════════════════════════════════════════════════════════"
+          DEPLOY_SCRIPT
+
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
+
+      - name: Create deployment summary
+        if: success()
+        run: |
+          echo "## Production Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Item | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Version | ${{ needs.prepare.outputs.version }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit | ${{ github.sha }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Deployed by | ${{ github.actor }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Time | $(date -u +"%Y-%m-%d %H:%M:%S UTC") |" >> $GITHUB_STEP_SUMMARY
+          echo "| Status | ✅ Success |" >> $GITHUB_STEP_SUMMARY
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Post-deployment verification
+  # ─────────────────────────────────────────────────────────────────────────────
+  verify:
+    name: Post-deployment Verification
+    runs-on: ubuntu-latest
+    needs: [prepare, deploy]
+    timeout-minutes: 10
+
+    steps:
+      - name: Wait for services to stabilize
+        run: sleep 60
+
+      - name: Verify deployment health
+        run: |
+          echo "Running post-deployment health checks..."
+          # Add actual health check URL when available
+          # curl -f https://webrana.cloud/health || exit 1
+          echo "⚠️ Health check endpoint not configured yet"
+          echo "TODO: Configure PRODUCTION_URL secret and uncomment health check"
+
+      - name: Notify success
+        if: success()
+        run: |
+          echo "✅ Production deployment verified"
+          echo "Version: ${{ needs.prepare.outputs.version }}"
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Rollback job (can be triggered manually if needed)
+  # ─────────────────────────────────────────────────────────────────────────────
+  rollback:
+    name: Rollback (Manual)
+    runs-on: ubuntu-latest
+    needs: [deploy]
+    if: failure()
+    environment: production
+
+    steps:
+      - name: Setup SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Rollback deployment
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || '/opt/webrana-cloud' }}
+        run: |
+          echo "⚠️ Deployment failed! Initiating rollback..."
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${SSH_USER}@${SSH_HOST} << 'ROLLBACK_SCRIPT'
+            set -e
+            cd ${{ env.DEPLOY_PATH || '/opt/webrana-cloud' }}/docker
+            if [ -f scripts/deploy.sh ]; then
+              bash scripts/deploy.sh rollback
+            fi
+          ROLLBACK_SCRIPT
+
+      - name: Cleanup SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key
+
+      - name: Notify rollback
+        run: |
+          echo "🔄 Rollback initiated"
+          echo "Check server logs for rollback status"

@@ -10,51 +10,34 @@ import {
   HttpCode,
   ParseUUIDPipe,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiBody,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { OrderService } from './order.service';
 import { CreateOrderDto, PaginationQueryDto } from './dto';
 import { JwtAuthGuard } from '../../common/guards';
 import { CurrentUser, CurrentUserData } from '../../common/decorators';
 
-/**
- * User Order Controller
- * 
- * Public endpoints for users to create and view their orders.
- * All endpoints require JWT authentication.
- * 
- * Endpoints:
- * - POST /api/v1/orders - Create new order
- * - GET /api/v1/orders - List user's orders (paginated)
- * - GET /api/v1/orders/:id - Get single order with provisioning details
- */
+@ApiTags('Orders')
+@ApiBearerAuth('bearer')
 @Controller('orders')
 @UseGuards(JwtAuthGuard)
 export class OrderController {
   constructor(private readonly orderService: OrderService) {}
 
-  /**
-   * Create a new order
-   * 
-   * POST /api/v1/orders
-   * 
-   * Body:
-   * - planId: UUID of the plan
-   * - imageId: UUID of the image
-   * - duration: MONTHLY | QUARTERLY | SEMI_ANNUAL | ANNUAL
-   * - couponCode?: Optional coupon code
-   * 
-   * Response 201:
-   * {
-   *   "data": {
-   *     "id": "uuid",
-   *     "status": "PENDING_PAYMENT",
-   *     "pricing": { basePrice, promoDiscount, couponDiscount, finalPrice, currency },
-   *     "items": [...],
-   *     "createdAt": "ISO date"
-   *   }
-   * }
-   */
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Create new order', description: 'Create a new VPS order with selected plan, image, and duration' })
+  @ApiBody({ type: CreateOrderDto })
+  @ApiResponse({ status: 201, description: 'Order created successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid input or plan/image not found' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async createOrder(
     @CurrentUser() user: CurrentUserData,
     @Body() dto: CreateOrderDto
@@ -78,23 +61,13 @@ export class OrderController {
     };
   }
 
-  /**
-   * List user's orders (paginated)
-   * 
-   * GET /api/v1/orders?page=1&limit=10&status=ACTIVE
-   * 
-   * Query:
-   * - page: Page number (default: 1)
-   * - limit: Items per page (default: 10, max: 100)
-   * - status?: Filter by OrderStatus
-   * 
-   * Response 200:
-   * {
-   *   data: [...orders],
-   *   meta: { page, limit, total, totalPages }
-   * }
-   */
   @Get()
+  @ApiOperation({ summary: 'List user orders', description: 'Get paginated list of orders for the authenticated user' })
+  @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default: 1)' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default: 10, max: 100)' })
+  @ApiQuery({ name: 'status', required: false, description: 'Filter by order status' })
+  @ApiResponse({ status: 200, description: 'Orders retrieved successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getMyOrders(
     @CurrentUser('userId') userId: string,
     @Query() query: PaginationQueryDto
@@ -102,29 +75,13 @@ export class OrderController {
     return this.orderService.getOrdersByUserId(userId, query);
   }
 
-  /**
-   * Get single order by ID
-   * 
-   * GET /api/v1/orders/:id
-   * 
-   * - Returns 404 if order not found
-   * - Returns 403 if order doesn't belong to user
-   * - Includes ProvisioningTask if exists
-   * 
-   * Response 200:
-   * {
-   *   "data": {
-   *     "id": "uuid",
-   *     "status": "ACTIVE",
-   *     "pricing": {...},
-   *     "items": [...],
-   *     "provisioningTask": { dropletId, ipv4Public, status, ... } | null,
-   *     "paidAt": "ISO date",
-   *     "createdAt": "ISO date"
-   *   }
-   * }
-   */
   @Get(':id')
+  @ApiOperation({ summary: 'Get order by ID', description: 'Get order details including provisioning status' })
+  @ApiParam({ name: 'id', type: String, description: 'Order UUID' })
+  @ApiResponse({ status: 200, description: 'Order retrieved successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Access denied - order belongs to another user' })
+  @ApiResponse({ status: 404, description: 'Order not found' })
   async getOrderById(
     @CurrentUser('userId') userId: string,
     @Param('id', new ParseUUIDPipe({ version: '4' })) orderId: string

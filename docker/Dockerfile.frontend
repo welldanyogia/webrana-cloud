@@ -1,0 +1,88 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# WeBrana Cloud - Frontend Dockerfile (Next.js)
+# Multi-stage build optimized for production
+# Usage: docker build --build-arg APP_NAME=<app> -f docker/Dockerfile.frontend .
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Build Arguments
+# ─────────────────────────────────────────────────────────────────────────────
+ARG APP_NAME
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Stage 1: Dependencies
+# ─────────────────────────────────────────────────────────────────────────────
+FROM node:20-alpine AS deps
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json package-lock.json ./
+COPY nx.json tsconfig.base.json ./
+
+# Install dependencies
+RUN npm ci --legacy-peer-deps
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Stage 2: Builder
+# ─────────────────────────────────────────────────────────────────────────────
+FROM node:20-alpine AS builder
+
+ARG APP_NAME
+
+WORKDIR /app
+
+# Copy dependencies
+COPY --from=deps /app/node_modules ./node_modules
+
+# Copy source code
+COPY . .
+
+# Enable standalone output for Docker deployment
+RUN echo "import type { NextConfig } from 'next';\nconst nextConfig: NextConfig = { output: 'standalone' };\nexport default nextConfig;" > apps/${APP_NAME}/next.config.ts
+
+# Set Next.js environment variables for build
+ENV NEXT_TELEMETRY_DISABLED=1
+
+# Build the application using Next.js directly from the app directory
+WORKDIR /app/apps/${APP_NAME}
+RUN npm run build
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Stage 3: Production Runtime
+# ─────────────────────────────────────────────────────────────────────────────
+FROM node:20-alpine AS runner
+
+ARG APP_NAME
+
+WORKDIR /app
+
+# Install runtime dependencies
+RUN apk add --no-cache wget
+
+# Create non-root user for security
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
+
+# Set environment
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV HOSTNAME="0.0.0.0"
+
+# Copy built application (standalone output)
+COPY --from=builder --chown=nextjs:nodejs /app/apps/${APP_NAME}/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/apps/${APP_NAME}/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/apps/${APP_NAME}/public ./public
+
+# Switch to non-root user
+USER nextjs
+
+# Expose port
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT:-3000}/ || exit 1
+
+# Start Next.js standalone server
+CMD ["node", "server.js"]

@@ -9,6 +9,13 @@ import {
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+} from '@nestjs/swagger';
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -19,22 +26,17 @@ import {
 } from './dto/invoice.dto';
 import { InvoiceService } from './invoice.service';
 
-/**
- * Invoice Controller - User API Endpoints
- * 
- * Base path: /api/v1/invoices
- * Authentication: JWT Bearer token required
- */
+@ApiTags('Invoices')
+@ApiBearerAuth('bearer')
 @Controller('api/v1/invoices')
 @UseGuards(JwtAuthGuard)
 export class InvoiceController {
   constructor(private readonly invoiceService: InvoiceService) {}
 
-  /**
-   * GET /api/v1/invoices
-   * Get all invoices for current user
-   */
   @Get()
+  @ApiOperation({ summary: 'List user invoices', description: 'Get all invoices for the authenticated user' })
+  @ApiResponse({ status: 200, description: 'Invoices retrieved successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getMyInvoices(
     @CurrentUser('userId') userId: string,
     @Query() query: ListInvoicesQueryDto
@@ -43,11 +45,12 @@ export class InvoiceController {
     return { data: result.data, meta: result.meta };
   }
 
-  /**
-   * GET /api/v1/invoices/:id
-   * Get invoice detail by ID
-   */
   @Get(':id')
+  @ApiOperation({ summary: 'Get invoice by ID', description: 'Get invoice details by invoice ID' })
+  @ApiParam({ name: 'id', description: 'Invoice UUID' })
+  @ApiResponse({ status: 200, description: 'Invoice retrieved successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Invoice not found' })
   async getInvoiceById(
     @Param('id') id: string,
     @CurrentUser('userId') userId: string
@@ -56,11 +59,12 @@ export class InvoiceController {
     return { data: invoice };
   }
 
-  /**
-   * GET /api/v1/invoices/order/:orderId
-   * Get invoice by order ID
-   */
   @Get('order/:orderId')
+  @ApiOperation({ summary: 'Get invoice by order ID', description: 'Get invoice details by associated order ID' })
+  @ApiParam({ name: 'orderId', description: 'Order UUID' })
+  @ApiResponse({ status: 200, description: 'Invoice retrieved successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Invoice not found' })
   async getInvoiceByOrderId(
     @Param('orderId') orderId: string,
     @CurrentUser('userId') userId: string
@@ -69,12 +73,14 @@ export class InvoiceController {
     return { data: invoice };
   }
 
-  /**
-   * POST /api/v1/invoices/:id/pay
-   * Initiate payment for an invoice
-   */
   @Post(':id/pay')
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Initiate payment', description: 'Start payment process for an invoice using selected payment channel' })
+  @ApiParam({ name: 'id', description: 'Invoice UUID' })
+  @ApiResponse({ status: 200, description: 'Payment initiated successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid payment channel or invoice already paid' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 404, description: 'Invoice not found' })
   async initiatePayment(
     @Param('id') id: string,
     @Body() dto: InitiatePaymentDto,

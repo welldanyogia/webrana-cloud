@@ -1,6 +1,7 @@
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from 'helmet';
 import compression from 'compression';
 import { Request, Response, NextFunction } from 'express';
@@ -54,6 +55,23 @@ async function bootstrap() {
   // Global prefix
   app.setGlobalPrefix('api/v1/auth');
 
+  // Swagger setup
+  const config = new DocumentBuilder()
+    .setTitle('Auth Service API')
+    .setDescription('Authentication and user management service - Handles user registration, login, email verification, password management, and profile operations')
+    .setVersion('1.0')
+    .addBearerAuth(
+      { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' },
+      'bearer'
+    )
+    .addTag('Authentication', 'User authentication endpoints (login, register, logout)')
+    .addTag('Profile', 'User profile management endpoints')
+    .addTag('Password', 'Password management endpoints')
+    .build();
+
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api/docs', app, document);
+
   const port = configService.get<number>('PORT', 3001);
   await app.listen(port);
 
@@ -65,6 +83,7 @@ async function bootstrap() {
   Port: ${port}
   URL: http://localhost:${port}
   Health: http://localhost:${port}/api/v1/auth/health
+  API Docs: http://localhost:${port}/api/docs
 ========================================
   `);
 }

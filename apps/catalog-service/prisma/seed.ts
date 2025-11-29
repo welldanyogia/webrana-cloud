@@ -5,10 +5,16 @@ const prisma = new PrismaClient();
 async function main() {
   console.log('Seeding catalog-service database...');
 
-  // Create VPS Images
+  // =====================================================
+  // VPS Images (OS)
+  // =====================================================
   const ubuntuImage = await prisma.vpsImage.upsert({
     where: { provider_providerSlug: { provider: 'digitalocean', providerSlug: 'ubuntu-22-04-x64' } },
-    update: {},
+    update: {
+      displayName: 'Ubuntu 22.04 LTS',
+      description: 'Ubuntu 22.04 LTS x64',
+      isActive: true,
+    },
     create: {
       provider: 'digitalocean',
       providerSlug: 'ubuntu-22-04-x64',
@@ -21,9 +27,32 @@ async function main() {
     },
   });
 
+  const ubuntu24Image = await prisma.vpsImage.upsert({
+    where: { provider_providerSlug: { provider: 'digitalocean', providerSlug: 'ubuntu-24-04-x64' } },
+    update: {
+      displayName: 'Ubuntu 24.04 LTS',
+      description: 'Ubuntu 24.04 LTS x64',
+      isActive: true,
+    },
+    create: {
+      provider: 'digitalocean',
+      providerSlug: 'ubuntu-24-04-x64',
+      displayName: 'Ubuntu 24.04 LTS',
+      description: 'Ubuntu 24.04 LTS x64',
+      category: ImageCategory.OS,
+      version: '24.04',
+      isActive: true,
+      sortOrder: 2,
+    },
+  });
+
   const debianImage = await prisma.vpsImage.upsert({
     where: { provider_providerSlug: { provider: 'digitalocean', providerSlug: 'debian-12-x64' } },
-    update: {},
+    update: {
+      displayName: 'Debian 12',
+      description: 'Debian 12 x64',
+      isActive: true,
+    },
     create: {
       provider: 'digitalocean',
       providerSlug: 'debian-12-x64',
@@ -32,13 +61,17 @@ async function main() {
       category: ImageCategory.OS,
       version: '12',
       isActive: true,
-      sortOrder: 2,
+      sortOrder: 3,
     },
   });
 
   const centosImage = await prisma.vpsImage.upsert({
     where: { provider_providerSlug: { provider: 'digitalocean', providerSlug: 'centos-stream-9-x64' } },
-    update: {},
+    update: {
+      displayName: 'CentOS Stream 9',
+      description: 'CentOS Stream 9 x64',
+      isActive: true,
+    },
     create: {
       provider: 'digitalocean',
       providerSlug: 'centos-stream-9-x64',
@@ -47,11 +80,11 @@ async function main() {
       category: ImageCategory.OS,
       version: '9',
       isActive: true,
-      sortOrder: 3,
+      sortOrder: 4,
     },
   });
 
-  console.log('Created VPS Images:', { ubuntuImage, debianImage, centosImage });
+  console.log('Created VPS Images:', { ubuntuImage, ubuntu24Image, debianImage, centosImage });
 
   // Create VPS Plans
   const basicPlan = await prisma.vpsPlan.upsert({
@@ -212,52 +245,21 @@ async function main() {
 
   console.log('Created Promo:', promo);
 
-  // Link images to plans
-  const planImageMappings = await Promise.all([
-    // All images for Basic Plan
-    prisma.vpsPlanImage.upsert({
-      where: { planId_imageId: { planId: basicPlan.id, imageId: ubuntuImage.id } },
-      update: {},
-      create: { planId: basicPlan.id, imageId: ubuntuImage.id },
-    }),
-    prisma.vpsPlanImage.upsert({
-      where: { planId_imageId: { planId: basicPlan.id, imageId: debianImage.id } },
-      update: {},
-      create: { planId: basicPlan.id, imageId: debianImage.id },
-    }),
-    // All images for Standard Plan
-    prisma.vpsPlanImage.upsert({
-      where: { planId_imageId: { planId: standardPlan.id, imageId: ubuntuImage.id } },
-      update: {},
-      create: { planId: standardPlan.id, imageId: ubuntuImage.id },
-    }),
-    prisma.vpsPlanImage.upsert({
-      where: { planId_imageId: { planId: standardPlan.id, imageId: debianImage.id } },
-      update: {},
-      create: { planId: standardPlan.id, imageId: debianImage.id },
-    }),
-    prisma.vpsPlanImage.upsert({
-      where: { planId_imageId: { planId: standardPlan.id, imageId: centosImage.id } },
-      update: {},
-      create: { planId: standardPlan.id, imageId: centosImage.id },
-    }),
-    // All images for Pro Plan
-    prisma.vpsPlanImage.upsert({
-      where: { planId_imageId: { planId: proPlan.id, imageId: ubuntuImage.id } },
-      update: {},
-      create: { planId: proPlan.id, imageId: ubuntuImage.id },
-    }),
-    prisma.vpsPlanImage.upsert({
-      where: { planId_imageId: { planId: proPlan.id, imageId: debianImage.id } },
-      update: {},
-      create: { planId: proPlan.id, imageId: debianImage.id },
-    }),
-    prisma.vpsPlanImage.upsert({
-      where: { planId_imageId: { planId: proPlan.id, imageId: centosImage.id } },
-      update: {},
-      create: { planId: proPlan.id, imageId: centosImage.id },
-    }),
-  ]);
+  // Link images to plans (all images available for all plans)
+  const allImages = [ubuntuImage, ubuntu24Image, debianImage, centosImage];
+  const allPlans = [basicPlan, standardPlan, proPlan];
+  
+  const planImageMappings = await Promise.all(
+    allPlans.flatMap(plan =>
+      allImages.map(image =>
+        prisma.vpsPlanImage.upsert({
+          where: { planId_imageId: { planId: plan.id, imageId: image.id } },
+          update: {},
+          create: { planId: plan.id, imageId: image.id },
+        })
+      )
+    )
+  );
 
   console.log('Created Plan-Image mappings:', planImageMappings.length);
 

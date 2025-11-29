@@ -1,23 +1,29 @@
 import { Type } from 'class-transformer';
 import { IsString, IsNumber, IsOptional, IsEnum, IsEmail } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 /**
  * DTO for creating an invoice
  */
 export class CreateInvoiceDto {
+  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000', description: 'Order UUID' })
   @IsString()
   orderId: string;
 
+  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440001', description: 'User UUID' })
   @IsString()
   userId: string;
 
+  @ApiProperty({ example: 150000, description: 'Invoice amount in IDR' })
   @IsNumber()
   amount: number;
 
+  @ApiPropertyOptional({ example: 'John Doe', description: 'Customer name' })
   @IsString()
   @IsOptional()
   customerName?: string;
 
+  @ApiPropertyOptional({ example: 'john@example.com', description: 'Customer email' })
   @IsEmail()
   @IsOptional()
   customerEmail?: string;
@@ -27,21 +33,26 @@ export class CreateInvoiceDto {
  * DTO for initiating payment
  */
 export class InitiatePaymentDto {
+  @ApiProperty({ example: 'BRIVA', description: 'Payment channel code (e.g., BRIVA, OVO, QRIS, BCAVA)' })
   @IsString()
-  channel: string; // Payment channel code (e.g., BRIVA, OVO, QRIS)
+  channel: string;
 
+  @ApiPropertyOptional({ example: 'John Doe', description: 'Customer name for payment' })
   @IsString()
   @IsOptional()
   customerName?: string;
 
+  @ApiPropertyOptional({ example: 'john@example.com', description: 'Customer email for payment notification' })
   @IsEmail()
   @IsOptional()
   customerEmail?: string;
 
+  @ApiPropertyOptional({ example: '+6281234567890', description: 'Customer phone number' })
   @IsString()
   @IsOptional()
   customerPhone?: string;
 
+  @ApiPropertyOptional({ example: 'https://example.com/payment/success', description: 'URL to redirect after payment' })
   @IsString()
   @IsOptional()
   returnUrl?: string;
@@ -51,16 +62,19 @@ export class InitiatePaymentDto {
  * Query DTO for listing invoices
  */
 export class ListInvoicesQueryDto {
+  @ApiPropertyOptional({ example: 1, description: 'Page number', default: 1 })
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
   page?: number = 1;
 
+  @ApiPropertyOptional({ example: 10, description: 'Items per page', default: 10 })
   @IsOptional()
   @Type(() => Number)
   @IsNumber()
   limit?: number = 10;
 
+  @ApiPropertyOptional({ example: 'PENDING', description: 'Filter by invoice status' })
   @IsOptional()
   @IsString()
   status?: string;
