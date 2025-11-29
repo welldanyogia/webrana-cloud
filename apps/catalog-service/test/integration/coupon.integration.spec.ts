@@ -81,7 +81,7 @@ describe('Coupon Integration Tests', () => {
     await cleanDatabase();
   });
 
-  describe('POST /api/v1/coupons/validate', () => {
+  describe('POST /api/v1/catalog/coupons/validate', () => {
     it('should validate coupon successfully', async () => {
       if (!dockerAvailable) return;
 
@@ -95,7 +95,7 @@ describe('Coupon Integration Tests', () => {
       });
 
       const response = await request(app.getHttpServer())
-        .post('/api/v1/coupons/validate')
+        .post('/api/v1/catalog/coupons/validate')
         .send({
           code: 'VALID10',
           amount: 100000,
@@ -112,7 +112,7 @@ describe('Coupon Integration Tests', () => {
       if (!dockerAvailable) return;
 
       const response = await request(app.getHttpServer())
-        .post('/api/v1/coupons/validate')
+        .post('/api/v1/catalog/coupons/validate')
         .send({
           code: 'NOTEXIST',
           amount: 100000,
@@ -143,7 +143,7 @@ describe('Coupon Integration Tests', () => {
       });
 
       const response = await request(app.getHttpServer())
-        .post('/api/v1/coupons/validate')
+        .post('/api/v1/catalog/coupons/validate')
         .send({
           code: 'EXPIRED',
           amount: 100000,
@@ -174,7 +174,7 @@ describe('Coupon Integration Tests', () => {
       });
 
       const response = await request(app.getHttpServer())
-        .post('/api/v1/coupons/validate')
+        .post('/api/v1/catalog/coupons/validate')
         .send({
           code: 'FUTURE',
           amount: 100000,
@@ -202,7 +202,7 @@ describe('Coupon Integration Tests', () => {
       await createCouponRedemption(prisma, coupon.id, uuidv4(), 10000);
 
       const response = await request(app.getHttpServer())
-        .post('/api/v1/coupons/validate')
+        .post('/api/v1/catalog/coupons/validate')
         .send({
           code: 'LIMITED',
           amount: 100000,
@@ -230,7 +230,7 @@ describe('Coupon Integration Tests', () => {
       await createCouponRedemption(prisma, coupon.id, userId, 10000);
 
       const response = await request(app.getHttpServer())
-        .post('/api/v1/coupons/validate')
+        .post('/api/v1/catalog/coupons/validate')
         .send({
           code: 'USERLIMIT',
           userId: userId,
@@ -260,7 +260,7 @@ describe('Coupon Integration Tests', () => {
       await addCouponPlanRestriction(prisma, coupon.id, allowedPlan.id);
 
       const response = await request(app.getHttpServer())
-        .post('/api/v1/coupons/validate')
+        .post('/api/v1/catalog/coupons/validate')
         .send({
           code: 'PLANONLY',
           planId: restrictedPlan.id,
@@ -290,7 +290,7 @@ describe('Coupon Integration Tests', () => {
       await addCouponUserRestriction(prisma, coupon.id, allowedUserId);
 
       const response = await request(app.getHttpServer())
-        .post('/api/v1/coupons/validate')
+        .post('/api/v1/catalog/coupons/validate')
         .send({
           code: 'USERONLY',
           userId: restrictedUserId,
@@ -315,7 +315,7 @@ describe('Coupon Integration Tests', () => {
       });
 
       const response = await request(app.getHttpServer())
-        .post('/api/v1/coupons/validate')
+        .post('/api/v1/catalog/coupons/validate')
         .send({
           code: 'FIXED25K',
           amount: 100000,
@@ -341,7 +341,7 @@ describe('Coupon Integration Tests', () => {
       });
 
       const response = await request(app.getHttpServer())
-        .post('/api/v1/coupons/validate')
+        .post('/api/v1/catalog/coupons/validate')
         .send({
           code: 'MAXCAP',
           amount: 100000,
@@ -367,7 +367,7 @@ describe('Coupon Integration Tests', () => {
       });
 
       const response = await request(app.getHttpServer())
-        .post('/api/v1/coupons/validate')
+        .post('/api/v1/catalog/coupons/validate')
         .send({
           code: 'MINORDER',
           amount: 50000,
