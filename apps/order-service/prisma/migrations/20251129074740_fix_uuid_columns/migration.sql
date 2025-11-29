@@ -1,0 +1,7 @@
+-- AlterTable
+ALTER TABLE "order_items" ALTER COLUMN "reference_id" SET DATA TYPE TEXT;
+
+-- AlterTable
+ALTER TABLE "orders" ALTER COLUMN "user_id" SET DATA TYPE TEXT,
+ALTER COLUMN "plan_id" SET DATA TYPE TEXT,
+ALTER COLUMN "image_id" SET DATA TYPE TEXT;

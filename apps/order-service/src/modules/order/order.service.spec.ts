@@ -1,0 +1,415 @@
+import { Test, TestingModule } from '@nestjs/testing';
+import { OrderService } from './order.service';
+import { PrismaService } from '../../prisma/prisma.service';
+import { CatalogClientService } from '../catalog-client/catalog-client.service';
+import { OrderStateMachine } from './order-state-machine';
+import { CreateOrderDto } from './dto';
+import {
+  OrderNotFoundException,
+  OrderAccessDeniedException,
+  InvalidDurationException,
+  PaymentStatusConflictException,
+} from '../../common/exceptions';
+import { OrderStatus, PlanDuration, ItemType } from '@prisma/client';
+
+describe('OrderService', () => {
+  let service: OrderService;
+  let prismaService: PrismaService;
+  let catalogClientService: CatalogClientService;
+
+  const mockPlan = {
+    id: 'plan-123',
+    name: 'vps-basic',
+    displayName: 'VPS Basic',
+    description: 'Basic VPS',
+    cpu: 1,
+    memoryMb: 1024,
+    diskGb: 25,
+    bandwidthTb: 1,
+    provider: 'digitalocean',
+    providerSizeSlug: 's-1vcpu-1gb',
+    isActive: true,
+    sortOrder: 1,
+    tags: [],
+    pricings: [
+      {
+        id: 'pricing-1',
+        duration: 'MONTHLY',
+        price: 150000,
+        cost: 100000,
+        isActive: true,
+      },
+    ],
+    promos: [
+      {
+        id: 'promo-1',
+        name: 'Launch Promo',
+        discountType: 'PERCENT' as const,
+        discountValue: 10,
+        startDate: new Date(Date.now() - 86400000).toISOString(),
+        endDate: new Date(Date.now() + 86400000).toISOString(),
+        isActive: true,
+      },
+    ],
+  };
+
+  const mockImage = {
+    id: 'image-123',
+    provider: 'digitalocean',
+    providerSlug: 'ubuntu-22-04-x64',
+    displayName: 'Ubuntu 22.04 LTS',
+    description: 'Ubuntu 22.04',
+    category: 'OS' as const,
+    version: '22.04',
+    isActive: true,
+    sortOrder: 1,
+  };
+
+  const mockOrder = {
+    id: 'order-123',
+    userId: 'user-123',
+    planId: 'plan-123',
+    planName: 'VPS Basic',
+    imageId: 'image-123',
+    imageName: 'Ubuntu 22.04 LTS',
+    duration: PlanDuration.MONTHLY,
+    basePrice: 150000,
+    promoDiscount: 15000,
+    couponCode: null,
+    couponDiscount: 0,
+    finalPrice: 135000,
+    currency: 'IDR',
+    status: OrderStatus.PENDING_PAYMENT,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    paidAt: null,
+  };
+
+  const mockPrismaService = {
+    order: {
+      create: jest.fn(),
+      findUnique: jest.fn(),
+      findMany: jest.fn(),
+      update: jest.fn(),
+      count: jest.fn(),
+    },
+    orderItem: {
+      create: jest.fn(),
+    },
+    statusHistory: {
+      create: jest.fn(),
+    },
+    $transaction: jest.fn((callback) => callback(mockPrismaService)),
+  };
+
+  const mockCatalogClientService = {
+    getPlanById: jest.fn(),
+    getImageById: jest.fn(),
+    validateCoupon: jest.fn(),
+  };
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        OrderService,
+        {
+          provide: PrismaService,
+          useValue: mockPrismaService,
+        },
+        {
+          provide: CatalogClientService,
+          useValue: mockCatalogClientService,
+        },
+      ],
+    }).compile();
+
+    service = module.get<OrderService>(OrderService);
+    prismaService = module.get<PrismaService>(PrismaService);
+    catalogClientService = module.get<CatalogClientService>(CatalogClientService);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('createOrder', () => {
+    const createOrderDto: CreateOrderDto = {
+      planId: 'plan-123',
+      imageId: 'image-123',
+      duration: PlanDuration.MONTHLY,
+    };
+
+    it('should create an order with pricing snapshot from catalog', async () => {
+      mockCatalogClientService.getPlanById.mockResolvedValue(mockPlan);
+      mockCatalogClientService.getImageById.mockResolvedValue(mockImage);
+      mockPrismaService.order.create.mockResolvedValue(mockOrder);
+      mockPrismaService.order.findUnique.mockResolvedValue({
+        ...mockOrder,
+        items: [],
+        provisioningTask: null,
+        statusHistory: [],
+      });
+
+      const result = await service.createOrder('user-123', createOrderDto);
+
+      expect(catalogClientService.getPlanById).toHaveBeenCalledWith('plan-123');
+      expect(catalogClientService.getImageById).toHaveBeenCalledWith('image-123');
+      expect(result.status).toBe(OrderStatus.PENDING_PAYMENT);
+    });
+
+    it('should validate coupon via catalog-service when provided', async () => {
+      const dtoWithCoupon = { ...createOrderDto, couponCode: 'HEMAT20' };
+      mockCatalogClientService.getPlanById.mockResolvedValue(mockPlan);
+      mockCatalogClientService.getImageById.mockResolvedValue(mockImage);
+      mockCatalogClientService.validateCoupon.mockResolvedValue({
+        valid: true,
+        discountAmount: 27000,
+        finalPrice: 108000,
+        coupon: { code: 'HEMAT20', name: 'Diskon 20%', discountType: 'PERCENT', discountValue: 20 },
+      });
+      mockPrismaService.order.create.mockResolvedValue({
+        ...mockOrder,
+        couponCode: 'HEMAT20',
+        couponDiscount: 27000,
+        finalPrice: 108000,
+      });
+      mockPrismaService.order.findUnique.mockResolvedValue({
+        ...mockOrder,
+        couponCode: 'HEMAT20',
+        couponDiscount: 27000,
+        finalPrice: 108000,
+        items: [],
+        provisioningTask: null,
+        statusHistory: [],
+      });
+
+      await service.createOrder('user-123', dtoWithCoupon);
+
+      expect(catalogClientService.validateCoupon).toHaveBeenCalledWith({
+        code: 'HEMAT20',
+        planId: 'plan-123',
+        userId: 'user-123',
+        amount: expect.any(Number),
+      });
+    });
+
+    it('should throw InvalidDurationException if duration not available', async () => {
+      const planNoPricing = { ...mockPlan, pricings: [] };
+      mockCatalogClientService.getPlanById.mockResolvedValue(planNoPricing);
+      mockCatalogClientService.getImageById.mockResolvedValue(mockImage);
+
+      await expect(
+        service.createOrder('user-123', createOrderDto)
+      ).rejects.toThrow(InvalidDurationException);
+    });
+  });
+
+  describe('getOrderById', () => {
+    it('should return order when found', async () => {
+      mockPrismaService.order.findUnique.mockResolvedValue({
+        ...mockOrder,
+        items: [],
+        provisioningTask: null,
+        statusHistory: [],
+      });
+
+      const result = await service.getOrderById('order-123');
+
+      expect(result.id).toBe('order-123');
+    });
+
+    it('should throw OrderNotFoundException when order not found', async () => {
+      mockPrismaService.order.findUnique.mockResolvedValue(null);
+
+      await expect(service.getOrderById('invalid-id')).rejects.toThrow(
+        OrderNotFoundException
+      );
+    });
+
+    it('should throw OrderAccessDeniedException when userId does not match', async () => {
+      mockPrismaService.order.findUnique.mockResolvedValue({
+        ...mockOrder,
+        items: [],
+        provisioningTask: null,
+        statusHistory: [],
+      });
+
+      await expect(
+        service.getOrderById('order-123', 'different-user')
+      ).rejects.toThrow(OrderAccessDeniedException);
+    });
+  });
+
+  describe('getOrdersByUserId', () => {
+    it('should return paginated orders for user', async () => {
+      mockPrismaService.order.findMany.mockResolvedValue([mockOrder]);
+      mockPrismaService.order.count.mockResolvedValue(1);
+
+      const result = await service.getOrdersByUserId('user-123', {
+        page: 1,
+        limit: 10,
+      });
+
+      expect(result.data).toHaveLength(1);
+      expect(result.meta.total).toBe(1);
+      expect(result.meta.page).toBe(1);
+    });
+
+    it('should filter by status when provided', async () => {
+      mockPrismaService.order.findMany.mockResolvedValue([]);
+      mockPrismaService.order.count.mockResolvedValue(0);
+
+      await service.getOrdersByUserId('user-123', {
+        page: 1,
+        limit: 10,
+        status: OrderStatus.ACTIVE,
+      });
+
+      expect(mockPrismaService.order.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            userId: 'user-123',
+            status: OrderStatus.ACTIVE,
+          }),
+        })
+      );
+    });
+  });
+
+  describe('updateOrderStatus', () => {
+    it('should update status when transition is valid', async () => {
+      mockPrismaService.order.findUnique.mockResolvedValue(mockOrder);
+      mockPrismaService.order.update.mockResolvedValue({
+        ...mockOrder,
+        status: OrderStatus.PAID,
+        paidAt: new Date(),
+      });
+
+      const result = await service.updateOrderStatus(
+        'order-123',
+        OrderStatus.PAID,
+        'admin:admin-id',
+        'Payment verified'
+      );
+
+      expect(result.status).toBe(OrderStatus.PAID);
+    });
+
+    it('should throw PaymentStatusConflictException for invalid transition', async () => {
+      const activeOrder = { ...mockOrder, status: OrderStatus.ACTIVE };
+      mockPrismaService.order.findUnique.mockResolvedValue(activeOrder);
+
+      await expect(
+        service.updateOrderStatus(
+          'order-123',
+          OrderStatus.PAID,
+          'admin:admin-id'
+        )
+      ).rejects.toThrow(PaymentStatusConflictException);
+    });
+
+    it('should record status history on transition', async () => {
+      mockPrismaService.order.findUnique.mockResolvedValue(mockOrder);
+      mockPrismaService.order.update.mockResolvedValue({
+        ...mockOrder,
+        status: OrderStatus.PAID,
+      });
+
+      await service.updateOrderStatus(
+        'order-123',
+        OrderStatus.PAID,
+        'admin:admin-id',
+        'Test reason'
+      );
+
+      expect(mockPrismaService.statusHistory.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            orderId: 'order-123',
+            previousStatus: OrderStatus.PENDING_PAYMENT,
+            newStatus: OrderStatus.PAID,
+            actor: 'admin:admin-id',
+          }),
+        })
+      );
+    });
+  });
+});
+
+describe('OrderStateMachine', () => {
+  describe('isValidTransition', () => {
+    it('should allow PENDING_PAYMENT -> PAID', () => {
+      expect(
+        OrderStateMachine.isValidTransition(
+          OrderStatus.PENDING_PAYMENT,
+          OrderStatus.PAID
+        )
+      ).toBe(true);
+    });
+
+    it('should allow PAID -> PROVISIONING', () => {
+      expect(
+        OrderStateMachine.isValidTransition(
+          OrderStatus.PAID,
+          OrderStatus.PROVISIONING
+        )
+      ).toBe(true);
+    });
+
+    it('should allow PROVISIONING -> ACTIVE', () => {
+      expect(
+        OrderStateMachine.isValidTransition(
+          OrderStatus.PROVISIONING,
+          OrderStatus.ACTIVE
+        )
+      ).toBe(true);
+    });
+
+    it('should allow PROVISIONING -> FAILED', () => {
+      expect(
+        OrderStateMachine.isValidTransition(
+          OrderStatus.PROVISIONING,
+          OrderStatus.FAILED
+        )
+      ).toBe(true);
+    });
+
+    it('should NOT allow ACTIVE -> PAID', () => {
+      expect(
+        OrderStateMachine.isValidTransition(
+          OrderStatus.ACTIVE,
+          OrderStatus.PAID
+        )
+      ).toBe(false);
+    });
+
+    it('should NOT allow PENDING_PAYMENT -> ACTIVE (skip states)', () => {
+      expect(
+        OrderStateMachine.isValidTransition(
+          OrderStatus.PENDING_PAYMENT,
+          OrderStatus.ACTIVE
+        )
+      ).toBe(false);
+    });
+  });
+
+  describe('isTerminalState', () => {
+    it('should identify ACTIVE as terminal', () => {
+      expect(OrderStateMachine.isTerminalState(OrderStatus.ACTIVE)).toBe(true);
+    });
+
+    it('should identify FAILED as terminal', () => {
+      expect(OrderStateMachine.isTerminalState(OrderStatus.FAILED)).toBe(true);
+    });
+
+    it('should identify CANCELED as terminal', () => {
+      expect(OrderStateMachine.isTerminalState(OrderStatus.CANCELED)).toBe(true);
+    });
+
+    it('should NOT identify PENDING_PAYMENT as terminal', () => {
+      expect(
+        OrderStateMachine.isTerminalState(OrderStatus.PENDING_PAYMENT)
+      ).toBe(false);
+    });
+  });
+});

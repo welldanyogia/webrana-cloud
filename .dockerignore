@@ -1,0 +1,46 @@
+# Dependencies
+node_modules
+.npm
+.pnpm-store
+
+# Build outputs
+dist
+.nx
+.cache
+coverage
+
+# IDE
+.idea
+.vscode
+
+# Git
+.git
+.gitignore
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment (will be provided via docker-compose)
+.env
+.env.local
+.env.*.local
+
+# Test files
+*.spec.ts
+*.test.ts
+__tests__
+test
+
+# Docs
+*.md
+!README.md
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore

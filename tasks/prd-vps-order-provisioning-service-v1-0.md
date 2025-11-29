@@ -80,6 +80,16 @@ Order-service menjadi penghubung antara **catalog-service** (sumber data pricing
 | FR9 | Transisi ke `PAID` HARUS memvalidasi status sebelumnya adalah `PENDING_PAYMENT`. | HIGH |
 | FR10 | Setelah status `PAID`, sistem HARUS otomatis trigger provisioning process. | HIGH |
 
+> **Catatan v1 - Perilaku `PAYMENT_FAILED`:**
+>
+> Pada v1, `PAYMENT_FAILED` diperlakukan sebagai **payment event**, bukan perubahan `OrderStatus`.
+>
+> - Ketika admin menandai payment sebagai `PAYMENT_FAILED`, status `Order.status` **tetap `PENDING_PAYMENT`** (tidak berubah).
+> - Event ini dicatat di `StatusHistory` dengan `newStatus = 'PAYMENT_FAILED'` untuk audit trail.
+> - Dengan demikian, user/admin masih bisa retry payment di kemudian hari tanpa harus membuat order baru.
+>
+> Jika di masa depan diputuskan bahwa "payment failed = order FAILED permanen" (terminal state), behavior ini akan direvisi di PRD v1.1 atau v2.
+
 ### 4.4 Provisioning (Async Polling)
 
 | FR | Requirement | Priority |
@@ -117,6 +127,23 @@ Order-service menjadi penghubung antara **catalog-service** (sumber data pricing
 |----|-------------|----------|
 | FR21 | Semua API `/api/v1/*` HARUS validasi JWT dari auth-service (public key verification). | HIGH |
 | FR22 | API `/internal/*` HARUS menggunakan API key atau role-based guard (ADMIN role). | HIGH |
+
+> **Catatan Implementasi - JWT Authentication (v1)**
+>
+> **Production (Default)**: RS256 + Public Key
+> - JWT ditandatangani oleh auth-service menggunakan RSA private key
+> - order-service verify menggunakan `JWT_PUBLIC_KEY` (asymmetric verification)
+> - Algoritma default: `RS256`
+>
+> **Development/Local (Optional)**: HS256 + Secret
+> - Untuk kemudahan testing lokal tanpa setup key pair
+> - Set `JWT_ALGORITHM=HS256` dan `JWT_SECRET`
+> - **HANYA untuk development, JANGAN dipakai di production!**
+>
+> Environment variables:
+> - `JWT_ALGORITHM`: `RS256` (default) atau `HS256`
+> - `JWT_PUBLIC_KEY`: RSA public key dalam format PEM (untuk RS256)
+> - `JWT_SECRET`: Shared secret (untuk HS256, dev only)
 
 ### 4.9 Error Handling
 
