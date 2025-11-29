@@ -1,0 +1,101 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# WeBrana Cloud - Backend Service Dockerfile (NestJS)
+# Multi-stage build optimized for production
+# Usage: docker build --build-arg SERVICE_NAME=<service> -f docker/Dockerfile.backend .
+# ═══════════════════════════════════════════════════════════════════════════════
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Build Arguments
+# ─────────────────────────────────────────────────────────────────────────────
+ARG SERVICE_NAME
+ARG HAS_PRISMA=false
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Stage 1: Dependencies
+# ─────────────────────────────────────────────────────────────────────────────
+FROM node:20-alpine AS deps
+
+WORKDIR /app
+
+# Install build dependencies for native modules
+RUN apk add --no-cache python3 make g++
+
+# Copy package files
+COPY package.json package-lock.json ./
+COPY nx.json tsconfig.base.json ./
+
+# Install all dependencies
+RUN npm ci --legacy-peer-deps
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Stage 2: Builder
+# ─────────────────────────────────────────────────────────────────────────────
+FROM node:20-alpine AS builder
+
+ARG SERVICE_NAME
+ARG HAS_PRISMA
+
+WORKDIR /app
+
+# Copy dependencies
+COPY --from=deps /app/node_modules ./node_modules
+
+# Copy source code
+COPY . .
+
+# Generate Prisma client if needed
+RUN if [ "${HAS_PRISMA}" = "true" ] && [ -f "apps/${SERVICE_NAME}/prisma/schema.prisma" ]; then \
+        npx prisma generate --schema=apps/${SERVICE_NAME}/prisma/schema.prisma; \
+    fi
+
+# Build the service
+RUN npx nx build ${SERVICE_NAME} --configuration=production
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Stage 3: Production Runtime
+# ─────────────────────────────────────────────────────────────────────────────
+FROM node:20-alpine AS runner
+
+ARG SERVICE_NAME
+ARG HAS_PRISMA
+
+WORKDIR /app
+
+# Install runtime dependencies
+RUN apk add --no-cache wget
+
+# Create non-root user for security
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nestjs
+
+# Copy built application
+COPY --from=builder --chown=nestjs:nodejs /app/dist/apps/${SERVICE_NAME} ./dist/apps/${SERVICE_NAME}
+
+# Copy node_modules (production only would be ideal, but for compatibility copy all)
+COPY --from=builder --chown=nestjs:nodejs /app/node_modules ./node_modules
+
+# Copy Prisma files if needed
+COPY --from=builder --chown=nestjs:nodejs /app/apps/${SERVICE_NAME}/prisma ./apps/${SERVICE_NAME}/prisma 2>/dev/null || true
+
+# Copy package.json for Prisma CLI
+COPY --from=builder --chown=nestjs:nodejs /app/package.json ./package.json
+
+# Set environment
+ENV NODE_ENV=production
+ENV SERVICE_NAME=${SERVICE_NAME}
+
+# Switch to non-root user
+USER nestjs
+
+# Expose port (will be overridden by compose)
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT:-3000}/api/v1/health || exit 1
+
+# Start command with optional migration
+CMD if [ "${HAS_PRISMA}" = "true" ] && [ -f "apps/${SERVICE_NAME}/prisma/schema.prisma" ]; then \
+        npx prisma migrate deploy --schema=apps/${SERVICE_NAME}/prisma/schema.prisma 2>/dev/null || true; \
+    fi && \
+    node dist/apps/${SERVICE_NAME}/main.js
