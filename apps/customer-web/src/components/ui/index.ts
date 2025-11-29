@@ -5,4 +5,5 @@ export { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 export { StatCard } from './stat-card';
 export { Badge } from './badge';
 export { Skeleton, SkeletonCard, SkeletonTable } from './skeleton';
-export { ThemeToggle } from './theme-toggle';
+export { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from './accordion';
+export { Tabs, TabsList, TabsTrigger, TabsContent } from './tabs';
