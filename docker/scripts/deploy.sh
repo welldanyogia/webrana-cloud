@@ -2,7 +2,7 @@
 # ═══════════════════════════════════════════════════════════════════════════════
 # WeBrana Cloud - Deployment Script
 # Usage: ./deploy.sh [command] [options]
-# Commands: start, stop, restart, update, status, logs
+# Commands: start, stop, restart, update, deploy, rollback, version, status, logs
 # ═══════════════════════════════════════════════════════════════════════════════
 
 set -e
@@ -69,6 +69,34 @@ check_requirements() {
 
 get_compose_cmd() {
     echo "docker compose -f $COMPOSE_FILE -f $COMPOSE_PROD_FILE --env-file $ENV_FILE"
+}
+
+# ─────────────────────────────────────────────────────────────────────────────
+# VERSION MANAGEMENT
+# ─────────────────────────────────────────────────────────────────────────────
+
+VERSIONS_FILE="$DOCKER_DIR/.deployment-versions"
+CURRENT_VERSION=""
+PREVIOUS_VERSION=""
+
+load_versions() {
+    if [ -f "$VERSIONS_FILE" ]; then
+        source "$VERSIONS_FILE"
+    fi
+}
+
+save_versions() {
+    echo "CURRENT_VERSION=$CURRENT_VERSION" > "$VERSIONS_FILE"
+    echo "PREVIOUS_VERSION=$PREVIOUS_VERSION" >> "$VERSIONS_FILE"
+}
+
+set_version() {
+    local new_version="${1:-latest}"
+    load_versions
+    PREVIOUS_VERSION="$CURRENT_VERSION"
+    CURRENT_VERSION="$new_version"
+    save_versions
+    log_info "Version set: $CURRENT_VERSION (previous: $PREVIOUS_VERSION)"
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -223,11 +251,125 @@ cmd_backup() {
     log_info "Running database backup..."
     
     if [ -f "$SCRIPT_DIR/backup-db.sh" ]; then
-        bash "$SCRIPT_DIR/backup-db.sh"
+        bash "$SCRIPT_DIR/backup-db.sh" "$@"
     else
         log_error "Backup script not found at $SCRIPT_DIR/backup-db.sh"
         exit 1
     fi
+}
+
+cmd_deploy() {
+    local version="${1:-latest}"
+    log_info "Deploying WeBrana Cloud version: $version"
+    check_requirements
+    
+    cd "$PROJECT_DIR"
+    
+    # Record current version for rollback
+    set_version "$version"
+    
+    # If version is not 'latest', checkout the specific tag
+    if [ "$version" != "latest" ]; then
+        log_info "Checking out version: $version..."
+        git fetch origin --tags
+        git checkout "$version" || {
+            log_error "Failed to checkout version: $version"
+            exit 1
+        }
+    fi
+    
+    cd "$DOCKER_DIR"
+    
+    # Create required directories
+    mkdir -p nginx/ssl
+    mkdir -p init-db
+    
+    # Build with version tag
+    log_info "Building services with version tag: $version..."
+    export VERSION="$version"
+    $(get_compose_cmd) build --no-cache
+    
+    # Deploy with zero-downtime (rolling update)
+    log_info "Deploying services..."
+    $(get_compose_cmd) up -d --force-recreate --remove-orphans
+    
+    # Wait for services to stabilize
+    log_info "Waiting for services to stabilize..."
+    sleep 15
+    
+    # Run database migrations
+    log_info "Running database migrations..."
+    cmd_migrate
+    
+    # Health check
+    log_info "Running health checks..."
+    cmd_health || {
+        log_error "Health check failed! Consider running: ./deploy.sh rollback"
+        exit 1
+    }
+    
+    log_success "Deployment of version $version completed successfully!"
+}
+
+cmd_rollback() {
+    log_info "Rolling back to previous version..."
+    check_requirements
+    
+    load_versions
+    
+    if [ -z "$PREVIOUS_VERSION" ]; then
+        log_error "No previous version found to rollback to."
+        log_info "Available git tags:"
+        cd "$PROJECT_DIR"
+        git tag -l --sort=-v:refname | head -10
+        exit 1
+    fi
+    
+    log_warning "Rolling back from $CURRENT_VERSION to $PREVIOUS_VERSION"
+    
+    cd "$PROJECT_DIR"
+    
+    # Checkout previous version
+    git checkout "$PREVIOUS_VERSION" || {
+        log_error "Failed to checkout previous version: $PREVIOUS_VERSION"
+        exit 1
+    }
+    
+    cd "$DOCKER_DIR"
+    
+    # Rebuild and redeploy
+    log_info "Rebuilding services with version: $PREVIOUS_VERSION..."
+    $(get_compose_cmd) build --no-cache
+    
+    log_info "Redeploying services..."
+    $(get_compose_cmd) up -d --force-recreate
+    
+    # Swap versions
+    CURRENT_VERSION="$PREVIOUS_VERSION"
+    PREVIOUS_VERSION=""
+    save_versions
+    
+    # Wait and verify
+    sleep 15
+    cmd_health
+    
+    log_success "Rollback to version $CURRENT_VERSION completed!"
+}
+
+cmd_version() {
+    load_versions
+    echo ""
+    echo "═══════════════════════════════════════════════════════════════════════"
+    echo "                    WEBRANA CLOUD VERSION INFO                          "
+    echo "═══════════════════════════════════════════════════════════════════════"
+    echo ""
+    echo "  Current Version:  ${CURRENT_VERSION:-not set}"
+    echo "  Previous Version: ${PREVIOUS_VERSION:-not set}"
+    echo ""
+    echo "  Git Tag:          $(cd "$PROJECT_DIR" && git describe --tags 2>/dev/null || echo 'no tag')"
+    echo "  Git Branch:       $(cd "$PROJECT_DIR" && git rev-parse --abbrev-ref HEAD 2>/dev/null || echo 'unknown')"
+    echo "  Git Commit:       $(cd "$PROJECT_DIR" && git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
+    echo ""
 }
 
 cmd_shell() {
@@ -253,19 +395,28 @@ cmd_help() {
     echo "Usage: ./deploy.sh [command] [options]"
     echo ""
     echo "Commands:"
-    echo "  start       - Start all services"
-    echo "  stop        - Stop all services"
-    echo "  restart     - Restart all services"
-    echo "  update      - Pull latest code and redeploy"
-    echo "  migrate     - Run database migrations"
-    echo "  status      - Show service status"
-    echo "  logs [svc]  - Show logs (optionally for specific service)"
-    echo "  health      - Run health checks"
-    echo "  backup      - Backup database"
-    echo "  shell <svc> - Open shell in a service container"
-    echo "  help        - Show this help message"
+    echo "  start           - Start all services"
+    echo "  stop            - Stop all services"
+    echo "  restart         - Restart all services"
+    echo "  update          - Pull latest code and redeploy"
+    echo "  deploy [ver]    - Deploy specific version (e.g., v1.0.0)"
+    echo "  rollback        - Rollback to previous version"
+    echo "  version         - Show current deployment version"
+    echo "  migrate         - Run database migrations"
+    echo "  status          - Show service status"
+    echo "  logs [svc]      - Show logs (optionally for specific service)"
+    echo "  health          - Run health checks"
+    echo "  backup [name]   - Backup database (optional backup name)"
+    echo "  shell <svc>     - Open shell in a service container"
+    echo "  help            - Show this help message"
     echo ""
-    echo "Examples:"
+    echo "Deployment Examples:"
+    echo "  ./deploy.sh deploy v1.0.0       # Deploy specific version"
+    echo "  ./deploy.sh deploy              # Deploy latest"
+    echo "  ./deploy.sh rollback            # Rollback to previous version"
+    echo "  ./deploy.sh version             # Show version info"
+    echo ""
+    echo "Service Examples:"
     echo "  ./deploy.sh start"
     echo "  ./deploy.sh logs api-gateway"
     echo "  ./deploy.sh shell postgres"
@@ -289,6 +440,15 @@ main() {
         update)
             cmd_update
             ;;
+        deploy)
+            cmd_deploy "${2:-latest}"
+            ;;
+        rollback)
+            cmd_rollback
+            ;;
+        version)
+            cmd_version
+            ;;
         migrate)
             cmd_migrate
             ;;
@@ -302,7 +462,7 @@ main() {
             cmd_health
             ;;
         backup)
-            cmd_backup
+            cmd_backup "${2:-}"
             ;;
         shell)
             cmd_shell "${2:-}"
