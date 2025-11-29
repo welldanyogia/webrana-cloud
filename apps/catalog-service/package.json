@@ -3,7 +3,33 @@
   "version": "0.0.1",
   "private": true,
   "nx": {
+    "name": "catalog-service",
     "targets": {
+      "test": {
+        "executor": "@nx/jest:jest",
+        "outputs": ["{workspaceRoot}/coverage/apps/catalog-service"],
+        "options": {
+          "jestConfig": "apps/catalog-service/jest.config.ts",
+          "passWithNoTests": true
+        }
+      },
+      "build": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "webpack-cli build",
+          "args": [
+            "--node-env=production"
+          ],
+          "cwd": "apps/catalog-service"
+        },
+        "configurations": {
+          "development": {
+            "args": [
+              "--node-env=development"
+            ]
+          }
+        }
+      },
       "prune-lockfile": {
         "dependsOn": [
           "build"
@@ -46,21 +72,29 @@
           "build"
         ],
         "options": {
-          "buildTarget": "@webrana-cloud/catalog-service:build",
+          "buildTarget": "catalog-service:build",
           "runBuildTargetDependencies": false
         },
         "configurations": {
           "development": {
-            "buildTarget": "@webrana-cloud/catalog-service:build:development"
+            "buildTarget": "catalog-service:build:development"
           },
           "production": {
-            "buildTarget": "@webrana-cloud/catalog-service:build:production"
+            "buildTarget": "catalog-service:build:production"
           }
         }
       }
     }
   },
   "dependencies": {
-    "express": "^4.21.2"
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/core": "^11.0.0",
+    "@nestjs/platform-express": "^11.0.0",
+    "reflect-metadata": "^0.1.13",
+    "rxjs": "^7.8.0",
+    "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "@nestjs/testing": "^11.0.0"
   }
 }

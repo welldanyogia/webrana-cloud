@@ -1,0 +1,17 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist/test",
+    "module": "commonjs",
+    "types": ["jest", "node"],
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
+  },
+  "include": [
+    "**/*.spec.ts",
+    "**/*.e2e-spec.ts",
+    "**/*.integration.spec.ts",
+    "test/**/*.ts",
+    "src/**/*.ts"
+  ]
+}
