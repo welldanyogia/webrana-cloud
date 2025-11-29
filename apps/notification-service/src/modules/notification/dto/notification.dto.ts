@@ -151,5 +151,6 @@ export interface SendNotificationResponseDto {
     status: string;
     recipient?: string;
     error?: string;
+    jobId?: string;
   }[];
 }
