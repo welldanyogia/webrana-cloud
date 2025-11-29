@@ -4,7 +4,7 @@
   "private": true,
   "nx": {
     "implicitDependencies": [
-      "@webrana-cloud/billing-service"
+      "billing-service"
     ],
     "targets": {
       "e2e": {
@@ -17,8 +17,8 @@
           "passWithNoTests": true
         },
         "dependsOn": [
-          "@webrana-cloud/billing-service:build",
-          "@webrana-cloud/billing-service:serve"
+          "billing-service:build",
+          "billing-service:serve"
         ]
       }
     }

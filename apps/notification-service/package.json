@@ -3,7 +3,25 @@
   "version": "0.0.1",
   "private": true,
   "nx": {
+    "name": "notification-service",
     "targets": {
+      "build": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "webpack-cli build",
+          "args": [
+            "--node-env=production"
+          ],
+          "cwd": "apps/notification-service"
+        },
+        "configurations": {
+          "development": {
+            "args": [
+              "--node-env=development"
+            ]
+          }
+        }
+      },
       "prune-lockfile": {
         "dependsOn": [
           "build"
@@ -46,21 +64,48 @@
           "build"
         ],
         "options": {
-          "buildTarget": "@webrana-cloud/notification-service:build",
+          "buildTarget": "notification-service:build",
           "runBuildTargetDependencies": false
         },
         "configurations": {
           "development": {
-            "buildTarget": "@webrana-cloud/notification-service:build:development"
+            "buildTarget": "notification-service:build:development"
           },
           "production": {
-            "buildTarget": "@webrana-cloud/notification-service:build:production"
+            "buildTarget": "notification-service:build:production"
           }
+        }
+      },
+      "test": {
+        "executor": "@nx/jest:jest",
+        "outputs": [
+          "{projectRoot}/test-output/jest/coverage"
+        ],
+        "options": {
+          "jestConfig": "apps/notification-service/jest.config.cts",
+          "passWithNoTests": true
         }
       }
     }
   },
   "dependencies": {
-    "express": "^4.21.2"
+    "@nestjs/axios": "^4.0.1",
+    "@nestjs/common": "^11.0.0",
+    "@nestjs/config": "^4.0.2",
+    "@nestjs/core": "^11.0.0",
+    "@nestjs/platform-express": "^11.0.0",
+    "@prisma/client": "^6.19.0",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.3",
+    "nodemailer": "^6.9.0",
+    "reflect-metadata": "^0.1.13",
+    "rxjs": "^7.8.0",
+    "telegraf": "^4.16.0",
+    "tslib": "^2.3.0"
+  },
+  "devDependencies": {
+    "@nestjs/testing": "^11.0.0",
+    "@types/nodemailer": "^6.4.0",
+    "prisma": "^6.19.0"
   }
 }

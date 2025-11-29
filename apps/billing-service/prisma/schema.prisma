@@ -1,0 +1,131 @@
+// Prisma schema for Billing Service
+// Database: PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ===========================================
+// ENUMS
+// ===========================================
+
+enum InvoiceStatus {
+  PENDING     // Menunggu pembayaran
+  PAID        // Sudah dibayar
+  EXPIRED     // Invoice kadaluarsa
+  CANCELLED   // Dibatalkan
+}
+
+enum PaymentMethod {
+  VIRTUAL_ACCOUNT    // Transfer bank via VA
+  EWALLET            // E-wallet (OVO, GOPAY, DANA)
+  QRIS               // QR Code payment
+  CONVENIENCE_STORE  // Convenience store (Alfamart, Indomaret)
+}
+
+enum PaymentChannel {
+  // Virtual Account
+  BCA_VA
+  BNI_VA
+  BRI_VA
+  MANDIRI_VA
+  PERMATA_VA
+  BSI_VA
+  CIMB_VA
+  MUAMALAT_VA
+  
+  // E-Wallet
+  OVO
+  GOPAY
+  DANA
+  SHOPEEPAY
+  LINKAJA
+  
+  // QRIS
+  QRIS
+  QRISC   // QRIS Cross App
+  
+  // Convenience Store
+  ALFAMART
+  INDOMARET
+  ALFAMIDI
+}
+
+// ===========================================
+// MODELS
+// ===========================================
+
+model Invoice {
+  id              String          @id @default(uuid()) @db.Uuid
+  orderId         String          @unique @map("order_id")
+  userId          String          @map("user_id")
+  
+  // Invoice Details
+  invoiceNumber   String          @unique @map("invoice_number") @db.VarChar(50)
+  amount          Int             // IDR (final price dari order)
+  currency        String          @default("IDR") @db.VarChar(3)
+  
+  // Status
+  status          InvoiceStatus   @default(PENDING)
+  
+  // Payment Details (populated after initiatePayment)
+  paymentMethod   PaymentMethod?  @map("payment_method")
+  paymentChannel  PaymentChannel? @map("payment_channel")
+  paymentCode     String?         @map("payment_code") @db.VarChar(255)  // VA number / payment code
+  paymentUrl      String?         @map("payment_url") @db.Text           // Redirect URL from Tripay
+  paymentName     String?         @map("payment_name") @db.VarChar(255)  // Channel display name
+  paymentFee      Int?            @map("payment_fee")                    // Fee from payment gateway
+  
+  // Tripay Reference
+  tripayReference String?         @map("tripay_reference") @db.VarChar(100)
+  
+  // Payment Result (populated after callback)
+  paidAt          DateTime?       @map("paid_at") @db.Timestamptz
+  paidAmount      Int?            @map("paid_amount")
+  paidChannel     String?         @map("paid_channel") @db.VarChar(50)
+  
+  // Callback Data
+  callbackPayload Json?           @map("callback_payload")
+  
+  // Timestamps
+  expiredAt       DateTime        @map("expired_at") @db.Timestamptz
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+  
+  // Relations
+  payments        Payment[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([tripayReference])
+  @@index([createdAt])
+  @@map("invoices")
+}
+
+model Payment {
+  id              String    @id @default(uuid()) @db.Uuid
+  invoiceId       String    @map("invoice_id") @db.Uuid
+  invoice         Invoice   @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  
+  // Payment Details
+  amount          Int
+  channel         String    @db.VarChar(50)
+  reference       String    @db.VarChar(100)  // Tripay reference
+  status          String    @db.VarChar(20)   // SUCCESS, FAILED
+  
+  // Raw Data
+  rawPayload      Json?     @map("raw_payload")
+  
+  // Timestamps
+  processedAt     DateTime  @default(now()) @map("processed_at") @db.Timestamptz
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([invoiceId])
+  @@index([reference])
+  @@map("payments")
+}

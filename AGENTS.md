@@ -90,6 +90,14 @@ Custom skills untuk webrana-cloud project, terletak di `.factory/droids/`.
 | **Senior QA Engineer** | `/droid senior-qa-engineer` | `/qa` | Test strategy, automation, quality gates |
 | **Senior DevOps Engineer** | `/droid senior-devops-engineer` | `/devops` | CI/CD, infrastructure, monitoring |
 
+### Creative & Marketing Skills
+
+| Skill | Command | Shorthand | Purpose |
+|-------|---------|-----------|---------|
+| **Senior UI/UX Designer** | `/droid senior-ui-ux-designer` | `/design` | UI design, UX flows, design systems, visual design |
+| **Senior Copywriter** | `/droid senior-copywriter` | `/copy` | Landing page copy, UX writing, product content |
+| **Senior Marketing Specialist** | `/droid senior-marketing-specialist` | `/marketing` | GTM strategy, campaigns, SEO, growth |
+
 ### Typical Workflow
 
 ```
