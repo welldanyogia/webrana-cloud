@@ -7,7 +7,10 @@ import {
   HttpStatus,
   Logger,
   BadRequestException,
+  Req,
+  RawBodyRequest,
 } from '@nestjs/common';
+import { Request } from 'express';
 
 import { InvoiceService } from '../invoice/invoice.service';
 import { TripayCallbackPayload } from '../tripay/dto/tripay.dto';
@@ -35,12 +38,16 @@ export class WebhookController {
    * Tripay sends:
    * - X-Callback-Signature: HMAC-SHA256 signature of request body
    * - Request body: TripayCallbackPayload
+   * 
+   * Security: Uses raw body for signature verification to ensure
+   * exact byte-for-byte match with the signed payload.
    */
   @Post('tripay')
   @HttpCode(HttpStatus.OK)
   async handleTripayCallback(
     @Body() payload: TripayCallbackPayload,
-    @Headers('x-callback-signature') signature: string
+    @Headers('x-callback-signature') signature: string,
+    @Req() request: RawBodyRequest<Request>
   ) {
     this.logger.log(
       `Received Tripay callback for merchant_ref: ${payload.merchant_ref}`
@@ -52,14 +59,23 @@ export class WebhookController {
       throw new BadRequestException('Missing callback signature');
     }
 
+    // Get raw body for accurate signature verification
+    const rawBody = request.rawBody?.toString('utf-8');
+    
+    if (!rawBody) {
+      this.logger.error('Raw body not available - check rawBody is enabled in main.ts');
+      throw new BadRequestException('Missing request body');
+    }
+
     try {
-      this.tripayService.validateCallback(payload, signature);
+      // Verify signature using raw body to avoid JSON serialization differences
+      this.tripayService.verifyCallbackSignatureRaw(rawBody, signature);
     } catch (error) {
       this.logger.warn('Invalid callback signature');
       throw new BadRequestException('Invalid callback signature');
     }
 
-    // Process the callback
+    // Process the callback with parsed payload
     await this.invoiceService.processCallback(payload);
 
     // Tripay expects { success: true } response

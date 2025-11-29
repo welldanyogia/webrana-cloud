@@ -213,12 +213,41 @@ export class TripayService {
   /**
    * Validate and extract callback payload
    * Throws TripaySignatureException if signature is invalid
+   * 
+   * @deprecated Use verifyCallbackSignatureRaw for accurate verification
    */
   validateCallback(payload: TripayCallbackPayload, signature: string): TripayCallbackPayload {
     if (!this.verifyCallbackSignature(payload, signature)) {
       throw new TripaySignatureException();
     }
     return payload;
+  }
+
+  /**
+   * Verify callback signature using raw body string
+   * 
+   * This is the preferred method as it uses the exact raw body bytes
+   * sent by Tripay, avoiding JSON serialization differences that can
+   * occur with key ordering or whitespace.
+   * 
+   * @throws TripaySignatureException if signature is invalid or missing
+   */
+  verifyCallbackSignatureRaw(rawBody: string, signature: string): void {
+    if (!signature) {
+      this.logger.warn('Empty signature provided for verification');
+      throw new TripaySignatureException();
+    }
+
+    const expectedSignature = createHmac('sha256', this.privateKey)
+      .update(rawBody)
+      .digest('hex');
+
+    if (signature !== expectedSignature) {
+      this.logger.warn('Callback signature verification failed (raw body)');
+      throw new TripaySignatureException();
+    }
+
+    this.logger.debug('Callback signature verified successfully');
   }
 
   /**
