@@ -79,7 +79,18 @@ export interface OrderStats {
   totalSpent: number;
 }
 
+// Duration types
+export type DurationUnit = 'MONTHLY' | 'YEARLY';
+
 // VPS Plan types
+export interface PlanPricing {
+  id: string;
+  planId: string;
+  duration: DurationUnit;
+  price: number;
+  isActive: boolean;
+}
+
 export interface VpsPlan {
   id: string;
   name: string;
@@ -88,7 +99,9 @@ export interface VpsPlan {
   ssd: number;
   bandwidth: number;
   priceMonthly: number;
+  description?: string;
   isActive: boolean;
+  pricing?: PlanPricing[];
 }
 
 // OS Image types
@@ -99,4 +112,64 @@ export interface OsImage {
   distribution: string;
   version: string;
   isActive: boolean;
+}
+
+// Coupon types
+export interface CouponValidationResponse {
+  valid: boolean;
+  code: string;
+  discountType: 'PERCENTAGE' | 'FIXED';
+  discountValue: number;
+  discountAmount: number;
+  message?: string;
+}
+
+// Order request types
+export interface CreateOrderRequest {
+  planId: string;
+  imageId: string;
+  duration: number;
+  durationUnit: DurationUnit;
+  hostname: string;
+  couponCode?: string;
+}
+
+// Order detail types (with related data)
+export interface OrderDetail extends Order {
+  plan?: VpsPlan;
+  image?: OsImage;
+  invoice?: Invoice;
+  vps?: VpsInstance;
+}
+
+// Invoice types
+export interface Invoice {
+  id: string;
+  orderId: string;
+  invoiceNumber: string;
+  amount: number;
+  status: 'PENDING' | 'PAID' | 'EXPIRED' | 'CANCELLED';
+  paymentUrl?: string;
+  expiredAt: string;
+  paidAt?: string;
+  createdAt: string;
+}
+
+// VPS Instance types
+export interface VpsInstance {
+  id: string;
+  orderId: string;
+  hostname: string;
+  ipAddress?: string;
+  status: 'PROVISIONING' | 'ACTIVE' | 'STOPPED' | 'DELETED';
+  createdAt: string;
+}
+
+// Paginated response
+export interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }
