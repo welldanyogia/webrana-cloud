@@ -173,3 +173,54 @@ export interface PaginatedResponse<T> {
   limit: number;
   totalPages: number;
 }
+
+// Payment types
+export interface PaymentChannel {
+  code: string;
+  name: string;
+  group: string;
+  type: 'virtual_account' | 'ewallet' | 'qris' | 'convenience_store';
+  fee: {
+    flat: number;
+    percent: number;
+  };
+  iconUrl: string;
+}
+
+export interface InitiatePaymentRequest {
+  channel: string;
+  customerName?: string;
+  customerEmail?: string;
+  customerPhone?: string;
+  returnUrl?: string;
+}
+
+export interface PaymentInstruction {
+  title: string;
+  steps: string[];
+}
+
+export interface InitiatePaymentResponse {
+  invoice: Invoice;
+  payment: {
+    channel: string;
+    channelName: string;
+    paymentCode: string;
+    paymentUrl: string;
+    totalAmount: number;
+    fee: number;
+    expiredAt: string;
+    instructions?: PaymentInstruction[];
+  };
+}
+
+// Extended Invoice with payment details
+export interface InvoiceDetail extends Invoice {
+  paymentMethod?: string;
+  paymentChannel?: string;
+  paymentCode?: string;
+  paymentUrl?: string;
+  paymentName?: string;
+  paymentFee?: number;
+  tripayReference?: string;
+}
