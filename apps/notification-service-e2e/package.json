@@ -4,7 +4,7 @@
   "private": true,
   "nx": {
     "implicitDependencies": [
-      "@webrana-cloud/notification-service"
+      "notification-service"
     ],
     "targets": {
       "e2e": {
@@ -17,8 +17,8 @@
           "passWithNoTests": true
         },
         "dependsOn": [
-          "@webrana-cloud/notification-service:build",
-          "@webrana-cloud/notification-service:serve"
+          "notification-service:build",
+          "notification-service:serve"
         ]
       }
     }

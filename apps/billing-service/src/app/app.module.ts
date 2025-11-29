@@ -1,0 +1,37 @@
+import * as path from 'path';
+
+import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { APP_FILTER } from '@nestjs/core';
+
+import { HttpExceptionFilter } from '../common/filters/http-exception.filter';
+import { InvoiceModule } from '../modules/invoice/invoice.module';
+import { OrderClientModule } from '../modules/order-client/order-client.module';
+import { TripayModule } from '../modules/tripay/tripay.module';
+import { PrismaModule } from '../prisma/prisma.module';
+
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: path.join(__dirname, '..', '..', '.env'),
+    }),
+    PrismaModule,
+    TripayModule,
+    InvoiceModule,
+    OrderClientModule,
+  ],
+  controllers: [AppController],
+  providers: [
+    AppService,
+    {
+      provide: APP_FILTER,
+      useClass: HttpExceptionFilter,
+    },
+  ],
+})
+export class AppModule {}

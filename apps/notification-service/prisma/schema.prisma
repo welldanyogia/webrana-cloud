@@ -1,0 +1,76 @@
+// Prisma schema for Notification Service
+// Database: PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ===========================================
+// ENUMS
+// ===========================================
+
+enum NotificationChannel {
+  EMAIL
+  TELEGRAM
+}
+
+enum NotificationStatus {
+  QUEUED    // Dalam antrian
+  SENT      // Berhasil dikirim
+  FAILED    // Gagal dikirim
+  SKIPPED   // Dilewati (misal: user tidak punya email/chatId)
+}
+
+enum NotificationEvent {
+  ORDER_CREATED
+  PAYMENT_CONFIRMED
+  VPS_ACTIVE
+  PROVISIONING_FAILED
+  VPS_EXPIRING
+  GENERIC
+}
+
+// ===========================================
+// MODELS
+// ===========================================
+
+model NotificationLog {
+  id          String              @id @default(uuid()) @db.Uuid
+  userId      String              @map("user_id")
+  
+  // Notification Details
+  event       NotificationEvent   @default(GENERIC)
+  channel     NotificationChannel
+  status      NotificationStatus  @default(QUEUED)
+  
+  // Recipient Info (snapshot at time of send)
+  recipient   String              @db.VarChar(255)  // Email address or Telegram chatId
+  
+  // Content
+  subject     String?             @db.VarChar(255)  // For email only
+  content     String              @db.Text          // Message content or HTML
+  
+  // Metadata
+  payload     Json?               // Original data passed to notification
+  
+  // Error Tracking
+  error       String?             @db.Text          // Error message if failed
+  retryCount  Int                 @default(0) @map("retry_count")
+  
+  // Timestamps
+  sentAt      DateTime?           @map("sent_at") @db.Timestamptz
+  createdAt   DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime            @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([userId])
+  @@index([event])
+  @@index([channel])
+  @@index([status])
+  @@index([createdAt])
+  @@map("notification_logs")
+}
