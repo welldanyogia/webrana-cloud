@@ -2,6 +2,9 @@
   "name": "@webrana-cloud/catalog-service",
   "version": "0.0.1",
   "private": true,
+  "prisma": {
+    "seed": "npx ts-node prisma/seed.ts"
+  },
   "nx": {
     "name": "catalog-service",
     "targets": {
