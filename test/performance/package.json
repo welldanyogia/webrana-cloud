@@ -1,0 +1,23 @@
+{
+  "name": "webrana-performance-tests",
+  "version": "1.0.0",
+  "description": "Performance tests for Webrana Cloud Platform using k6",
+  "scripts": {
+    "test:load": "k6 run load-test.js",
+    "test:stress": "k6 run stress-test.js",
+    "test:spike": "k6 run spike-test.js",
+    "test:soak": "k6 run soak-test.js",
+    "test:rate-limit": "k6 run rate-limit-test.js",
+    "test:db-pool": "k6 run db-pool-test.js",
+    "test:webhook": "k6 run webhook-throughput-test.js",
+    "test:all": "npm run test:load && npm run test:stress && npm run test:spike"
+  },
+  "keywords": [
+    "k6",
+    "performance",
+    "load-testing",
+    "stress-testing"
+  ],
+  "author": "Webrana Cloud Team",
+  "license": "MIT"
+}
