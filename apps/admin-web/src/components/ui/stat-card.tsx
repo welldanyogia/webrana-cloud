@@ -62,7 +62,7 @@ export function StatCard({
                 )}
                 {Math.abs(trend.value)}%
               </div>
-              <span className="text-xs text-[var(--text-muted)]">vs kemarin</span>
+              <span className="text-xs text-[var(--text-muted)]">vs bulan lalu</span>
             </div>
           )}
         </div>

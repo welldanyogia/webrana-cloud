@@ -243,26 +243,26 @@ Each service requires specific environment variables. See `.env.example` in each
 
 ```bash
 # Common
-DATABASE_URL=postgresql://user:pass@localhost:5432/dbname
+DATABASE_URL=postgresql://localhost:5432/dbname
 JWT_ALGORITHM=RS256
-JWT_PUBLIC_KEY=...
-JWT_PRIVATE_KEY=...
+JWT_PUBLIC_KEY=<see-env-example>
+JWT_PRIVATE_KEY=<see-env-example>
 
 # billing-service
-TRIPAY_API_KEY=...
-TRIPAY_PRIVATE_KEY=...
-TRIPAY_MERCHANT_CODE=...
+TRIPAY_API_KEY=<see-env-example>
+TRIPAY_PRIVATE_KEY=<see-env-example>
+TRIPAY_MERCHANT_CODE=<see-env-example>
 
 # order-service / instance-service
-DO_ACCESS_TOKEN=<your-digitalocean-token>
+DO_ACCESS_TOKEN=<see-env-example>
 
 # notification-service
-SMTP_HOST=...
-TELEGRAM_BOT_TOKEN=...
+SMTP_HOST=<see-env-example>
+TELEGRAM_BOT_TOKEN=<see-env-example>
 REDIS_URL=redis://localhost:6379
 
 # admin-web (server-side)
-INTERNAL_API_KEY=...
+INTERNAL_API_KEY=<see-env-example>
 ORDER_SERVICE_URL=http://localhost:3003
 ```
 
