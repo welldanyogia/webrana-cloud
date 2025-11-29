@@ -1,12 +1,16 @@
 import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 
+/**
+ * Base URL for client-side API calls
+ * Note: Internal API calls are now handled via server-side API routes at /api/admin/*
+ * to protect the INTERNAL_API_KEY from client bundle exposure (SEC-001 fix)
+ */
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:4000/api/v1';
 
-const INTERNAL_API_KEY = process.env.NEXT_PUBLIC_INTERNAL_API_KEY || '';
-
 /**
  * Axios instance configured with base URL and interceptors
+ * Used for public API calls to external services (API gateway)
  */
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -17,15 +21,14 @@ export const apiClient = axios.create({
 });
 
 /**
- * Axios instance for internal API endpoints with X-API-Key header
+ * Axios instance for local Next.js API routes (no baseURL)
+ * Used for admin API routes that proxy to internal services
  */
-export const internalApiClient = axios.create({
-  baseURL: API_BASE_URL,
+export const localApiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
-    'X-API-Key': INTERNAL_API_KEY,
   },
-  timeout: 30000,
+  timeout: 30000, // 30 seconds timeout
 });
 
 /**
@@ -70,22 +73,6 @@ apiClient.interceptors.request.use(
 );
 
 /**
- * Request interceptor for internal API - adds both JWT and API Key
- */
-internalApiClient.interceptors.request.use(
-  (config: InternalAxiosRequestConfig) => {
-    const token = getToken();
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
-
-/**
  * Response interceptor - handles 401 errors
  */
 const handleUnauthorized = (error: AxiosError) => {
@@ -106,6 +93,23 @@ const handleUnauthorized = (error: AxiosError) => {
 };
 
 apiClient.interceptors.response.use((response) => response, handleUnauthorized);
-internalApiClient.interceptors.response.use((response) => response, handleUnauthorized);
+
+/**
+ * Request interceptor for local API - adds JWT token to headers
+ */
+localApiClient.interceptors.request.use(
+  (config: InternalAxiosRequestConfig) => {
+    const token = getToken();
+    if (token && config.headers) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+localApiClient.interceptors.response.use((response) => response, handleUnauthorized);
 
 export default apiClient;
