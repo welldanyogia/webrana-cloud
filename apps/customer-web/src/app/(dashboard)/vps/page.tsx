@@ -3,21 +3,21 @@
 import Link from 'next/link';
 import {
   Server,
-  Power,
-  RefreshCw,
-  Terminal,
-  MoreVertical,
   Plus,
   ExternalLink,
   AlertCircle,
+  Cpu,
+  HardDrive,
+  Globe,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useOrders } from '@/hooks/use-orders';
-import { formatRelativeTime, getOrderStatusLabel } from '@/lib/utils';
-import type { OrderStatus } from '@/types';
+import { StatusIndicator } from '@/components/vps';
+import { useInstances } from '@/hooks/use-instances';
+import { formatRelativeTime } from '@/lib/utils';
+import type { InstanceStatus } from '@/types';
 
 function VpsListSkeleton() {
   return (
@@ -35,10 +35,7 @@ function VpsListSkeleton() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Skeleton className="h-9 w-9 rounded-lg" />
-                <Skeleton className="h-9 w-9 rounded-lg" />
-                <Skeleton className="h-9 w-9 rounded-lg" />
-                <Skeleton className="h-9 w-20 rounded-lg" />
+                <Skeleton className="h-9 w-24 rounded-lg" />
               </div>
             </div>
           </CardContent>
@@ -49,38 +46,45 @@ function VpsListSkeleton() {
 }
 
 function getStatusBadgeVariant(
-  status: OrderStatus
+  status: InstanceStatus
 ): 'success' | 'warning' | 'danger' | 'info' | 'default' {
   switch (status) {
-    case 'ACTIVE':
+    case 'active':
       return 'success';
-    case 'PENDING_PAYMENT':
-      return 'warning';
-    case 'PAYMENT_RECEIVED':
-    case 'PROVISIONING':
+    case 'new':
       return 'info';
-    case 'FAILED':
-    case 'CANCELLED':
-    case 'EXPIRED':
+    case 'off':
       return 'danger';
+    case 'archive':
+      return 'default';
     default:
       return 'default';
   }
 }
 
+function getStatusLabel(status: InstanceStatus): string {
+  const labels: Record<InstanceStatus, string> = {
+    active: 'Aktif',
+    off: 'Mati',
+    new: 'Baru',
+    archive: 'Arsip',
+  };
+  return labels[status] || status;
+}
+
+function formatRam(ramMb: number): string {
+  if (ramMb >= 1024) {
+    return `${ramMb / 1024} GB`;
+  }
+  return `${ramMb} MB`;
+}
+
 export default function VPSPage() {
-  const { data: ordersResponse, isLoading, isError, refetch } = useOrders({
+  const { data: instancesResponse, isLoading, isError, refetch } = useInstances({
     limit: 50,
   });
 
-  const orders = ordersResponse?.items ?? [];
-
-  // Filter to show only relevant orders (active, provisioning, or pending payment)
-  const relevantOrders = orders.filter((order) =>
-    ['ACTIVE', 'PROVISIONING', 'PENDING_PAYMENT', 'PAYMENT_RECEIVED'].includes(
-      order.status
-    )
-  );
+  const instances = instancesResponse?.data ?? [];
 
   return (
     <div className="space-y-8">
@@ -123,79 +127,69 @@ export default function VPSPage() {
       {isLoading && <VpsListSkeleton />}
 
       {/* VPS List */}
-      {!isLoading && !isError && relevantOrders.length > 0 && (
+      {!isLoading && !isError && instances.length > 0 && (
         <div className="space-y-4">
-          {relevantOrders.map((order) => (
-            <Card key={order.id}>
+          {instances.map((instance) => (
+            <Card key={instance.id} hover>
               <CardContent className="p-0">
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between p-6 gap-4">
-                  {/* Instance Info */}
-                  <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 bg-[var(--primary-light)] rounded-lg flex items-center justify-center flex-shrink-0">
-                      <Server className="h-6 w-6 text-[var(--primary)]" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-3 mb-1">
-                        <h3 className="font-semibold text-[var(--text-primary)]">
-                          {order.hostname}
-                        </h3>
-                        <Badge
-                          variant={getStatusBadgeVariant(order.status)}
-                          dot
-                        >
-                          {getOrderStatusLabel(order.status)}
-                        </Badge>
+                <Link href={`/vps/${instance.id}`}>
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between p-6 gap-4">
+                    {/* Instance Info */}
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 bg-[var(--primary-light)] rounded-lg flex items-center justify-center flex-shrink-0">
+                        <Server className="h-6 w-6 text-[var(--primary)]" />
                       </div>
-                      <p className="text-sm text-[var(--text-muted)] font-mono mb-1">
-                        {order.orderNumber || `Order #${order.id.slice(0, 8)}`}
-                      </p>
-                      <p className="text-xs text-[var(--text-muted)]">
-                        Dibuat {formatRelativeTime(order.createdAt)}
-                      </p>
+                      <div>
+                        <div className="flex items-center gap-3 mb-1">
+                          <h3 className="font-semibold text-[var(--text-primary)]">
+                            {instance.hostname}
+                          </h3>
+                          <Badge
+                            variant={getStatusBadgeVariant(instance.status)}
+                            dot
+                          >
+                            {getStatusLabel(instance.status)}
+                          </Badge>
+                        </div>
+                        {instance.ipAddress && (
+                          <p className="text-sm text-[var(--text-muted)] font-mono mb-1">
+                            {instance.ipAddress}
+                          </p>
+                        )}
+                        <div className="flex items-center gap-4 text-xs text-[var(--text-muted)]">
+                          <span className="flex items-center gap-1">
+                            <Cpu className="h-3 w-3" />
+                            {instance.plan.cpu} vCPU
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Server className="h-3 w-3" />
+                            {formatRam(instance.plan.ram)}
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <HardDrive className="h-3 w-3" />
+                            {instance.plan.ssd} GB
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Globe className="h-3 w-3" />
+                            {instance.region.toUpperCase()}
+                          </span>
+                        </div>
+                        <p className="text-xs text-[var(--text-muted)] mt-1">
+                          {instance.image.name} • Dibuat {formatRelativeTime(instance.createdAt)}
+                        </p>
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Actions */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    {order.status === 'ACTIVE' && (
-                      <>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          title="Buka Console"
-                          disabled
-                        >
-                          <Terminal className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          title="Restart Server"
-                          disabled
-                        >
-                          <RefreshCw className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          title="Matikan/Nyalakan"
-                          disabled
-                        >
-                          <Power className="h-4 w-4" />
-                        </Button>
-                      </>
-                    )}
-                    <Link href={`/order/${order.id}`}>
+                    {/* Actions */}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <StatusIndicator status={instance.status} />
                       <Button variant="outline" size="sm">
-                        {order.status === 'PENDING_PAYMENT' ? 'Bayar' : 'Kelola'}
+                        Kelola
                         <ExternalLink className="ml-2 h-3 w-3" />
                       </Button>
-                    </Link>
-                    <Button variant="ghost" size="sm" disabled>
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
+                    </div>
                   </div>
-                </div>
+                </Link>
               </CardContent>
             </Card>
           ))}
@@ -203,7 +197,7 @@ export default function VPSPage() {
       )}
 
       {/* Empty State */}
-      {!isLoading && !isError && relevantOrders.length === 0 && (
+      {!isLoading && !isError && instances.length === 0 && (
         <Card>
           <CardContent className="py-16 text-center">
             <div className="w-16 h-16 bg-[var(--surface)] rounded-full flex items-center justify-center mx-auto mb-4">
@@ -227,7 +221,7 @@ export default function VPSPage() {
       )}
 
       {/* All Orders History Link */}
-      {!isLoading && !isError && orders.length > 0 && (
+      {!isLoading && !isError && (
         <div className="text-center">
           <Link
             href="/invoices"
