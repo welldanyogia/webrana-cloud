@@ -1,4 +1,4 @@
-import { internalApiClient } from '@/lib/api-client';
+import { localApiClient } from '@/lib/api-client';
 import type {
   ApiResponse,
   Order,
@@ -13,16 +13,18 @@ import type {
 
 /**
  * Get admin dashboard statistics
+ * Uses server-side API route to protect internal API key
  */
 export async function getAdminStats(): Promise<AdminStats> {
-  const response = await internalApiClient.get<ApiResponse<AdminStats>>(
-    '/internal/stats'
+  const response = await localApiClient.get<ApiResponse<AdminStats>>(
+    '/api/admin/stats'
   );
   return response.data.data;
 }
 
 /**
  * Get all orders (admin view)
+ * Uses server-side API route to protect internal API key
  */
 export async function getAdminOrders(
   filters?: OrderFilters
@@ -36,31 +38,33 @@ export async function getAdminOrders(
   if (filters?.endDate) searchParams.set('endDate', filters.endDate);
 
   const queryString = searchParams.toString();
-  const url = queryString ? `/internal/orders?${queryString}` : '/internal/orders';
+  const url = queryString ? `/api/admin/orders?${queryString}` : '/api/admin/orders';
 
-  const response = await internalApiClient.get<ApiResponse<PaginatedResponse<Order>>>(url);
+  const response = await localApiClient.get<ApiResponse<PaginatedResponse<Order>>>(url);
   return response.data.data;
 }
 
 /**
  * Get single order detail (admin view)
+ * Uses server-side API route to protect internal API key
  */
 export async function getAdminOrderDetail(orderId: string): Promise<OrderDetail> {
-  const response = await internalApiClient.get<ApiResponse<OrderDetail>>(
-    `/internal/orders/${orderId}`
+  const response = await localApiClient.get<ApiResponse<OrderDetail>>(
+    `/api/admin/orders/${orderId}`
   );
   return response.data.data;
 }
 
 /**
  * Update order payment status (admin override)
+ * Uses server-side API route to protect internal API key
  */
 export async function updatePaymentStatus(
   orderId: string,
   data: UpdatePaymentStatusRequest
 ): Promise<Order> {
-  const response = await internalApiClient.post<ApiResponse<Order>>(
-    `/internal/orders/${orderId}/payment-status`,
+  const response = await localApiClient.post<ApiResponse<Order>>(
+    `/api/admin/orders/${orderId}/payment-status`,
     data
   );
   return response.data.data;
@@ -68,6 +72,7 @@ export async function updatePaymentStatus(
 
 /**
  * Get all users (admin view)
+ * Uses server-side API route to protect internal API key
  */
 export async function getAdminUsers(
   filters?: UserFilters
@@ -78,30 +83,32 @@ export async function getAdminUsers(
   if (filters?.search) searchParams.set('search', filters.search);
 
   const queryString = searchParams.toString();
-  const url = queryString ? `/internal/users?${queryString}` : '/internal/users';
+  const url = queryString ? `/api/admin/users?${queryString}` : '/api/admin/users';
 
-  const response = await internalApiClient.get<ApiResponse<PaginatedResponse<AdminUser>>>(url);
+  const response = await localApiClient.get<ApiResponse<PaginatedResponse<AdminUser>>>(url);
   return response.data.data;
 }
 
 /**
  * Get single user detail (admin view)
+ * Uses server-side API route to protect internal API key
  */
 export async function getAdminUserDetail(userId: string): Promise<AdminUser> {
-  const response = await internalApiClient.get<ApiResponse<AdminUser>>(
-    `/internal/users/${userId}`
+  const response = await localApiClient.get<ApiResponse<AdminUser>>(
+    `/api/admin/users/${userId}`
   );
   return response.data.data;
 }
 
 /**
  * Get user's orders (admin view)
+ * Uses server-side API route to protect internal API key
  */
 export async function getUserOrders(userId: string): Promise<Order[]> {
-  const response = await internalApiClient.get<ApiResponse<Order[]>>(
-    `/internal/users/${userId}/orders`
+  const response = await localApiClient.get<ApiResponse<{ orders: Order[] }>>(
+    `/api/admin/users/${userId}?includeOrders=true`
   );
-  return response.data.data;
+  return response.data.data.orders || [];
 }
 
 export const adminService = {

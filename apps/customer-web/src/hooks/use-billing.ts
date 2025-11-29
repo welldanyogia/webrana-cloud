@@ -76,12 +76,26 @@ export function useInitiatePayment() {
 
 /**
  * Hook to poll invoice status (for payment confirmation)
+ * Stops polling on error to prevent infinite error loops
  */
 export function useInvoicePolling(invoiceId: string, enabled = false) {
   return useQuery({
     queryKey: ['invoice', invoiceId, 'polling'],
     queryFn: () => getInvoice(invoiceId),
     enabled: enabled && !!invoiceId,
-    refetchInterval: enabled ? 5000 : false, // Poll every 5 seconds when enabled
+    refetchInterval: (query) => {
+      // Stop polling if there was an error
+      if (query.state.status === 'error') {
+        return false;
+      }
+      // Stop polling if invoice is no longer pending
+      const invoice = query.state.data;
+      if (invoice && invoice.status !== 'PENDING') {
+        return false;
+      }
+      return enabled ? 5000 : false;
+    },
+    retry: 3, // Limit retries on error
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
   });
 }

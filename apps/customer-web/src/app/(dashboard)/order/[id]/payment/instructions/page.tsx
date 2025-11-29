@@ -317,20 +317,25 @@ export default function PaymentInstructionsPage({
             <CardTitle size="sm">Cara Pembayaran</CardTitle>
           </CardHeader>
           <CardContent className="pt-0">
-            {/* Default instructions if no custom instructions */}
-            <div className="space-y-2">
-              <div className="border border-[var(--border)] rounded-lg p-4">
-                <h4 className="font-medium text-[var(--text-primary)] mb-2">Langkah Pembayaran</h4>
-                <ol className="list-decimal list-inside space-y-2 text-sm text-[var(--text-secondary)]">
-                  <li>Salin nomor virtual account atau kode pembayaran di atas</li>
-                  <li>Buka aplikasi mobile banking atau e-wallet Anda</li>
-                  <li>Pilih menu transfer atau pembayaran</li>
-                  <li>Masukkan nomor VA atau kode pembayaran</li>
-                  <li>Pastikan nama dan jumlah sudah benar</li>
-                  <li>Konfirmasi dan selesaikan pembayaran</li>
-                </ol>
+            {/* Use custom instructions from API if available */}
+            {(currentInvoice as any).instructions?.length > 0 ? (
+              <InstructionsAccordion instructions={(currentInvoice as any).instructions} />
+            ) : (
+              /* Default instructions if no custom instructions */
+              <div className="space-y-2">
+                <div className="border border-[var(--border)] rounded-lg p-4">
+                  <h4 className="font-medium text-[var(--text-primary)] mb-2">Langkah Pembayaran</h4>
+                  <ol className="list-decimal list-inside space-y-2 text-sm text-[var(--text-secondary)]">
+                    <li>Salin nomor virtual account atau kode pembayaran di atas</li>
+                    <li>Buka aplikasi mobile banking atau e-wallet Anda</li>
+                    <li>Pilih menu transfer atau pembayaran</li>
+                    <li>Masukkan nomor VA atau kode pembayaran</li>
+                    <li>Pastikan nama dan jumlah sudah benar</li>
+                    <li>Konfirmasi dan selesaikan pembayaran</li>
+                  </ol>
+                </div>
               </div>
-            </div>
+            )}
           </CardContent>
         </Card>
 

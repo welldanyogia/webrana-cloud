@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Invoice, InvoiceStatus, PaymentChannel, PaymentMethod } from '@prisma/client';
+import { Invoice, InvoiceStatus, PaymentChannel, PaymentMethod, Prisma } from '@prisma/client';
 
 import {
   InvoiceNotFoundException,
@@ -210,7 +210,7 @@ export class InvoiceService {
     const { page = 1, limit = 10, status } = query;
     const skip = (page - 1) * limit;
 
-    const where: any = { userId };
+    const where: Prisma.InvoiceWhereInput = { userId };
     if (status) {
       where.status = status as InvoiceStatus;
     }
@@ -395,7 +395,7 @@ export class InvoiceService {
         channel: payload.payment_method_code,
         reference: payload.reference,
         status: payload.status,
-        rawPayload: payload as any,
+        rawPayload: payload as Prisma.InputJsonValue,
       },
     });
 
@@ -408,7 +408,7 @@ export class InvoiceService {
           paidAt: payload.paid_at ? new Date(payload.paid_at * 1000) : new Date(),
           paidAmount: payload.amount_received,
           paidChannel: payload.payment_method_code,
-          callbackPayload: payload as any,
+          callbackPayload: payload as Prisma.InputJsonValue,
         },
       });
 
@@ -433,7 +433,7 @@ export class InvoiceService {
         where: { id: invoice.id },
         data: {
           status: 'EXPIRED',
-          callbackPayload: payload as any,
+          callbackPayload: payload as Prisma.InputJsonValue,
         },
       });
 
@@ -477,7 +477,7 @@ export class InvoiceService {
     const { page = 1, limit = 10, status } = query;
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: Prisma.InvoiceWhereInput = {};
     if (status) {
       where.status = status as InvoiceStatus;
     }

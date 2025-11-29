@@ -1,3 +1,4 @@
+import axios from 'axios';
 import apiClient from '@/lib/api-client';
 import type {
   ApiResponse,
@@ -21,6 +22,7 @@ export async function getInvoice(invoiceId: string): Promise<Invoice> {
 
 /**
  * Get invoice by order ID
+ * Returns null if invoice is not found (404), re-throws other errors
  */
 export async function getInvoiceByOrderId(orderId: string): Promise<Invoice | null> {
   try {
@@ -29,7 +31,12 @@ export async function getInvoiceByOrderId(orderId: string): Promise<Invoice | nu
     );
     return response.data.data;
   } catch (error) {
-    return null;
+    // Only return null for 404 (not found)
+    if (axios.isAxiosError(error) && error.response?.status === 404) {
+      return null;
+    }
+    // Re-throw other errors (network, 500, etc.)
+    throw error;
   }
 }
 
