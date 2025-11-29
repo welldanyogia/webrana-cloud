@@ -4,7 +4,7 @@
   "private": true,
   "nx": {
     "implicitDependencies": [
-      "@webrana-cloud/catalog-service"
+      "catalog-service"
     ],
     "targets": {
       "e2e": {
@@ -17,8 +17,8 @@
           "passWithNoTests": true
         },
         "dependsOn": [
-          "@webrana-cloud/catalog-service:build",
-          "@webrana-cloud/catalog-service:serve"
+          "catalog-service:build",
+          "catalog-service:serve"
         ]
       }
     }
