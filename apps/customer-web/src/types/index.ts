@@ -224,3 +224,60 @@ export interface InvoiceDetail extends Invoice {
   paymentFee?: number;
   tripayReference?: string;
 }
+
+// Instance types (VPS Management)
+export type InstanceStatus = 'active' | 'off' | 'new' | 'archive';
+
+export interface InstancePlan {
+  name: string;
+  cpu: number;
+  ram: number;
+  ssd: number;
+}
+
+export interface InstanceImage {
+  name: string;
+  distribution: string;
+}
+
+export interface Instance {
+  id: string;
+  orderId: string;
+  hostname: string;
+  ipAddress: string | null;
+  status: InstanceStatus;
+  plan: InstancePlan;
+  image: InstanceImage;
+  region: string;
+  createdAt: string;
+}
+
+export interface InstanceDetail extends Instance {
+  ipAddressPrivate: string | null;
+  vcpus: number;
+  memory: number;
+  disk: number;
+  doDropletId: string;
+}
+
+export type InstanceActionType = 'reboot' | 'power_off' | 'power_on' | 'reset_password';
+
+export type InstanceActionStatus = 'in-progress' | 'completed' | 'errored';
+
+export interface InstanceAction {
+  id: number;
+  type: string;
+  status: InstanceActionStatus;
+  startedAt: string;
+  completedAt: string | null;
+}
+
+export interface InstancePaginatedResult {
+  data: Instance[];
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
