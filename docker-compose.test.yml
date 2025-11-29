@@ -1,0 +1,267 @@
+# Docker Compose for E2E Testing Environment
+# 
+# This file sets up all required services for cross-service E2E tests.
+# Usage: docker-compose -f docker-compose.test.yml up -d
+#
+# Environment variables required (create .env.test or export):
+# - TEST_DB_PASSWORD: PostgreSQL test database password
+# - TEST_JWT_SECRET: JWT signing secret for test environment
+# - TEST_API_KEY: Internal API key for service-to-service auth
+# - TEST_DO_TOKEN: DigitalOcean API token (use mock)
+# - TEST_TRIPAY_KEY: Tripay API key (use mock)
+# - TEST_TRIPAY_PRIVATE: Tripay private key (use mock)
+# - TEST_TELEGRAM_TOKEN: Telegram bot token (use mock)
+#
+# Services:
+# - PostgreSQL test database
+# - Redis for caching/queues
+# - Mock servers for external APIs (Tripay, DigitalOcean)
+
+version: '3.8'
+
+services:
+  # PostgreSQL Database for Test Environment
+  postgres-test:
+    image: postgres:15-alpine
+    container_name: webrana-postgres-test
+    environment:
+      POSTGRES_DB: webrana_test
+      POSTGRES_USER: test
+      POSTGRES_PASSWORD: ${TEST_DB_PASSWORD:-changeme}
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-test-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U test -d webrana_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - webrana-test-network
+
+  # Redis for Queue/Cache Testing
+  redis-test:
+    image: redis:7-alpine
+    container_name: webrana-redis-test
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - webrana-test-network
+
+  # MockServer for External API Mocking (Tripay, DigitalOcean)
+  mockserver:
+    image: mockserver/mockserver:5.15.0
+    container_name: webrana-mockserver
+    ports:
+      - "1080:1080"
+    environment:
+      MOCKSERVER_INITIALIZATION_JSON_PATH: /config/expectations.json
+      MOCKSERVER_LOG_LEVEL: INFO
+    volumes:
+      - ./test/e2e/mocks:/config:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:1080/mockserver/status"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - webrana-test-network
+
+  # Auth Service (Test Mode)
+  auth-service-test:
+    build:
+      context: .
+      dockerfile: apps/auth-service/Dockerfile
+      target: development
+    container_name: webrana-auth-service-test
+    environment:
+      NODE_ENV: test
+      PORT: 3001
+      DATABASE_URL: postgresql://test:${TEST_DB_PASSWORD:-changeme}@postgres-test:5432/webrana_test?schema=auth
+      JWT_SECRET: ${TEST_JWT_SECRET:-changeme}
+      JWT_ALGORITHM: HS256
+      JWT_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      redis-test:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - webrana-test-network
+
+  # Catalog Service (Test Mode)
+  catalog-service-test:
+    build:
+      context: .
+      dockerfile: apps/catalog-service/Dockerfile
+      target: development
+    container_name: webrana-catalog-service-test
+    environment:
+      NODE_ENV: test
+      PORT: 3002
+      DATABASE_URL: postgresql://test:${TEST_DB_PASSWORD:-changeme}@postgres-test:5432/webrana_test?schema=catalog
+    ports:
+      - "3002:3002"
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - webrana-test-network
+
+  # Order Service (Test Mode)
+  order-service-test:
+    build:
+      context: .
+      dockerfile: Dockerfile.order-service
+      target: development
+    container_name: webrana-order-service-test
+    environment:
+      NODE_ENV: test
+      PORT: 3003
+      DATABASE_URL: postgresql://test:${TEST_DB_PASSWORD:-changeme}@postgres-test:5432/webrana_test?schema=order
+      JWT_SECRET: ${TEST_JWT_SECRET:-changeme}
+      JWT_ALGORITHM: HS256
+      INTERNAL_API_KEY: ${TEST_API_KEY:-changeme}
+      CATALOG_SERVICE_BASE_URL: http://catalog-service-test:3002
+      DO_ACCESS_TOKEN: ${TEST_DO_TOKEN:-mock}
+      DO_API_BASE_URL: http://mockserver:1080/do
+    ports:
+      - "3003:3003"
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      catalog-service-test:
+        condition: service_healthy
+      mockserver:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3003/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - webrana-test-network
+
+  # Billing Service (Test Mode)
+  billing-service-test:
+    build:
+      context: .
+      dockerfile: apps/billing-service/Dockerfile
+      target: development
+    container_name: webrana-billing-service-test
+    environment:
+      NODE_ENV: test
+      PORT: 3004
+      DATABASE_URL: postgresql://test:${TEST_DB_PASSWORD:-changeme}@postgres-test:5432/webrana_test?schema=billing
+      JWT_SECRET: ${TEST_JWT_SECRET:-changeme}
+      JWT_ALGORITHM: HS256
+      INTERNAL_API_KEY: ${TEST_API_KEY:-changeme}
+      ORDER_SERVICE_BASE_URL: http://order-service-test:3003
+      TRIPAY_API_KEY: ${TEST_TRIPAY_KEY:-mock}
+      TRIPAY_PRIVATE_KEY: ${TEST_TRIPAY_PRIVATE:-mock}
+      TRIPAY_MERCHANT_CODE: ${TEST_TRIPAY_MERCHANT:-mock}
+      TRIPAY_API_BASE_URL: http://mockserver:1080/tripay
+    ports:
+      - "3004:3004"
+    depends_on:
+      postgres-test:
+        condition: service_healthy
+      order-service-test:
+        condition: service_healthy
+      mockserver:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3004/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - webrana-test-network
+
+  # Instance Service (Test Mode)
+  instance-service-test:
+    build:
+      context: .
+      dockerfile: apps/instance-service/Dockerfile
+      target: development
+    container_name: webrana-instance-service-test
+    environment:
+      NODE_ENV: test
+      PORT: 3005
+      JWT_SECRET: ${TEST_JWT_SECRET:-changeme}
+      JWT_ALGORITHM: HS256
+      ORDER_SERVICE_BASE_URL: http://order-service-test:3003
+      DO_ACCESS_TOKEN: ${TEST_DO_TOKEN:-mock}
+      DO_API_BASE_URL: http://mockserver:1080/do
+    ports:
+      - "3005:3005"
+    depends_on:
+      order-service-test:
+        condition: service_healthy
+      mockserver:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3005/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - webrana-test-network
+
+  # Notification Service (Test Mode)
+  notification-service-test:
+    build:
+      context: .
+      dockerfile: apps/notification-service/Dockerfile
+      target: development
+    container_name: webrana-notification-service-test
+    environment:
+      NODE_ENV: test
+      PORT: 3006
+      REDIS_URL: redis://redis-test:6379
+      INTERNAL_API_KEY: ${TEST_API_KEY:-changeme}
+      SMTP_HOST: mockserver
+      SMTP_PORT: 1025
+      TELEGRAM_BOT_TOKEN: ${TEST_TELEGRAM_TOKEN:-mock}
+      TELEGRAM_API_URL: http://mockserver:1080/telegram
+    ports:
+      - "3006:3006"
+    depends_on:
+      redis-test:
+        condition: service_healthy
+      mockserver:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3006/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - webrana-test-network
+
+volumes:
+  postgres-test-data:
+    driver: local
+
+networks:
+  webrana-test-network:
+    driver: bridge
