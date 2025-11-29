@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { NotificationLog, NotificationChannel, NotificationStatus, NotificationEvent } from '@prisma/client';
 
 import { InvalidNotificationEventException } from '../../common/exceptions/notification.exceptions';
@@ -15,6 +15,7 @@ import {
   VpsActiveData,
   ProvisioningFailedData,
 } from '../email/templates/email-templates';
+import { QueueService } from '../queue/queue.service';
 import {
   paymentConfirmedTelegramTemplate,
   vpsActiveTelegramTemplate,
@@ -36,10 +37,11 @@ import {
 
 interface NotificationResult {
   channel: string;
-  status: 'SENT' | 'FAILED' | 'SKIPPED';
+  status: 'SENT' | 'FAILED' | 'SKIPPED' | 'QUEUED';
   recipient?: string;
   error?: string;
   logId?: string;
+  jobId?: string;
 }
 
 @Injectable()
@@ -50,20 +52,66 @@ export class NotificationService {
     private readonly prisma: PrismaService,
     private readonly emailService: EmailService,
     private readonly telegramService: TelegramService,
-    private readonly authClientService: AuthClientService
+    private readonly authClientService: AuthClientService,
+    @Inject(forwardRef(() => QueueService))
+    private readonly queueService: QueueService
   ) {}
 
   /**
    * Main notification entry point
-   * Handles routing based on event type
+   * Routes to queue for async processing, or processes synchronously if queue unavailable
    */
   async notify(
     event: NotificationEventType,
     userId: string,
-    data: Record<string, any>
+    data: Record<string, any>,
+    options?: { sync?: boolean }
   ): Promise<SendNotificationResponseDto> {
     this.logger.log(`Processing notification: event=${event}, userId=${userId}`);
 
+    // Try to queue the notification for async processing
+    if (!options?.sync && this.queueService.isQueueAvailable()) {
+      const jobId = await this.queueService.addJob(event, userId, data);
+      
+      if (jobId) {
+        this.logger.log(`Notification queued with jobId: ${jobId}`);
+        return {
+          success: true,
+          message: 'Notification queued for processing',
+          notifications: [{
+            channel: 'QUEUE',
+            status: 'QUEUED',
+            jobId,
+          }],
+        };
+      }
+    }
+
+    // Fallback to synchronous processing
+    return this.processNotificationSync(event, userId, data);
+  }
+
+  /**
+   * Process notification job from queue
+   * Called by QueueProcessor
+   */
+  async processNotificationJob(
+    event: string,
+    userId: string,
+    data: Record<string, any>
+  ): Promise<void> {
+    this.logger.log(`Processing queued notification: event=${event}, userId=${userId}`);
+    await this.processNotificationSync(event as NotificationEventType, userId, data);
+  }
+
+  /**
+   * Process notification synchronously
+   */
+  private async processNotificationSync(
+    event: NotificationEventType,
+    userId: string,
+    data: Record<string, any>
+  ): Promise<SendNotificationResponseDto> {
     let results: NotificationResult[];
 
     switch (event) {

@@ -8,6 +8,7 @@ import { HttpExceptionFilter } from '../common/filters/http-exception.filter';
 import { AuthClientModule } from '../modules/auth-client/auth-client.module';
 import { EmailModule } from '../modules/email/email.module';
 import { NotificationModule } from '../modules/notification/notification.module';
+import { QueueModule } from '../modules/queue/queue.module';
 import { TelegramModule } from '../modules/telegram/telegram.module';
 import { PrismaModule } from '../prisma/prisma.module';
 
@@ -24,6 +25,7 @@ import { AppService } from './app.service';
     EmailModule,
     TelegramModule,
     AuthClientModule,
+    QueueModule,
     NotificationModule,
   ],
   controllers: [AppController],
