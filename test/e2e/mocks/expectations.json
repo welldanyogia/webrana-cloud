@@ -1,0 +1,303 @@
+[
+  {
+    "httpRequest": {
+      "method": "GET",
+      "path": "/mockserver/status"
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "body": "{\"status\": \"running\"}"
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "POST",
+      "path": "/tripay/transaction/create"
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "headers": {
+        "Content-Type": ["application/json"]
+      },
+      "body": {
+        "success": true,
+        "message": "Success",
+        "data": {
+          "reference": "T{{randomValue length=12 type='ALPHANUMERIC'}}",
+          "merchant_ref": "${json-unit.any-string}",
+          "payment_selection_type": "static",
+          "payment_method": "BRIVA",
+          "payment_name": "BRI Virtual Account",
+          "customer_name": "Test Customer",
+          "customer_email": "test@example.com",
+          "customer_phone": "08123456789",
+          "amount": 75000,
+          "fee_customer": 750,
+          "fee_merchant": 0,
+          "total_fee": 750,
+          "amount_received": 0,
+          "pay_code": "100200012345678901",
+          "pay_url": "https://tripay.co.id/checkout/TEST123",
+          "checkout_url": "https://tripay.co.id/checkout/TEST123",
+          "status": "UNPAID",
+          "expired_time": 1700000000,
+          "instructions": [
+            {
+              "title": "ATM BRI",
+              "steps": [
+                "Masukkan PIN Anda",
+                "Pilih menu Transaksi Lain",
+                "Pilih menu Pembayaran"
+              ]
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "GET",
+      "path": "/tripay/merchant/payment-channel"
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "headers": {
+        "Content-Type": ["application/json"]
+      },
+      "body": {
+        "success": true,
+        "message": "Success",
+        "data": [
+          {
+            "group": "Virtual Account",
+            "code": "BRIVA",
+            "name": "BRI Virtual Account",
+            "type": "virtual_account",
+            "fee_merchant": {
+              "flat": 0,
+              "percent": 0
+            },
+            "fee_customer": {
+              "flat": 0,
+              "percent": 1
+            },
+            "total_fee": {
+              "flat": 0,
+              "percent": 1
+            },
+            "minimum_fee": 0,
+            "maximum_fee": 0,
+            "icon_url": "https://tripay.co.id/images/icon/bri.png",
+            "active": true
+          },
+          {
+            "group": "Virtual Account",
+            "code": "BCAVA",
+            "name": "BCA Virtual Account",
+            "type": "virtual_account",
+            "fee_merchant": {
+              "flat": 0,
+              "percent": 0
+            },
+            "fee_customer": {
+              "flat": 5500,
+              "percent": 0
+            },
+            "total_fee": {
+              "flat": 5500,
+              "percent": 0
+            },
+            "minimum_fee": 0,
+            "maximum_fee": 0,
+            "icon_url": "https://tripay.co.id/images/icon/bca.png",
+            "active": true
+          },
+          {
+            "group": "E-Wallet",
+            "code": "QRIS",
+            "name": "QRIS",
+            "type": "qris",
+            "fee_merchant": {
+              "flat": 0,
+              "percent": 0.7
+            },
+            "fee_customer": {
+              "flat": 0,
+              "percent": 0
+            },
+            "total_fee": {
+              "flat": 0,
+              "percent": 0.7
+            },
+            "minimum_fee": 0,
+            "maximum_fee": 0,
+            "icon_url": "https://tripay.co.id/images/icon/qris.png",
+            "active": true
+          }
+        ]
+      }
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "POST",
+      "path": "/do/v2/droplets"
+    },
+    "httpResponse": {
+      "statusCode": 202,
+      "headers": {
+        "Content-Type": ["application/json"]
+      },
+      "body": {
+        "droplet": {
+          "id": 123456789,
+          "name": "test-droplet",
+          "status": "new",
+          "memory": 1024,
+          "vcpus": 1,
+          "disk": 25,
+          "region": {
+            "slug": "sgp1",
+            "name": "Singapore 1"
+          },
+          "image": {
+            "id": 12345,
+            "name": "Ubuntu 22.04 LTS",
+            "distribution": "Ubuntu"
+          },
+          "networks": {
+            "v4": []
+          },
+          "created_at": "2024-01-01T00:00:00Z"
+        },
+        "links": {
+          "actions": [
+            {
+              "id": 987654321,
+              "rel": "create",
+              "href": "https://api.digitalocean.com/v2/actions/987654321"
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "GET",
+      "path": "/do/v2/droplets/.*"
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "headers": {
+        "Content-Type": ["application/json"]
+      },
+      "body": {
+        "droplet": {
+          "id": 123456789,
+          "name": "test-droplet",
+          "status": "active",
+          "memory": 1024,
+          "vcpus": 1,
+          "disk": 25,
+          "region": {
+            "slug": "sgp1",
+            "name": "Singapore 1"
+          },
+          "image": {
+            "id": 12345,
+            "name": "Ubuntu 22.04 LTS",
+            "distribution": "Ubuntu"
+          },
+          "networks": {
+            "v4": [
+              {
+                "ip_address": "103.123.45.67",
+                "netmask": "255.255.255.0",
+                "gateway": "103.123.45.1",
+                "type": "public"
+              },
+              {
+                "ip_address": "10.0.0.10",
+                "netmask": "255.255.0.0",
+                "gateway": "10.0.0.1",
+                "type": "private"
+              }
+            ]
+          },
+          "created_at": "2024-01-01T00:00:00Z"
+        }
+      }
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "GET",
+      "path": "/do/v2/actions/.*"
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "headers": {
+        "Content-Type": ["application/json"]
+      },
+      "body": {
+        "action": {
+          "id": 987654321,
+          "status": "completed",
+          "type": "create",
+          "started_at": "2024-01-01T00:00:00Z",
+          "completed_at": "2024-01-01T00:01:00Z",
+          "resource_id": 123456789,
+          "resource_type": "droplet"
+        }
+      }
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "POST",
+      "path": "/do/v2/droplets/.*/actions"
+    },
+    "httpResponse": {
+      "statusCode": 201,
+      "headers": {
+        "Content-Type": ["application/json"]
+      },
+      "body": {
+        "action": {
+          "id": 987654322,
+          "status": "in-progress",
+          "type": "power_off",
+          "started_at": "2024-01-01T00:00:00Z",
+          "completed_at": null,
+          "resource_id": 123456789,
+          "resource_type": "droplet"
+        }
+      }
+    }
+  },
+  {
+    "httpRequest": {
+      "method": "POST",
+      "path": "/telegram/bot.*/sendMessage"
+    },
+    "httpResponse": {
+      "statusCode": 200,
+      "headers": {
+        "Content-Type": ["application/json"]
+      },
+      "body": {
+        "ok": true,
+        "result": {
+          "message_id": 12345,
+          "chat": {
+            "id": 123456789,
+            "type": "private"
+          },
+          "text": "Message sent successfully"
+        }
+      }
+    }
+  }
+]
