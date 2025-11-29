@@ -20,9 +20,7 @@ export type LoginFormData = z.infer<typeof loginSchema>;
  * Payment status update validation schema
  */
 export const paymentStatusSchema = z.object({
-  status: z.enum(['PAID', 'FAILED'], {
-    required_error: 'Status wajib dipilih',
-  }),
+  status: z.enum(['PAID', 'FAILED']),
   reason: z.string().optional(),
 });
 

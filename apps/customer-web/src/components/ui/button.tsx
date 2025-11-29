@@ -1,122 +1,78 @@
-import { forwardRef } from 'react';
-import { cn } from '@/lib/utils';
-import { Loader2 } from 'lucide-react';
+import * as React from "react"
+import { Slot } from "@radix-ui/react-slot"
+import { cva, type VariantProps } from "class-variance-authority"
+
+import { cn } from "@/lib/utils"
+
+const buttonVariants = cva(
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  {
+    variants: {
+      variant: {
+        default:
+          "bg-primary text-primary-foreground shadow hover:bg-primary/90",
+        primary:
+          "bg-brand text-brand-foreground shadow hover:bg-brand/90",
+        destructive:
+          "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
+        danger:
+          "bg-red-500 text-white shadow-sm hover:bg-red-600",
+        success:
+          "bg-emerald-500 text-white shadow-sm hover:bg-emerald-600",
+        warning:
+          "bg-amber-500 text-white shadow-sm hover:bg-amber-600",
+        outline:
+          "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
+        secondary:
+          "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
+        ghost: "hover:bg-accent hover:text-accent-foreground",
+        link: "text-primary underline-offset-4 hover:underline",
+      },
+      size: {
+        default: "h-9 px-4 py-2",
+        sm: "h-8 rounded-md px-3 text-xs",
+        lg: "h-10 rounded-md px-8",
+        icon: "h-9 w-9",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+    },
+  }
+)
 
 export interface ButtonProps
-  extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'success';
-  size?: 'sm' | 'md' | 'lg' | 'icon';
-  isLoading?: boolean;
-  leftIcon?: React.ReactNode;
-  rightIcon?: React.ReactNode;
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {
+  asChild?: boolean
+  leftIcon?: React.ReactNode
+  rightIcon?: React.ReactNode
+  isLoading?: boolean
 }
 
-const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  (
-    {
-      className,
-      variant = 'primary',
-      size = 'md',
-      isLoading = false,
-      leftIcon,
-      rightIcon,
-      children,
-      disabled,
-      ...props
-    },
-    ref
-  ) => {
-    const baseStyles = cn(
-      // Base layout
-      'inline-flex items-center justify-center gap-2 font-medium',
-      // Border radius - slightly more rounded for modern look
-      'rounded-lg',
-      // Transitions - smooth and professional
-      'transition-all duration-200 ease-out',
-      // Focus states - accessible ring
-      'focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]',
-      // Disabled states
-      'disabled:opacity-50 disabled:cursor-not-allowed disabled:pointer-events-none',
-      // Active state feedback - subtle press effect
-      'active:scale-[0.98]',
-      // Cursor
-      'cursor-pointer'
-    );
-
-    const variants = {
-      primary: cn(
-        'bg-[var(--primary)] text-white',
-        'hover:bg-[var(--primary-hover)]',
-        'focus-visible:ring-[var(--primary)]',
-        // Enhanced shadow for depth
-        'shadow-[0_1px_2px_rgba(0,0,0,0.1),0_1px_1px_rgba(0,0,0,0.06)]',
-        'hover:shadow-[0_4px_12px_var(--primary-glow)]'
-      ),
-      secondary: cn(
-        'bg-[var(--surface-elevated)] text-[var(--text-primary)]',
-        'border border-[var(--border)]',
-        'hover:bg-[var(--hover-bg)] hover:border-[var(--border-hover)]',
-        'focus-visible:ring-[var(--primary)]',
-        'shadow-sm'
-      ),
-      outline: cn(
-        'border border-[var(--border)] bg-transparent text-[var(--text-primary)]',
-        'hover:bg-[var(--hover-bg)] hover:border-[var(--border-hover)]',
-        'focus-visible:ring-[var(--primary)]'
-      ),
-      ghost: cn(
-        'bg-transparent text-[var(--text-secondary)]',
-        'hover:bg-[var(--hover-bg)] hover:text-[var(--text-primary)]',
-        'focus-visible:ring-[var(--text-muted)]'
-      ),
-      danger: cn(
-        'bg-[var(--error)] text-white',
-        'hover:bg-[var(--error)]/90',
-        'focus-visible:ring-[var(--error)]',
-        'shadow-sm hover:shadow-md'
-      ),
-      success: cn(
-        'bg-[var(--success)] text-white',
-        'hover:bg-[var(--success)]/90',
-        'focus-visible:ring-[var(--success)]',
-        'shadow-sm hover:shadow-md'
-      ),
-    };
-
-    const sizes = {
-      sm: 'h-8 px-3 text-xs font-medium',
-      md: 'h-10 px-4 text-sm font-medium',
-      lg: 'h-11 px-5 text-sm font-medium',
-      icon: 'h-9 w-9 p-0',
-    };
-
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant, size, asChild = false, leftIcon, rightIcon, isLoading, children, disabled, ...props }, ref) => {
+    const Comp = asChild ? Slot : "button"
     return (
-      <button
+      <Comp
+        className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
-        className={cn(
-          baseStyles,
-          variants[variant],
-          sizes[size],
-          className
-        )}
         disabled={disabled || isLoading}
         {...props}
       >
-        {isLoading && (
-          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
-        )}
-        {!isLoading && leftIcon && (
-          <span className="shrink-0 -ml-0.5" aria-hidden="true">{leftIcon}</span>
-        )}
-        {children && <span className={isLoading ? 'opacity-0' : ''}>{children}</span>}
-        {!isLoading && rightIcon && (
-          <span className="shrink-0 -mr-0.5" aria-hidden="true">{rightIcon}</span>
-        )}
-      </button>
-    );
+        {isLoading ? (
+          <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+        ) : leftIcon}
+        {children}
+        {!isLoading && rightIcon}
+      </Comp>
+    )
   }
-);
+)
+Button.displayName = "Button"
 
-Button.displayName = 'Button';
-
-export { Button };
+export { Button, buttonVariants }

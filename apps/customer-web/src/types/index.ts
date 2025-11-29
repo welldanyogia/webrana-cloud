@@ -57,8 +57,12 @@ export interface Order {
   imageId: string;
   status: OrderStatus;
   totalAmount: number;
+  discountAmount?: number;
   couponCode?: string;
   duration: number;
+  durationUnit: DurationUnit;
+  hostname?: string;
+  orderNumber?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -140,6 +144,7 @@ export interface OrderDetail extends Order {
   image?: OsImage;
   invoice?: Invoice;
   vps?: VpsInstance;
+  vpsInstance?: VpsInstance;
 }
 
 // Invoice types
@@ -153,6 +158,10 @@ export interface Invoice {
   expiredAt: string;
   paidAt?: string;
   createdAt: string;
+  paymentCode?: string;
+  paymentChannel?: string;
+  paymentName?: string;
+  paymentFee?: number;
 }
 
 // VPS Instance types
@@ -161,6 +170,7 @@ export interface VpsInstance {
   orderId: string;
   hostname: string;
   ipAddress?: string;
+  rootPassword?: string;
   status: 'PROVISIONING' | 'ACTIVE' | 'STOPPED' | 'DELETED';
   createdAt: string;
 }

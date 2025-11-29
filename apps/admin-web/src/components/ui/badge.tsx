@@ -1,82 +1,59 @@
-import { cn } from '@/lib/utils';
+import * as React from "react"
+import { cva, type VariantProps } from "class-variance-authority"
 
-type BadgeVariant =
-  | 'default'
-  | 'primary'
-  | 'secondary'
-  | 'success'
-  | 'warning'
-  | 'danger'
-  | 'info';
+import { cn } from "@/lib/utils"
 
-type BadgeSize = 'sm' | 'md';
+const badgeVariants = cva(
+  "inline-flex items-center rounded-md border font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  {
+    variants: {
+      variant: {
+        default:
+          "border-transparent bg-primary text-primary-foreground shadow hover:bg-primary/80",
+        primary:
+          "border-transparent bg-primary text-primary-foreground shadow hover:bg-primary/80",
+        secondary:
+          "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
+        destructive:
+          "border-transparent bg-destructive text-destructive-foreground shadow hover:bg-destructive/80",
+        outline: "text-foreground",
+        success:
+          "border-transparent bg-emerald-500 text-white shadow hover:bg-emerald-600",
+        warning:
+          "border-transparent bg-amber-500 text-white shadow hover:bg-amber-600",
+        danger:
+          "border-transparent bg-red-500 text-white shadow hover:bg-red-600",
+        info:
+          "border-transparent bg-blue-500 text-white shadow hover:bg-blue-600",
+      },
+      size: {
+        default: "px-2.5 py-0.5 text-xs",
+        sm: "px-2 py-0.5 text-[10px]",
+        md: "px-2.5 py-1 text-xs",
+        lg: "px-3 py-1 text-sm",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+    },
+  }
+)
 
-interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
-  variant?: BadgeVariant;
-  size?: BadgeSize;
-  /** Add a dot indicator before text */
+export interface BadgeProps
+  extends React.HTMLAttributes<HTMLDivElement>,
+    VariantProps<typeof badgeVariants> {
   dot?: boolean;
-  /** Make badge fully rounded (pill shape) */
   pill?: boolean;
-  children: React.ReactNode;
 }
 
-export function Badge({
-  variant = 'default',
-  size = 'md',
-  dot = false,
-  pill = false,
-  className,
-  children,
-  ...props
-}: BadgeProps) {
-  const variants = {
-    default: 'bg-[var(--surface)] text-[var(--text-secondary)] border-[var(--border)]',
-    primary: 'bg-[var(--primary-muted)] text-[var(--primary)] border-transparent',
-    secondary: 'bg-[var(--surface)] text-[var(--text-secondary)] border-[var(--border)]',
-    success: 'bg-[var(--success-bg)] text-[var(--success)] border-[var(--success-border)]',
-    warning: 'bg-[var(--warning-bg)] text-[var(--warning)] border-[var(--warning-border)]',
-    danger: 'bg-[var(--error-bg)] text-[var(--error)] border-[var(--error-border)]',
-    info: 'bg-[var(--info-bg)] text-[var(--info)] border-[var(--info-border)]',
-  };
-
-  const dotColors = {
-    default: 'bg-[var(--text-muted)]',
-    primary: 'bg-[var(--primary)]',
-    secondary: 'bg-[var(--text-secondary)]',
-    success: 'bg-[var(--success)]',
-    warning: 'bg-[var(--warning)]',
-    danger: 'bg-[var(--error)]',
-    info: 'bg-[var(--info)]',
-  };
-
-  const sizes = {
-    sm: 'px-2 py-0.5 text-[10px]',
-    md: 'px-2.5 py-1 text-xs',
-  };
-
+function Badge({ className, variant, size, dot, pill, children, ...props }: BadgeProps) {
   return (
-    <span
-      className={cn(
-        'inline-flex items-center gap-1.5 font-medium border',
-        'transition-colors duration-150',
-        pill ? 'rounded-full' : 'rounded-md',
-        variants[variant],
-        sizes[size],
-        className
-      )}
-      {...props}
-    >
-      {dot && (
-        <span 
-          className={cn(
-            'w-1.5 h-1.5 rounded-full shrink-0',
-            dotColors[variant]
-          )} 
-          aria-hidden="true"
-        />
-      )}
+    <div className={cn(badgeVariants({ variant, size }), pill && "rounded-full", className)} {...props}>
+      {dot && <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-current" />}
       {children}
-    </span>
-  );
+    </div>
+  )
 }
+
+export { Badge, badgeVariants }

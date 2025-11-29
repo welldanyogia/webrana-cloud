@@ -1,181 +1,145 @@
-import { cn } from '@/lib/utils';
+import * as React from "react"
+import { cva, type VariantProps } from "class-variance-authority"
 
-interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
-  children: React.ReactNode;
-  /** Enable hover effects */
-  hover?: boolean;
-  /** Add subtle padding */
-  padding?: 'none' | 'sm' | 'md' | 'lg';
-  /** Highlight/featured card */
-  highlighted?: boolean;
-  /** Make card interactive with glow on hover */
-  glow?: boolean;
-}
+import { cn } from "@/lib/utils"
 
-export function Card({ 
-  className, 
-  children, 
-  hover = false, 
-  padding = 'none',
-  highlighted = false,
-  glow = false,
-  ...props 
-}: CardProps) {
-  const paddingClasses = {
-    none: '',
-    sm: 'p-4',
-    md: 'p-5',
-    lg: 'p-6',
-  };
+const cardVariants = cva(
+  "rounded-xl border bg-card text-card-foreground shadow",
+  {
+    variants: {
+      padding: {
+        none: "",
+        sm: "p-4",
+        md: "p-5",
+        lg: "p-6",
+      },
+      hover: {
+        true: "cursor-pointer transition-all duration-200 hover:border-primary/50",
+        false: "",
+      },
+      highlighted: {
+        true: "border-primary/50 bg-primary/5",
+        false: "",
+      },
+      glow: {
+        true: "hover:shadow-[var(--glow-primary)]",
+        false: "",
+      }
+    },
+    defaultVariants: {
+      padding: "none",
+      hover: false,
+      highlighted: false,
+      glow: false,
+    }
+  }
+)
 
-  return (
-    <div
-      className={cn(
-        // Base styles
-        'bg-[var(--card-bg)] rounded-xl border',
-        // Shadow
-        'shadow-[var(--card-shadow)]',
-        // Border color based on highlighted state
-        highlighted 
-          ? 'border-[var(--primary)]/50 ring-1 ring-[var(--primary-muted)]' 
-          : 'border-[var(--border)]',
-        // Hover effects
-        hover && 'transition-all duration-200 ease-out cursor-pointer hover:shadow-[var(--card-shadow-hover)] hover:border-[var(--border-hover)]',
-        hover && highlighted && 'hover:border-[var(--primary)] hover:ring-2',
-        // Glow effect on hover
-        glow && 'transition-all duration-200 hover:shadow-[var(--glow-primary)]',
-        // Padding
-        paddingClasses[padding],
-        className
-      )}
-      {...props}
-    >
-      {children}
-    </div>
-  );
-}
+const Card = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement> & VariantProps<typeof cardVariants>
+>(({ className, padding, hover, highlighted, glow, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(cardVariants({ padding, hover, highlighted, glow }), className)}
+    {...props}
+  />
+))
+Card.displayName = "Card"
 
-interface CardHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
-  children: React.ReactNode;
-  /** Remove bottom border */
-  noBorder?: boolean;
-}
+const cardHeaderVariants = cva("flex flex-col space-y-1.5 px-6 py-4", {
+  variants: {
+    noBorder: {
+      true: "",
+      false: "border-b",
+    }
+  },
+  defaultVariants: {
+    noBorder: false
+  }
+})
 
-export function CardHeader({ className, children, noBorder = false, ...props }: CardHeaderProps) {
-  return (
-    <div
-      className={cn(
-        'px-6 py-4',
-        !noBorder && 'border-b border-[var(--border)]',
-        className
-      )}
-      {...props}
-    >
-      {children}
-    </div>
-  );
-}
+const CardHeader = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement> & VariantProps<typeof cardHeaderVariants>
+>(({ className, noBorder, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(cardHeaderVariants({ noBorder }), className)}
+    {...props}
+  />
+))
+CardHeader.displayName = "CardHeader"
 
-interface CardTitleProps extends React.HTMLAttributes<HTMLHeadingElement> {
-  children: React.ReactNode;
-  /** Smaller title size */
-  size?: 'sm' | 'md' | 'lg';
-}
+const cardTitleVariants = cva("font-semibold leading-none tracking-tight", {
+  variants: {
+    size: {
+      sm: "text-base",
+      md: "text-lg",
+      lg: "text-xl",
+    }
+  },
+  defaultVariants: {
+    size: "md"
+  }
+})
 
-export function CardTitle({ className, children, size = 'md', ...props }: CardTitleProps) {
-  const sizeClasses = {
-    sm: 'text-base font-medium',
-    md: 'text-lg font-semibold',
-    lg: 'text-xl font-semibold',
-  };
+const CardTitle = React.forwardRef<
+  HTMLHeadingElement,
+  React.HTMLAttributes<HTMLHeadingElement> & VariantProps<typeof cardTitleVariants>
+>(({ className, size, ...props }, ref) => (
+  <h3
+    ref={ref}
+    className={cn(cardTitleVariants({ size }), className)}
+    {...props}
+  />
+))
+CardTitle.displayName = "CardTitle"
 
-  return (
-    <h3
-      className={cn(
-        'text-[var(--text-primary)] tracking-tight',
-        sizeClasses[size],
-        className
-      )}
-      {...props}
-    >
-      {children}
-    </h3>
-  );
-}
+const CardDescription = React.forwardRef<
+  HTMLParagraphElement,
+  React.HTMLAttributes<HTMLParagraphElement>
+>(({ className, ...props }, ref) => (
+  <p
+    ref={ref}
+    className={cn("text-sm text-muted-foreground", className)}
+    {...props}
+  />
+))
+CardDescription.displayName = "CardDescription"
 
-interface CardDescriptionProps
-  extends React.HTMLAttributes<HTMLParagraphElement> {
-  children: React.ReactNode;
-}
+const CardContent = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement> & { noPadding?: boolean }
+>(({ className, noPadding, ...props }, ref) => (
+  <div ref={ref} className={cn(noPadding ? "" : "px-6 py-5", className)} {...props} />
+))
+CardContent.displayName = "CardContent"
 
-export function CardDescription({
-  className,
-  children,
-  ...props
-}: CardDescriptionProps) {
-  return (
-    <p 
-      className={cn(
-        'text-sm text-[var(--text-secondary)] mt-1 leading-relaxed', 
-        className
-      )} 
-      {...props}
-    >
-      {children}
-    </p>
-  );
-}
+const cardFooterVariants = cva("flex items-center px-6 py-4 border-t", {
+  variants: {
+    align: {
+      start: "justify-start",
+      center: "justify-center",
+      end: "justify-end",
+      between: "justify-between",
+    }
+  },
+  defaultVariants: {
+    align: "start"
+  }
+})
 
-interface CardContentProps extends React.HTMLAttributes<HTMLDivElement> {
-  children: React.ReactNode;
-  /** Remove default padding */
-  noPadding?: boolean;
-}
+const CardFooter = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement> & VariantProps<typeof cardFooterVariants>
+>(({ className, align, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(cardFooterVariants({ align }), className)}
+    {...props}
+  />
+))
+CardFooter.displayName = "CardFooter"
 
-export function CardContent({
-  className,
-  children,
-  noPadding = false,
-  ...props
-}: CardContentProps) {
-  return (
-    <div 
-      className={cn(
-        !noPadding && 'px-6 py-5', 
-        className
-      )} 
-      {...props}
-    >
-      {children}
-    </div>
-  );
-}
-
-interface CardFooterProps extends React.HTMLAttributes<HTMLDivElement> {
-  children: React.ReactNode;
-  /** Align items */
-  align?: 'start' | 'center' | 'end' | 'between';
-}
-
-export function CardFooter({ className, children, align = 'start', ...props }: CardFooterProps) {
-  const alignClasses = {
-    start: 'justify-start',
-    center: 'justify-center',
-    end: 'justify-end',
-    between: 'justify-between',
-  };
-
-  return (
-    <div
-      className={cn(
-        'px-6 py-4 border-t border-[var(--border)] bg-[var(--surface)]/50 rounded-b-xl',
-        'flex items-center gap-3',
-        alignClasses[align],
-        className
-      )}
-      {...props}
-    >
-      {children}
-    </div>
-  );
-}
+export { Card, CardHeader, CardFooter, CardTitle, CardDescription, CardContent }
