@@ -1,6 +1,7 @@
 import { Logger, ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app/app.module';
 
 async function bootstrap() {
@@ -32,6 +33,20 @@ async function bootstrap() {
   // Global prefix
   app.setGlobalPrefix('api/v1');
 
+  // Swagger setup
+  const config = new DocumentBuilder()
+    .setTitle('Catalog Service API')
+    .setDescription('VPS plans, images, and coupons catalog service')
+    .setVersion('1.0')
+    .addApiKey({ type: 'apiKey', name: 'X-API-Key', in: 'header' }, 'api-key')
+    .addTag('Catalog', 'VPS plans and images catalog')
+    .addTag('Coupons', 'Coupon validation and management')
+    .addTag('Admin', 'Admin catalog management endpoints')
+    .build();
+
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api/docs', app, document);
+
   const port = configService.get<number>('PORT', 3002);
   await app.listen(port);
 
@@ -43,6 +58,7 @@ async function bootstrap() {
   Port: ${port}
   URL: http://localhost:${port}
   Health: http://localhost:${port}/api/v1/health
+  API Docs: http://localhost:${port}/api/docs
 ========================================
   `);
 }

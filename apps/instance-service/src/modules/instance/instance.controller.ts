@@ -11,6 +11,13 @@ import {
   ParseUUIDPipe,
   ParseIntPipe,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+} from '@nestjs/swagger';
 import { InstanceService } from './instance.service';
 import {
   TriggerActionDto,
@@ -23,51 +30,17 @@ import {
 import { JwtAuthGuard } from '../../common/guards';
 import { CurrentUser, CurrentUserData } from '../../common/decorators';
 
-/**
- * Instance Controller
- * 
- * Endpoints for VPS instance management.
- * All endpoints require JWT authentication.
- * 
- * Endpoints:
- * - GET /api/v1/instances - List user's instances
- * - GET /api/v1/instances/:id - Get instance detail with real-time status
- * - POST /api/v1/instances/:id/actions - Trigger action (reboot, power-off, power-on, reset-password)
- * - GET /api/v1/instances/:id/actions/:actionId - Get action status
- */
+@ApiTags('Instances')
+@ApiBearerAuth('bearer')
 @Controller('instances')
 @UseGuards(JwtAuthGuard)
 export class InstanceController {
   constructor(private readonly instanceService: InstanceService) {}
 
-  /**
-   * List user's VPS instances
-   * 
-   * GET /api/v1/instances?page=1&limit=10
-   * 
-   * Query:
-   * - page: Page number (default: 1)
-   * - limit: Items per page (default: 10, max: 100)
-   * 
-   * Response 200:
-   * {
-   *   "data": [
-   *     {
-   *       "id": "uuid",
-   *       "orderId": "uuid",
-   *       "hostname": "vps-xxx",
-   *       "ipAddress": "x.x.x.x",
-   *       "status": "active",
-   *       "plan": { "name": "Basic 1GB", "cpu": 1, "ram": 1024, "ssd": 25 },
-   *       "image": { "name": "Ubuntu 22.04", "distribution": "ubuntu" },
-   *       "region": "sgp1",
-   *       "createdAt": "ISO date"
-   *     }
-   *   ],
-   *   "meta": { "page": 1, "limit": 10, "total": 5, "totalPages": 1 }
-   * }
-   */
   @Get()
+  @ApiOperation({ summary: 'List user instances', description: 'Get paginated list of VPS instances for the authenticated user' })
+  @ApiResponse({ status: 200, description: 'Instances retrieved successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getInstances(
     @CurrentUser('userId') userId: string,
     @Query() query: PaginationQueryDto
@@ -75,36 +48,13 @@ export class InstanceController {
     return this.instanceService.getInstancesByUserId(userId, query);
   }
 
-  /**
-   * Get instance detail with real-time status
-   * 
-   * GET /api/v1/instances/:id
-   * 
-   * Response 200:
-   * {
-   *   "data": {
-   *     "id": "uuid",
-   *     "orderId": "uuid",
-   *     "hostname": "vps-xxx",
-   *     "ipAddress": "x.x.x.x",
-   *     "ipAddressPrivate": "10.x.x.x",
-   *     "status": "active",
-   *     "plan": { ... },
-   *     "image": { ... },
-   *     "region": "sgp1",
-   *     "vcpus": 1,
-   *     "memory": 1024,
-   *     "disk": 25,
-   *     "doDropletId": "12345678",
-   *     "createdAt": "ISO date"
-   *   }
-   * }
-   * 
-   * Errors:
-   * - 404: Instance not found
-   * - 403: Access denied (not owner)
-   */
   @Get(':id')
+  @ApiOperation({ summary: 'Get instance details', description: 'Get VPS instance details with real-time status' })
+  @ApiParam({ name: 'id', description: 'Instance UUID' })
+  @ApiResponse({ status: 200, description: 'Instance retrieved successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Access denied - not owner' })
+  @ApiResponse({ status: 404, description: 'Instance not found' })
   async getInstance(
     @CurrentUser('userId') userId: string,
     @Param('id', new ParseUUIDPipe({ version: '4' })) instanceId: string
@@ -117,36 +67,16 @@ export class InstanceController {
     return { data: instance };
   }
 
-  /**
-   * Trigger an action on an instance
-   * 
-   * POST /api/v1/instances/:id/actions
-   * 
-   * Body:
-   * {
-   *   "type": "reboot" | "power_off" | "power_on" | "reset_password"
-   * }
-   * 
-   * Response 202:
-   * {
-   *   "data": {
-   *     "id": 12345678,
-   *     "type": "reboot",
-   *     "status": "in-progress",
-   *     "startedAt": "ISO date",
-   *     "completedAt": null
-   *   }
-   * }
-   * 
-   * Errors:
-   * - 400: Invalid action type or action not allowed for current status
-   * - 403: Access denied
-   * - 404: Instance not found
-   * - 429: Rate limit exceeded (max 1 action per minute per instance)
-   * - 503: DigitalOcean API unavailable
-   */
   @Post(':id/actions')
   @HttpCode(HttpStatus.ACCEPTED)
+  @ApiOperation({ summary: 'Trigger instance action', description: 'Execute an action on VPS instance (reboot, power_off, power_on, reset_password)' })
+  @ApiParam({ name: 'id', description: 'Instance UUID' })
+  @ApiResponse({ status: 202, description: 'Action triggered successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid action type or action not allowed' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Access denied' })
+  @ApiResponse({ status: 404, description: 'Instance not found' })
+  @ApiResponse({ status: 429, description: 'Rate limit exceeded' })
   async triggerAction(
     @CurrentUser('userId') userId: string,
     @Param('id', new ParseUUIDPipe({ version: '4' })) instanceId: string,
@@ -161,27 +91,14 @@ export class InstanceController {
     return { data: action };
   }
 
-  /**
-   * Get action status
-   * 
-   * GET /api/v1/instances/:id/actions/:actionId
-   * 
-   * Response 200:
-   * {
-   *   "data": {
-   *     "id": 12345678,
-   *     "type": "reboot",
-   *     "status": "completed",
-   *     "startedAt": "ISO date",
-   *     "completedAt": "ISO date"
-   *   }
-   * }
-   * 
-   * Errors:
-   * - 403: Access denied
-   * - 404: Instance or action not found
-   */
   @Get(':id/actions/:actionId')
+  @ApiOperation({ summary: 'Get action status', description: 'Get status of a triggered instance action' })
+  @ApiParam({ name: 'id', description: 'Instance UUID' })
+  @ApiParam({ name: 'actionId', description: 'Action ID' })
+  @ApiResponse({ status: 200, description: 'Action status retrieved' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Access denied' })
+  @ApiResponse({ status: 404, description: 'Instance or action not found' })
   async getActionStatus(
     @CurrentUser('userId') userId: string,
     @Param('id', new ParseUUIDPipe({ version: '4' })) instanceId: string,

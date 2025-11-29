@@ -1,5 +1,6 @@
 import { IsEnum, IsInt, IsOptional, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 /**
  * Instance Action Types
@@ -15,6 +16,7 @@ export enum InstanceActionType {
  * DTO for triggering an action on an instance
  */
 export class TriggerActionDto {
+  @ApiProperty({ enum: InstanceActionType, example: 'reboot', description: 'Action type: reboot, power_off, power_on, reset_password' })
   @IsEnum(InstanceActionType, {
     message: 'type harus salah satu dari: reboot, power_off, power_on, reset_password',
   })
@@ -25,12 +27,14 @@ export class TriggerActionDto {
  * Pagination query DTO
  */
 export class PaginationQueryDto {
+  @ApiPropertyOptional({ example: 1, description: 'Page number', default: 1 })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
   page?: number = 1;
 
+  @ApiPropertyOptional({ example: 10, description: 'Items per page (max: 100)', default: 10 })
   @IsOptional()
   @Type(() => Number)
   @IsInt()

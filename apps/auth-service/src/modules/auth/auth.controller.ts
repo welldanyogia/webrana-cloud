@@ -1,6 +1,13 @@
 import { Controller, Post, Get, Patch, Body, Req, UseGuards, HttpCode } from '@nestjs/common';
 import { Request } from 'express';
 import { Throttle, SkipThrottle } from '@nestjs/throttler';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiBody,
+} from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { Public } from '../../common/decorators/public.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
@@ -17,107 +24,153 @@ import {
   ChangePasswordDto,
 } from './dto';
 
+@ApiTags('Authentication')
 @Controller()
 @UseGuards(JwtAuthGuard)
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  // 201 Created - creates new user resource
   @Public()
   @Post('register')
-  @Throttle({ default: { limit: 3, ttl: 60000 } }) // 3 req/60s per IP
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @ApiOperation({ summary: 'Register new user', description: 'Create a new user account with email verification' })
+  @ApiBody({ type: RegisterDto })
+  @ApiResponse({ status: 201, description: 'User registered successfully. Verification email sent.' })
+  @ApiResponse({ status: 400, description: 'Validation error or invalid input' })
+  @ApiResponse({ status: 409, description: 'Email already registered' })
   async register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
   }
 
-  // 200 OK - action, not resource creation
   @Public()
   @Post('verify-email')
   @HttpCode(200)
   @SkipThrottle()
+  @ApiOperation({ summary: 'Verify email address', description: 'Verify user email using token from verification email' })
+  @ApiBody({ type: VerifyEmailDto })
+  @ApiResponse({ status: 200, description: 'Email verified successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid or expired token' })
   async verifyEmail(@Body() dto: VerifyEmailDto) {
     return this.authService.verifyEmail(dto);
   }
 
-  // 200 OK - action, not resource creation
   @Public()
   @Post('resend-verification')
   @HttpCode(200)
-  @Throttle({ default: { limit: 3, ttl: 60000 } }) // 3 req/60s per email
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @ApiOperation({ summary: 'Resend verification email', description: 'Resend email verification link to user' })
+  @ApiBody({ type: ResendVerificationDto })
+  @ApiResponse({ status: 200, description: 'Verification email sent' })
+  @ApiResponse({ status: 400, description: 'Email already verified or user not found' })
   async resendVerification(@Body() dto: ResendVerificationDto) {
     return this.authService.resendVerification(dto);
   }
 
-  // 200 OK - authentication action
   @Public()
   @Post('login')
   @HttpCode(200)
-  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 req/60s per IP
+  @Throttle({ default: { limit: 5, ttl: 60000 } })
+  @ApiOperation({ summary: 'User login', description: 'Authenticate user and return JWT tokens' })
+  @ApiBody({ type: LoginDto })
+  @ApiResponse({ status: 200, description: 'Login successful. Returns access_token and refresh_token.' })
+  @ApiResponse({ status: 401, description: 'Invalid credentials' })
+  @ApiResponse({ status: 403, description: 'Email not verified or account suspended' })
   async login(@Body() dto: LoginDto, @Req() req: Request) {
     const ipAddress = req.ip || req.socket.remoteAddress;
     return this.authService.login(dto, ipAddress);
   }
 
-  // 200 OK - token refresh action
   @Public()
   @Post('refresh')
   @HttpCode(200)
   @SkipThrottle()
+  @ApiOperation({ summary: 'Refresh access token', description: 'Get new access token using refresh token' })
+  @ApiBody({ type: RefreshTokenDto })
+  @ApiResponse({ status: 200, description: 'Token refreshed successfully' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired refresh token' })
   async refresh(@Body() dto: RefreshTokenDto) {
     return this.authService.refresh(dto);
   }
 
-  // 200 OK - logout action
   @Public()
   @Post('logout')
   @HttpCode(200)
   @SkipThrottle()
+  @ApiOperation({ summary: 'Logout user', description: 'Invalidate the provided refresh token' })
+  @ApiBody({ type: RefreshTokenDto })
+  @ApiResponse({ status: 200, description: 'Logged out successfully' })
   async logout(@Body() dto: RefreshTokenDto) {
     return this.authService.logout(dto);
   }
 
-  // 200 OK - logout action
   @Post('logout-all')
   @HttpCode(200)
   @SkipThrottle()
+  @ApiBearerAuth('bearer')
+  @ApiOperation({ summary: 'Logout from all devices', description: 'Invalidate all refresh tokens for current user' })
+  @ApiResponse({ status: 200, description: 'Logged out from all devices' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async logoutAll(@CurrentUser('id') userId: string) {
     return this.authService.logoutAll(userId);
   }
 
-  // 200 OK - action, not resource creation
+  @ApiTags('Password')
   @Public()
   @Post('forgot-password')
   @HttpCode(200)
-  @Throttle({ default: { limit: 3, ttl: 60000 } }) // 3 req/60s per email
+  @Throttle({ default: { limit: 3, ttl: 60000 } })
+  @ApiOperation({ summary: 'Request password reset', description: 'Send password reset link to email' })
+  @ApiBody({ type: ForgotPasswordDto })
+  @ApiResponse({ status: 200, description: 'Password reset email sent if email exists' })
   async forgotPassword(@Body() dto: ForgotPasswordDto) {
     return this.authService.forgotPassword(dto);
   }
 
-  // 200 OK - password reset action
+  @ApiTags('Password')
   @Public()
   @Post('reset-password')
   @HttpCode(200)
   @SkipThrottle()
+  @ApiOperation({ summary: 'Reset password', description: 'Reset password using token from reset email' })
+  @ApiBody({ type: ResetPasswordDto })
+  @ApiResponse({ status: 200, description: 'Password reset successfully' })
+  @ApiResponse({ status: 400, description: 'Invalid or expired token' })
   async resetPassword(@Body() dto: ResetPasswordDto) {
     return this.authService.resetPassword(dto);
   }
 
-  // 200 OK - password change action
+  @ApiTags('Password')
   @Post('change-password')
   @HttpCode(200)
   @SkipThrottle()
+  @ApiBearerAuth('bearer')
+  @ApiOperation({ summary: 'Change password', description: 'Change password for authenticated user' })
+  @ApiBody({ type: ChangePasswordDto })
+  @ApiResponse({ status: 200, description: 'Password changed successfully' })
+  @ApiResponse({ status: 400, description: 'Current password is incorrect' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async changePassword(@CurrentUser('id') userId: string, @Body() dto: ChangePasswordDto) {
     return this.authService.changePassword(userId, dto);
   }
 
+  @ApiTags('Profile')
   @Get('me')
   @SkipThrottle()
+  @ApiBearerAuth('bearer')
+  @ApiOperation({ summary: 'Get current user profile', description: 'Get profile of authenticated user' })
+  @ApiResponse({ status: 200, description: 'User profile retrieved' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async getProfile(@CurrentUser('id') userId: string) {
     return this.authService.getProfile(userId);
   }
 
+  @ApiTags('Profile')
   @Patch('me')
   @SkipThrottle()
+  @ApiBearerAuth('bearer')
+  @ApiOperation({ summary: 'Update user profile', description: 'Update profile of authenticated user' })
+  @ApiResponse({ status: 200, description: 'Profile updated successfully' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
   async updateProfile(
     @CurrentUser('id') userId: string,
     @Body() dto: { full_name?: string; phone_number?: string; timezone?: string; language?: string }
