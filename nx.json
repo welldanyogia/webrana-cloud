@@ -69,5 +69,10 @@
         "unitTestRunner": "none"
       }
     }
+  },
+  "targetDefaults": {
+    "test": {
+      "dependsOn": ["^build"]
+    }
   }
 }

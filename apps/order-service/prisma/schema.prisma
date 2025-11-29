@@ -1,0 +1,160 @@
+// Prisma schema for Order Service
+// Database: PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ===========================================
+// ENUMS
+// ===========================================
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAID
+  PROVISIONING
+  ACTIVE
+  FAILED
+  CANCELED
+}
+
+enum PlanDuration {
+  MONTHLY
+  QUARTERLY
+  SEMI_ANNUAL
+  ANNUAL
+}
+
+enum ItemType {
+  PLAN
+  IMAGE
+  ADDON
+}
+
+enum ProvisioningStatus {
+  PENDING
+  IN_PROGRESS
+  SUCCESS
+  FAILED
+}
+
+// ===========================================
+// MODELS
+// ===========================================
+
+model Order {
+  id                String        @id @default(uuid()) @db.Uuid
+  userId            String        @map("user_id")
+
+  // Plan & Image Reference (snapshot from catalog-service)
+  // Note: Cross-service IDs don't use @db.Uuid to allow flexible ID formats
+  planId            String        @map("plan_id")
+  planName          String        @map("plan_name") @db.VarChar(255)
+  imageId           String        @map("image_id")
+  imageName         String        @map("image_name") @db.VarChar(255)
+  duration          PlanDuration
+
+  // Pricing Snapshot (all prices in smallest unit, e.g., cents or IDR)
+  basePrice         Int           @map("base_price")
+  promoDiscount     Int           @default(0) @map("promo_discount")
+  couponCode        String?       @map("coupon_code") @db.VarChar(50)
+  couponDiscount    Int           @default(0) @map("coupon_discount")
+  finalPrice        Int           @map("final_price")
+  currency          String        @default("IDR") @db.VarChar(3)
+
+  // Status
+  status            OrderStatus   @default(PENDING_PAYMENT)
+
+  // Timestamps
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+  paidAt            DateTime?     @map("paid_at") @db.Timestamptz
+
+  // Relations
+  items             OrderItem[]
+  provisioningTask  ProvisioningTask?
+  statusHistory     StatusHistory[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("orders")
+}
+
+model OrderItem {
+  id            String    @id @default(uuid()) @db.Uuid
+  orderId       String    @map("order_id") @db.Uuid
+  order         Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  itemType      ItemType  @map("item_type")
+  referenceId   String    @map("reference_id")
+  description   String    @db.VarChar(500)
+  unitPrice     Int       @map("unit_price")
+  quantity      Int       @default(1)
+  totalPrice    Int       @map("total_price")
+
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([orderId])
+  @@map("order_items")
+}
+
+model ProvisioningTask {
+  id              String              @id @default(uuid()) @db.Uuid
+  orderId         String              @unique @map("order_id") @db.Uuid
+  order           Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  status          ProvisioningStatus  @default(PENDING)
+
+  // DigitalOcean Request Config
+  doRegion        String?             @map("do_region") @db.VarChar(50)
+  doSize          String?             @map("do_size") @db.VarChar(100)
+  doImage         String?             @map("do_image") @db.VarChar(100)
+
+  // DigitalOcean Response (Full Metadata)
+  dropletId       String?             @map("droplet_id") @db.VarChar(50)
+  dropletName     String?             @map("droplet_name") @db.VarChar(255)
+  ipv4Public      String?             @map("ipv4_public") @db.VarChar(45)
+  ipv4Private     String?             @map("ipv4_private") @db.VarChar(45)
+  dropletStatus   String?             @map("droplet_status") @db.VarChar(50)
+  dropletTags     String[]            @default([]) @map("droplet_tags")
+  dropletCreatedAt DateTime?          @map("droplet_created_at") @db.Timestamptz
+
+  // Error Tracking
+  errorCode       String?             @map("error_code") @db.VarChar(100)
+  errorMessage    String?             @map("error_message") @db.Text
+  attempts        Int                 @default(0)
+
+  // Timestamps
+  startedAt       DateTime?           @map("started_at") @db.Timestamptz
+  completedAt     DateTime?           @map("completed_at") @db.Timestamptz
+  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime            @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([status])
+  @@index([dropletId])
+  @@map("provisioning_tasks")
+}
+
+model StatusHistory {
+  id              String    @id @default(uuid()) @db.Uuid
+  orderId         String    @map("order_id") @db.Uuid
+  order           Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  previousStatus  String    @map("previous_status") @db.VarChar(50)
+  newStatus       String    @map("new_status") @db.VarChar(50)
+  actor           String    @db.VarChar(255)
+  reason          String?   @db.Text
+  metadata        Json?
+
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([orderId])
+  @@index([createdAt])
+  @@map("status_history")
+}

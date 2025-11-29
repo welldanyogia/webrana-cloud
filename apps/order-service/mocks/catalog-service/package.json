@@ -1,0 +1,12 @@
+{
+  "name": "catalog-mock",
+  "version": "1.0.0",
+  "description": "Mock catalog-service for local development",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}

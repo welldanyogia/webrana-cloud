@@ -1,0 +1,57 @@
+# Dockerfile.order-service
+# Multi-stage build for NestJS order-service in Nx monorepo
+
+# ────────────────────────────────────────────────
+# Build Stage
+# ────────────────────────────────────────────────
+FROM node:20-alpine AS builder
+
+WORKDIR /usr/src/app
+
+# 1. Copy package & lockfile
+COPY package.json package-lock.json ./
+
+# 2. Copy Nx config files
+COPY nx.json tsconfig.base.json ./
+
+# 3. Install dependencies
+RUN npm ci
+
+# 4. Copy seluruh kode monorepo
+COPY . .
+
+# 5. Generate Prisma Client
+RUN npx prisma generate --schema=apps/order-service/prisma/schema.prisma
+
+# 6. Build order-service via Nx
+RUN npx nx build order-service --configuration=production
+
+# ────────────────────────────────────────────────
+# Runtime Stage
+# ────────────────────────────────────────────────
+FROM node:20-alpine
+
+WORKDIR /usr/src/app
+
+# 1. Copy node_modules dari builder
+COPY --from=builder /usr/src/app/node_modules ./node_modules
+
+# 2. Copy dist hasil build (output ada di apps/order-service/dist)
+COPY --from=builder /usr/src/app/apps/order-service/dist ./dist/apps/order-service
+
+# 3. Copy prisma schema untuk migrate deploy
+COPY --from=builder /usr/src/app/apps/order-service/prisma ./apps/order-service/prisma
+
+# 4. Copy package.json (untuk prisma)
+COPY --from=builder /usr/src/app/package.json ./package.json
+
+# 5. Env default (bisa di override di docker-compose)
+ENV NODE_ENV=production
+ENV PORT=3333
+
+EXPOSE 3333
+
+# 6. Entry command:
+# - Jalankan prisma migrate deploy
+# - Lalu start NestJS
+CMD ["sh", "-c", "npx prisma migrate deploy --schema=apps/order-service/prisma/schema.prisma && node dist/apps/order-service/main.js"]
