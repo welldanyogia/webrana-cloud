@@ -34,9 +34,9 @@ export function Providers({ children }: ProvidersProps) {
           position="top-right"
           toastOptions={{
             style: {
-              background: 'var(--card-bg)',
-              color: 'var(--text-primary)',
-              border: '1px solid var(--border)',
+              background: 'hsl(var(--card))',
+              color: 'hsl(var(--foreground))',
+              border: '1px solid hsl(var(--border))',
             },
             className: 'font-sans',
           }}
