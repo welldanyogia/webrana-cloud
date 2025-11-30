@@ -272,4 +272,198 @@ describe('InstanceProxyController', () => {
       // This is enforced by different guards
     });
   });
+
+  describe('Edge cases and error scenarios', () => {
+    describe('listInstances edge cases', () => {
+      it('should handle empty query object', async () => {
+        const result = await controller.listInstances({});
+        expect(result).toBeDefined();
+        expect(result.meta.page).toBe(1);
+        expect(result.meta.limit).toBe(10);
+      });
+
+      it('should handle negative page numbers', async () => {
+        const result = await controller.listInstances({ page: -1, limit: 10 });
+        expect(result).toBeDefined();
+      });
+
+      it('should handle string values in query params', async () => {
+        const result = await controller.listInstances({
+          page: '2',
+          limit: '25',
+          status: 'RUNNING',
+        });
+        expect(result).toBeDefined();
+      });
+
+      it('should handle very large page numbers', async () => {
+        const result = await controller.listInstances({ page: 999999 });
+        expect(result.meta.page).toBe(999999);
+      });
+    });
+
+    describe('getInstance edge cases', () => {
+      it('should handle UUID format instance ID', async () => {
+        const uuid = '123e4567-e89b-12d3-a456-426614174000';
+        const result = await controller.getInstance(uuid);
+        expect(result.data.message).toContain(uuid);
+      });
+
+      it('should handle empty string instance ID', async () => {
+        const result = await controller.getInstance('');
+        expect(result).toBeDefined();
+      });
+
+      it('should handle special characters in instance ID', async () => {
+        const result = await controller.getInstance('inst_with-special.chars');
+        expect(result.data).toBeDefined();
+      });
+
+      it('should handle very long instance ID', async () => {
+        const longId = 'instance-' + 'x'.repeat(500);
+        const result = await controller.getInstance(longId);
+        expect(result.data.message).toContain(longId);
+      });
+    });
+
+    describe('Power actions edge cases', () => {
+      const testInstanceId = 'edge-case-instance';
+
+      it('should handle empty instance ID for start', async () => {
+        const result = await controller.startInstance('');
+        expect(result).toBeDefined();
+        expect(result.data.action).toBe('start');
+      });
+
+      it('should handle empty instance ID for stop', async () => {
+        const result = await controller.stopInstance('');
+        expect(result).toBeDefined();
+        expect(result.data.action).toBe('stop');
+      });
+
+      it('should handle empty instance ID for reboot', async () => {
+        const result = await controller.rebootInstance('');
+        expect(result).toBeDefined();
+        expect(result.data.action).toBe('reboot');
+      });
+
+      it('should handle empty instance ID for power-on', async () => {
+        const result = await controller.powerOnInstance('');
+        expect(result).toBeDefined();
+        expect(result.data.action).toBe('power-on');
+      });
+
+      it('should handle empty instance ID for power-off', async () => {
+        const result = await controller.powerOffInstance('');
+        expect(result).toBeDefined();
+        expect(result.data.action).toBe('power-off');
+      });
+
+      it('should handle special characters in instance ID for all actions', async () => {
+        const specialId = 'inst_special-chars.123';
+        
+        const startResult = await controller.startInstance(specialId);
+        expect(startResult.data.message).toContain(specialId);
+        
+        const stopResult = await controller.stopInstance(specialId);
+        expect(stopResult.data.message).toContain(specialId);
+        
+        const rebootResult = await controller.rebootInstance(specialId);
+        expect(rebootResult.data.message).toContain(specialId);
+      });
+
+      it('should handle UUID format instance ID for all actions', async () => {
+        const uuid = '550e8400-e29b-41d4-a716-446655440000';
+        
+        const powerOnResult = await controller.powerOnInstance(uuid);
+        expect(powerOnResult.data.message).toContain(uuid);
+        
+        const powerOffResult = await controller.powerOffInstance(uuid);
+        expect(powerOffResult.data.message).toContain(uuid);
+      });
+    });
+  });
+
+  describe('Decorator verification', () => {
+    it('should have method decorator for listInstances', () => {
+      const method = Reflect.getMetadata('method', controller.listInstances);
+      expect(method).toBeDefined();
+    });
+
+    it('should have method decorator for getInstance', () => {
+      const method = Reflect.getMetadata('method', controller.getInstance);
+      expect(method).toBeDefined();
+    });
+
+    it('should have method decorator for all action endpoints', () => {
+      const startMethod = Reflect.getMetadata('method', controller.startInstance);
+      const stopMethod = Reflect.getMetadata('method', controller.stopInstance);
+      const rebootMethod = Reflect.getMetadata('method', controller.rebootInstance);
+      const powerOnMethod = Reflect.getMetadata('method', controller.powerOnInstance);
+      const powerOffMethod = Reflect.getMetadata('method', controller.powerOffInstance);
+
+      expect(startMethod).toBeDefined();
+      expect(stopMethod).toBeDefined();
+      expect(rebootMethod).toBeDefined();
+      expect(powerOnMethod).toBeDefined();
+      expect(powerOffMethod).toBeDefined();
+    });
+
+    it('should have route paths defined for all methods', () => {
+      const listPath = Reflect.getMetadata('path', controller.listInstances);
+      const getPath = Reflect.getMetadata('path', controller.getInstance);
+      const startPath = Reflect.getMetadata('path', controller.startInstance);
+      const stopPath = Reflect.getMetadata('path', controller.stopInstance);
+      const rebootPath = Reflect.getMetadata('path', controller.rebootInstance);
+      const powerOnPath = Reflect.getMetadata('path', controller.powerOnInstance);
+      const powerOffPath = Reflect.getMetadata('path', controller.powerOffInstance);
+
+      expect(listPath).toBe('/');
+      expect(getPath).toBe(':instanceId');
+      expect(startPath).toBe(':instanceId/start');
+      expect(stopPath).toBe(':instanceId/stop');
+      expect(rebootPath).toBe(':instanceId/reboot');
+      expect(powerOnPath).toBe(':instanceId/power-on');
+      expect(powerOffPath).toBe(':instanceId/power-off');
+    });
+  });
+
+  describe('Response format consistency', () => {
+    it('should always return data and meta in listInstances response', async () => {
+      const result = await controller.listInstances({});
+      expect(result).toHaveProperty('data');
+      expect(result).toHaveProperty('meta');
+      expect(result.meta).toHaveProperty('page');
+      expect(result.meta).toHaveProperty('limit');
+    });
+
+    it('should always return data object in getInstance response', async () => {
+      const result = await controller.getInstance('test-id');
+      expect(result).toHaveProperty('data');
+      expect(result.data).toHaveProperty('message');
+      expect(result.data).toHaveProperty('note');
+    });
+
+    it('should always return action type in all action responses', async () => {
+      const instanceId = 'test-instance';
+      
+      const startResult = await controller.startInstance(instanceId);
+      expect(startResult).toHaveProperty('data');
+      expect(startResult.data).toHaveProperty('action');
+      expect(startResult.data).toHaveProperty('message');
+      expect(startResult.data).toHaveProperty('note');
+      
+      const stopResult = await controller.stopInstance(instanceId);
+      expect(stopResult.data).toHaveProperty('action');
+      
+      const rebootResult = await controller.rebootInstance(instanceId);
+      expect(rebootResult.data).toHaveProperty('action');
+      
+      const powerOnResult = await controller.powerOnInstance(instanceId);
+      expect(powerOnResult.data).toHaveProperty('action');
+      
+      const powerOffResult = await controller.powerOffInstance(instanceId);
+      expect(powerOffResult.data).toHaveProperty('action');
+    });
+  });
 });

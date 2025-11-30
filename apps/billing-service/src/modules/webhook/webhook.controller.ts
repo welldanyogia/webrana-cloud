@@ -15,6 +15,7 @@ import { Request } from 'express';
 import { InvoiceService } from '../invoice/invoice.service';
 import { TripayCallbackPayload } from '../tripay/dto/tripay.dto';
 import { TripayService } from '../tripay/tripay.service';
+import { DepositService } from '../wallet/deposit.service';
 
 /**
  * Webhook Controller - Payment Provider Callbacks
@@ -28,7 +29,8 @@ export class WebhookController {
 
   constructor(
     private readonly invoiceService: InvoiceService,
-    private readonly tripayService: TripayService
+    private readonly tripayService: TripayService,
+    private readonly depositService: DepositService
   ) {}
 
   /**
@@ -75,8 +77,23 @@ export class WebhookController {
       throw new BadRequestException('Invalid callback signature');
     }
 
-    // Process the callback with parsed payload
-    await this.invoiceService.processCallback(payload);
+    // Determine if this is a deposit or invoice callback
+    // Deposits have merchant_ref starting with "DEP-"
+    const isDepositCallback = payload.merchant_ref.startsWith('DEP-');
+
+    if (isDepositCallback) {
+      // Process deposit callback
+      this.logger.log(`Processing deposit callback for ref: ${payload.reference}`);
+      
+      if (payload.status === 'PAID') {
+        await this.depositService.processPaidDeposit(payload.reference);
+      } else {
+        this.logger.log(`Deposit callback status: ${payload.status} - no action taken`);
+      }
+    } else {
+      // Process invoice callback (existing logic)
+      await this.invoiceService.processCallback(payload);
+    }
 
     // Tripay expects { success: true } response
     return { success: true };

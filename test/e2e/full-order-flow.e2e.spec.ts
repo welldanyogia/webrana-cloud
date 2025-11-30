@@ -13,22 +13,17 @@ import {
   waitFor,
   sleep,
   getServiceBaseUrl,
-} from './helpers/setup';
+} from './helpers/setup.js';
 import {
-  getTestUserToken,
   createTestUserWithToken,
-  INTERNAL_API_KEY,
-  apiKeyHeader,
   authHeader,
-  TEST_USERS,
-} from './helpers/auth';
+} from './helpers/auth.js';
 import {
   createTripayCallback,
   createOrderPayload,
   TEST_PLANS,
   TEST_IMAGES,
-  TripayCallbackStatus,
-} from './helpers/mocks';
+} from './helpers/mocks.js';
 
 // Service base URLs
 const ORDER_SERVICE_URL = getServiceBaseUrl('order-service');
@@ -51,7 +46,6 @@ const TEST_TIMEOUT = 60000; // 60 seconds for E2E tests
 describe('Full Order Flow E2E', () => {
   let dockerAvailable = false;
   let userToken: string;
-  let userId: string;
 
   beforeAll(async () => {
     dockerAvailable = await isDockerAvailable();
@@ -68,7 +62,6 @@ describe('Full Order Flow E2E', () => {
       role: 'customer',
     });
     userToken = testUser.token;
-    userId = testUser.user.id;
 
     console.log(`E2E tests initialized with user: ${testUser.user.email}`);
   }, TEST_TIMEOUT);

@@ -129,3 +129,163 @@ model Payment {
   @@index([reference])
   @@map("payments")
 }
+
+// ===========================================
+// WALLET SYSTEM
+// ===========================================
+
+model UserWallet {
+  id            String   @id @default(uuid()) @db.Uuid
+  userId        String   @unique @map("user_id")
+  balance       Int      @default(0)
+  version       Int      @default(0)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  
+  transactions  WalletTransaction[]
+  
+  @@map("user_wallets")
+}
+
+model WalletTransaction {
+  id              String          @id @default(uuid()) @db.Uuid
+  walletId        String          @map("wallet_id") @db.Uuid
+  wallet          UserWallet      @relation(fields: [walletId], references: [id])
+  
+  type            TransactionType
+  amount          Int
+  balanceBefore   Int             @map("balance_before")
+  balanceAfter    Int             @map("balance_after")
+  
+  referenceType   ReferenceType   @map("reference_type")
+  referenceId     String?         @map("reference_id")
+  
+  description     String?
+  metadata        Json?
+  
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  
+  @@index([walletId, createdAt])
+  @@map("wallet_transactions")
+}
+
+enum TransactionType {
+  CREDIT
+  DEBIT
+}
+
+enum ReferenceType {
+  DEPOSIT
+  DEPOSIT_BONUS
+  WELCOME_BONUS
+  VPS_ORDER
+  VPS_RENEWAL
+  PROVISION_FAILED_REFUND
+  ADMIN_ADJUSTMENT
+}
+
+model Deposit {
+  id              String        @id @default(uuid()) @db.Uuid
+  userId          String        @map("user_id")
+  
+  amount          Int
+  bonusAmount     Int           @default(0) @map("bonus_amount")
+  totalCredit     Int           @map("total_credit")
+  
+  status          DepositStatus @default(PENDING)
+  
+  paymentMethod   String?       @map("payment_method")
+  paymentCode     String?       @map("payment_code")
+  tripayReference String?       @unique @map("tripay_reference")
+  
+  processedAt     DateTime?     @map("processed_at") @db.Timestamptz
+  idempotencyKey  String        @unique @map("idempotency_key")
+  
+  expiresAt       DateTime      @map("expires_at") @db.Timestamptz
+  paidAt          DateTime?     @map("paid_at") @db.Timestamptz
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+  
+  @@index([userId, status])
+  @@map("deposits")
+}
+
+enum DepositStatus {
+  PENDING
+  PAID
+  EXPIRED
+  FAILED
+}
+
+// ===========================================
+// PROMO SYSTEM
+// ===========================================
+
+enum PromoType {
+  DEPOSIT_BONUS   // Bonus on deposit (e.g., deposit 100k get 10% bonus)
+  WELCOME_BONUS   // One-time bonus for new users
+  REFERRAL_BONUS  // Bonus for referrer when referee deposits
+  SPECIAL_EVENT   // Limited time event bonus
+}
+
+enum BonusType {
+  PERCENTAGE      // Percentage of deposit amount
+  FIXED_AMOUNT    // Fixed bonus amount
+}
+
+model Promo {
+  id              String      @id @default(uuid()) @db.Uuid
+  code            String      @unique @db.VarChar(50)
+  name            String      @db.VarChar(255)
+  description     String?     @db.Text
+  
+  // Promo Type
+  type            PromoType
+  
+  // Discount/Bonus configuration
+  bonusType       BonusType   @map("bonus_type")
+  bonusValue      Int         @map("bonus_value")  // Percentage or fixed amount
+  minDeposit      Int?        @map("min_deposit")  // Minimum deposit to qualify
+  maxBonus        Int?        @map("max_bonus")    // Cap for percentage bonuses
+  
+  // Validity
+  startAt         DateTime    @map("start_at") @db.Timestamptz
+  endAt           DateTime    @map("end_at") @db.Timestamptz
+  
+  // Usage limits
+  maxTotalUses    Int?        @map("max_total_uses")
+  maxUsesPerUser  Int         @default(1) @map("max_uses_per_user")
+  currentUses     Int         @default(0) @map("current_uses")
+  
+  // Status
+  isActive        Boolean     @default(true) @map("is_active")
+  
+  // Timestamps
+  createdAt       DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+  
+  // Relations
+  redemptions     PromoRedemption[]
+  
+  @@index([code])
+  @@index([type, isActive])
+  @@index([startAt, endAt])
+  @@map("promos")
+}
+
+model PromoRedemption {
+  id            String   @id @default(uuid()) @db.Uuid
+  promoId       String   @map("promo_id") @db.Uuid
+  promo         Promo    @relation(fields: [promoId], references: [id])
+  userId        String   @map("user_id")
+  depositId     String?  @map("deposit_id") @db.Uuid
+  
+  bonusAmount   Int      @map("bonus_amount")
+  depositAmount Int?     @map("deposit_amount")
+  
+  redeemedAt    DateTime @default(now()) @map("redeemed_at") @db.Timestamptz
+  
+  @@index([promoId])
+  @@index([userId])
+  @@map("promo_redemptions")
+}

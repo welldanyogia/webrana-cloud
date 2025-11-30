@@ -1,11 +1,18 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { PlanDuration, DiscountType, VpsPlan } from '@prisma/client';
+
 import {
   PlanNotFoundException,
   ImageNotFoundException,
   DuplicateEntryException,
+  BillingPeriodNotAllowedException,
+  PriceNotSetException,
 } from '../../common/exceptions';
-import { PlanDuration, DiscountType } from '@prisma/client';
+import { PrismaService } from '../../prisma/prisma.service';
+import { UpdatePlanPricingDto, AvailablePeriodResponse } from './dto';
+
+// BillingPeriod type for the new pricing system
+export type BillingPeriod = 'DAILY' | 'MONTHLY' | 'YEARLY';
 
 export interface PricingInput {
   duration: PlanDuration;
@@ -488,5 +495,165 @@ export class VpsPlanService {
       return Math.round(price * (1 - discountValue / 100));
     }
     return Math.max(0, price - discountValue);
+  }
+
+  // ========================================
+  // BILLING PERIOD PRICING METHODS
+  // ========================================
+
+  /**
+   * Update plan pricing and billing period availability (Admin only)
+   */
+  async updatePlanPricing(planId: string, dto: UpdatePlanPricingDto): Promise<{ data: VpsPlan }> {
+    const plan = await this.prisma.vpsPlan.findUnique({
+      where: { id: planId },
+    });
+
+    if (!plan) {
+      throw new PlanNotFoundException();
+    }
+
+    // Validate: if enabling a period, price must be set
+    const allowDaily = dto.allowDaily ?? plan.allowDaily;
+    const priceDaily = dto.priceDaily ?? plan.priceDaily;
+    if (allowDaily && !priceDaily) {
+      throw new BadRequestException('Harga harian harus diatur untuk mengaktifkan billing harian');
+    }
+
+    const allowYearly = dto.allowYearly ?? plan.allowYearly;
+    const priceYearly = dto.priceYearly ?? plan.priceYearly;
+    if (allowYearly && !priceYearly) {
+      throw new BadRequestException('Harga tahunan harus diatur untuk mengaktifkan billing tahunan');
+    }
+
+    const updatedPlan = await this.prisma.vpsPlan.update({
+      where: { id: planId },
+      data: {
+        priceHourly: dto.priceHourly,
+        priceDaily: dto.priceDaily,
+        priceMonthly: dto.priceMonthly,
+        priceYearly: dto.priceYearly,
+        allowDaily: dto.allowDaily,
+        allowMonthly: dto.allowMonthly,
+        allowYearly: dto.allowYearly,
+      },
+    });
+
+    return { data: updatedPlan };
+  }
+
+  /**
+   * Get price for a specific billing period
+   */
+  getPriceForPeriod(plan: VpsPlan, period: BillingPeriod): number {
+    switch (period) {
+      case 'DAILY':
+        if (!plan.allowDaily || !plan.priceDaily) {
+          throw new BillingPeriodNotAllowedException(plan.id, period);
+        }
+        return plan.priceDaily;
+
+      case 'MONTHLY':
+        if (!plan.allowMonthly) {
+          throw new BillingPeriodNotAllowedException(plan.id, period);
+        }
+        if (!plan.priceMonthly) {
+          throw new PriceNotSetException(period);
+        }
+        return plan.priceMonthly;
+
+      case 'YEARLY':
+        if (!plan.allowYearly || !plan.priceYearly) {
+          throw new BillingPeriodNotAllowedException(plan.id, period);
+        }
+        return plan.priceYearly;
+
+      default:
+        throw new BadRequestException(`Billing period tidak valid: ${period}`);
+    }
+  }
+
+  /**
+   * Get available billing periods for a plan
+   */
+  getAvailablePeriods(plan: VpsPlan): BillingPeriod[] {
+    const periods: BillingPeriod[] = [];
+
+    if (plan.allowDaily && plan.priceDaily) {
+      periods.push('DAILY');
+    }
+    if (plan.allowMonthly && plan.priceMonthly) {
+      periods.push('MONTHLY');
+    }
+    if (plan.allowYearly && plan.priceYearly) {
+      periods.push('YEARLY');
+    }
+
+    return periods;
+  }
+
+  /**
+   * Build available periods with pricing info for API response
+   */
+  buildAvailablePeriods(plan: VpsPlan): AvailablePeriodResponse[] {
+    const periods: AvailablePeriodResponse[] = [];
+
+    if (plan.allowDaily && plan.priceDaily) {
+      periods.push({
+        period: 'DAILY',
+        price: plan.priceDaily,
+        pricePerMonth: plan.priceDaily * 30, // Approximate
+      });
+    }
+
+    if (plan.allowMonthly && plan.priceMonthly) {
+      periods.push({
+        period: 'MONTHLY',
+        price: plan.priceMonthly,
+        pricePerMonth: plan.priceMonthly,
+      });
+    }
+
+    if (plan.allowYearly && plan.priceYearly) {
+      periods.push({
+        period: 'YEARLY',
+        price: plan.priceYearly,
+        pricePerMonth: Math.round(plan.priceYearly / 12),
+      });
+    }
+
+    return periods;
+  }
+
+  /**
+   * Find plan by ID (for internal use)
+   */
+  async findById(id: string): Promise<VpsPlan> {
+    const plan = await this.prisma.vpsPlan.findUnique({
+      where: { id },
+    });
+
+    if (!plan) {
+      throw new PlanNotFoundException();
+    }
+
+    return plan;
+  }
+
+  /**
+   * Get plans with available periods for public API
+   */
+  async getPlansWithPeriods() {
+    const plans = await this.prisma.vpsPlan.findMany({
+      where: { isActive: true },
+      orderBy: { sortOrder: 'asc' },
+    });
+
+    return {
+      data: plans.map((plan) => ({
+        ...plan,
+        availablePeriods: this.buildAvailablePeriods(plan),
+      })),
+    };
   }
 }

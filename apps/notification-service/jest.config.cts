@@ -16,4 +16,9 @@ module.exports = {
   },
   moduleFileExtensions: ['ts', 'js', 'html'],
   coverageDirectory: 'test-output/jest/coverage',
+  moduleNameMapper: {
+    '^@prisma/client$': '<rootDir>/src/__mocks__/@prisma/client.ts',
+    '^@nestjs/websockets$': '<rootDir>/src/__mocks__/@nestjs/websockets.ts',
+    '^socket\\.io$': '<rootDir>/src/__mocks__/socket.io.ts',
+  },
 };

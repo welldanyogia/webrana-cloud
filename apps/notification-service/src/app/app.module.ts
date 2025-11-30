@@ -10,6 +10,8 @@ import { EmailModule } from '../modules/email/email.module';
 import { NotificationModule } from '../modules/notification/notification.module';
 import { QueueModule } from '../modules/queue/queue.module';
 import { TelegramModule } from '../modules/telegram/telegram.module';
+import { UserNotificationModule } from '../modules/user-notification/user-notification.module';
+import { WebsocketModule } from '../modules/websocket/websocket.module';
 import { PrismaModule } from '../prisma/prisma.module';
 
 import { AppController } from './app.controller';
@@ -27,6 +29,8 @@ import { AppService } from './app.service';
     AuthClientModule,
     QueueModule,
     NotificationModule,
+    UserNotificationModule,
+    WebsocketModule,
   ],
   controllers: [AppController],
   providers: [

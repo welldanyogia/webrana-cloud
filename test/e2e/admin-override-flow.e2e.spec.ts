@@ -8,23 +8,16 @@
  */
 
 import request from 'supertest';
-import { isDockerAvailable, waitFor, sleep, getServiceBaseUrl } from './helpers/setup';
+import { isDockerAvailable, waitFor, getServiceBaseUrl } from './helpers/setup.js';
 import {
-  getTestUserToken,
-  getTestAdminToken,
   createTestUserWithToken,
-  INTERNAL_API_KEY,
   apiKeyHeader,
   authHeader,
-  adminHeaders,
-  TEST_USERS,
-} from './helpers/auth';
-import { createOrderPayload, TEST_PLANS, TEST_IMAGES } from './helpers/mocks';
+} from './helpers/auth.js';
+import { createOrderPayload, TEST_PLANS, TEST_IMAGES } from './helpers/mocks.js';
 
 // Service base URLs
 const ORDER_SERVICE_URL = getServiceBaseUrl('order-service');
-const BILLING_SERVICE_URL = getServiceBaseUrl('billing-service');
-const INSTANCE_SERVICE_URL = getServiceBaseUrl('instance-service');
 
 // Test configuration
 const TEST_TIMEOUT = 60000;
@@ -33,8 +26,6 @@ describe('Admin Override Flow E2E', () => {
   let dockerAvailable = false;
   let userToken: string;
   let adminToken: string;
-  let userId: string;
-  let adminId: string;
 
   beforeAll(async () => {
     dockerAvailable = await isDockerAvailable();
@@ -51,14 +42,12 @@ describe('Admin Override Flow E2E', () => {
       role: 'customer',
     });
     userToken = testUser.token;
-    userId = testUser.user.id;
 
     const testAdmin = createTestUserWithToken({
       email: 'e2e-admin-flow-admin@test.webrana.cloud',
       role: 'admin',
     });
     adminToken = testAdmin.token;
-    adminId = testAdmin.user.id;
 
     console.log(`E2E tests initialized with admin: ${testAdmin.user.email}`);
   }, TEST_TIMEOUT);
@@ -187,11 +176,11 @@ describe('Admin Override Flow E2E', () => {
         );
 
         expect(activeOrder).toBeDefined();
-        expect(activeOrder.status).toBe('ACTIVE');
-        expect(activeOrder.provisioningTask).toBeDefined();
-        expect(activeOrder.provisioningTask.status).toBe('COMPLETED');
+        expect(activeOrder!.status).toBe('ACTIVE');
+        expect(activeOrder!.provisioningTask).toBeDefined();
+        expect(activeOrder!.provisioningTask.status).toBe('COMPLETED');
         console.log(
-          `  Provisioning completed: ${activeOrder.provisioningTask.dropletName}`
+          `  Provisioning completed: ${activeOrder!.provisioningTask.dropletName}`
         );
 
         // ════════════════════════════════════════════════════════════════════

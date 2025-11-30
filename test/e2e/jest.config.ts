@@ -17,6 +17,10 @@ const config: Config = {
   maxWorkers: 1,
   // Fail fast on first error
   bail: 1,
+  // Transform ESM modules that Jest can't handle by default
+  transformIgnorePatterns: [
+    'node_modules/(?!(uuid)/)',
+  ],
 };
 
 export default config;

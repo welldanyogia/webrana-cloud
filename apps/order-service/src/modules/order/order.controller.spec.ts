@@ -3,7 +3,12 @@ import { OrderController } from './order.controller';
 import { OrderService } from './order.service';
 import { ConfigService } from '@nestjs/config';
 import { PlanDuration, OrderStatus, ProvisioningStatus } from '@prisma/client';
-import { OrderNotFoundException, OrderAccessDeniedException } from '../../common/exceptions';
+import { 
+  OrderNotFoundException, 
+  OrderAccessDeniedException,
+  OrderNotActiveException,
+  DropletNotReadyException,
+} from '../../common/exceptions';
 
 describe('OrderController', () => {
   let controller: OrderController;
@@ -89,6 +94,8 @@ describe('OrderController', () => {
             createOrder: jest.fn(),
             getOrdersByUserId: jest.fn(),
             getOrderById: jest.fn(),
+            getConsoleUrl: jest.fn(),
+            powerAction: jest.fn(),
           },
         },
         { provide: ConfigService, useValue: mockConfigService },
@@ -257,6 +264,147 @@ describe('OrderController', () => {
       await expect(
         controller.getOrderById('other-user', 'order-456')
       ).rejects.toThrow(OrderAccessDeniedException);
+    });
+  });
+
+  // ==========================================
+  // VPS Console & Power Control Tests
+  // ==========================================
+
+  describe('GET /orders/:id/console (getConsoleUrl)', () => {
+    const mockConsoleResponse = {
+      url: 'https://console.digitalocean.com/droplets/12345678/console',
+      expiresAt: '2024-01-15T12:00:00.000Z',
+    };
+
+    it('should return console URL successfully', async () => {
+      orderService.getConsoleUrl.mockResolvedValue(mockConsoleResponse);
+
+      const result = await controller.getConsoleUrl('user-123', 'order-456');
+
+      expect(orderService.getConsoleUrl).toHaveBeenCalledWith('order-456', 'user-123');
+      expect(result).toEqual({ data: mockConsoleResponse });
+      expect(result.data).toHaveProperty('url');
+      expect(result.data).toHaveProperty('expiresAt');
+    });
+
+    it('should throw OrderNotActiveException if order is not active', async () => {
+      orderService.getConsoleUrl.mockRejectedValue(
+        new OrderNotActiveException('order-456')
+      );
+
+      await expect(
+        controller.getConsoleUrl('user-123', 'order-456')
+      ).rejects.toThrow(OrderNotActiveException);
+    });
+
+    it('should throw DropletNotReadyException if droplet not provisioned', async () => {
+      orderService.getConsoleUrl.mockRejectedValue(
+        new DropletNotReadyException('order-456')
+      );
+
+      await expect(
+        controller.getConsoleUrl('user-123', 'order-456')
+      ).rejects.toThrow(DropletNotReadyException);
+    });
+
+    it('should throw OrderNotFoundException for non-existent order', async () => {
+      orderService.getConsoleUrl.mockRejectedValue(
+        new OrderNotFoundException('non-existent')
+      );
+
+      await expect(
+        controller.getConsoleUrl('user-123', 'non-existent')
+      ).rejects.toThrow(OrderNotFoundException);
+    });
+  });
+
+  describe('POST /orders/:id/power-on (powerOn)', () => {
+    it('should power on VPS successfully', async () => {
+      orderService.powerAction.mockResolvedValue(undefined);
+
+      const result = await controller.powerOn('user-123', 'order-456');
+
+      expect(orderService.powerAction).toHaveBeenCalledWith('order-456', 'user-123', 'power_on');
+      expect(result).toEqual({ 
+        data: { success: true, message: 'VPS sedang dinyalakan' } 
+      });
+    });
+
+    it('should throw OrderNotActiveException if order is not active', async () => {
+      orderService.powerAction.mockRejectedValue(
+        new OrderNotActiveException('order-456')
+      );
+
+      await expect(
+        controller.powerOn('user-123', 'order-456')
+      ).rejects.toThrow(OrderNotActiveException);
+    });
+
+    it('should throw DropletNotReadyException if droplet not provisioned', async () => {
+      orderService.powerAction.mockRejectedValue(
+        new DropletNotReadyException('order-456')
+      );
+
+      await expect(
+        controller.powerOn('user-123', 'order-456')
+      ).rejects.toThrow(DropletNotReadyException);
+    });
+  });
+
+  describe('POST /orders/:id/power-off (powerOff)', () => {
+    it('should power off VPS successfully', async () => {
+      orderService.powerAction.mockResolvedValue(undefined);
+
+      const result = await controller.powerOff('user-123', 'order-456');
+
+      expect(orderService.powerAction).toHaveBeenCalledWith('order-456', 'user-123', 'power_off');
+      expect(result).toEqual({ 
+        data: { success: true, message: 'VPS sedang dimatikan' } 
+      });
+    });
+
+    it('should throw OrderNotActiveException if order is not active', async () => {
+      orderService.powerAction.mockRejectedValue(
+        new OrderNotActiveException('order-456')
+      );
+
+      await expect(
+        controller.powerOff('user-123', 'order-456')
+      ).rejects.toThrow(OrderNotActiveException);
+    });
+  });
+
+  describe('POST /orders/:id/reboot (reboot)', () => {
+    it('should reboot VPS successfully', async () => {
+      orderService.powerAction.mockResolvedValue(undefined);
+
+      const result = await controller.reboot('user-123', 'order-456');
+
+      expect(orderService.powerAction).toHaveBeenCalledWith('order-456', 'user-123', 'reboot');
+      expect(result).toEqual({ 
+        data: { success: true, message: 'VPS sedang di-reboot' } 
+      });
+    });
+
+    it('should throw OrderNotActiveException if order is not active', async () => {
+      orderService.powerAction.mockRejectedValue(
+        new OrderNotActiveException('order-456')
+      );
+
+      await expect(
+        controller.reboot('user-123', 'order-456')
+      ).rejects.toThrow(OrderNotActiveException);
+    });
+
+    it('should throw DropletNotReadyException if droplet not provisioned', async () => {
+      orderService.powerAction.mockRejectedValue(
+        new DropletNotReadyException('order-456')
+      );
+
+      await expect(
+        controller.reboot('user-123', 'order-456')
+      ).rejects.toThrow(DropletNotReadyException);
     });
   });
 });

@@ -9,6 +9,7 @@ import {
   HttpStatus,
   HttpCode,
   ParseUUIDPipe,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -123,5 +124,77 @@ export class OrderController {
         updatedAt: order.updatedAt,
       },
     };
+  }
+
+  // ==========================================
+  // VPS Console & Power Control Endpoints
+  // ==========================================
+
+  @Get(':id/console')
+  @ApiOperation({ summary: 'Get VNC console URL', description: 'Get temporary VNC console URL for the VPS' })
+  @ApiParam({ name: 'id', type: String, description: 'Order UUID' })
+  @ApiResponse({ status: 200, description: 'Console URL retrieved successfully' })
+  @ApiResponse({ status: 400, description: 'VPS not active or droplet not ready' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Access denied' })
+  @ApiResponse({ status: 404, description: 'Order not found' })
+  @ApiResponse({ status: 503, description: 'Console access failed' })
+  async getConsoleUrl(
+    @CurrentUser('userId') userId: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) orderId: string
+  ): Promise<{ data: { url: string; expiresAt: string } }> {
+    const result = await this.orderService.getConsoleUrl(orderId, userId);
+    return { data: result };
+  }
+
+  @Post(':id/power-on')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Power on VPS', description: 'Turn on the VPS' })
+  @ApiParam({ name: 'id', type: String, description: 'Order UUID' })
+  @ApiResponse({ status: 200, description: 'Power on initiated' })
+  @ApiResponse({ status: 400, description: 'VPS not active or droplet not ready' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Access denied' })
+  @ApiResponse({ status: 404, description: 'Order not found' })
+  async powerOn(
+    @CurrentUser('userId') userId: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) orderId: string
+  ) {
+    await this.orderService.powerAction(orderId, userId, 'power_on');
+    return { data: { success: true, message: 'VPS sedang dinyalakan' } };
+  }
+
+  @Post(':id/power-off')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Power off VPS', description: 'Turn off the VPS' })
+  @ApiParam({ name: 'id', type: String, description: 'Order UUID' })
+  @ApiResponse({ status: 200, description: 'Power off initiated' })
+  @ApiResponse({ status: 400, description: 'VPS not active or droplet not ready' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Access denied' })
+  @ApiResponse({ status: 404, description: 'Order not found' })
+  async powerOff(
+    @CurrentUser('userId') userId: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) orderId: string
+  ) {
+    await this.orderService.powerAction(orderId, userId, 'power_off');
+    return { data: { success: true, message: 'VPS sedang dimatikan' } };
+  }
+
+  @Post(':id/reboot')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Reboot VPS', description: 'Restart the VPS' })
+  @ApiParam({ name: 'id', type: String, description: 'Order UUID' })
+  @ApiResponse({ status: 200, description: 'Reboot initiated' })
+  @ApiResponse({ status: 400, description: 'VPS not active or droplet not ready' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Access denied' })
+  @ApiResponse({ status: 404, description: 'Order not found' })
+  async reboot(
+    @CurrentUser('userId') userId: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) orderId: string
+  ) {
+    await this.orderService.powerAction(orderId, userId, 'reboot');
+    return { data: { success: true, message: 'VPS sedang di-reboot' } };
   }
 }

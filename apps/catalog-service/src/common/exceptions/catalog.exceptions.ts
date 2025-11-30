@@ -93,3 +93,25 @@ export class ValidationException extends CatalogException {
     super('VALIDATION_ERROR', message, HttpStatus.BAD_REQUEST, { field });
   }
 }
+
+export class BillingPeriodNotAllowedException extends CatalogException {
+  constructor(planId: string, period: string) {
+    super(
+      'BILLING_PERIOD_NOT_ALLOWED',
+      `Billing period ${period} tidak tersedia untuk plan ini`,
+      HttpStatus.BAD_REQUEST,
+      { planId, period }
+    );
+  }
+}
+
+export class PriceNotSetException extends CatalogException {
+  constructor(period: string) {
+    super(
+      'PRICE_NOT_SET',
+      `Harga untuk period ${period} belum diatur`,
+      HttpStatus.BAD_REQUEST,
+      { period }
+    );
+  }
+}

@@ -14,6 +14,7 @@ import {
   ChevronDown,
   Shield,
   ChevronLeft,
+  Cloud,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
@@ -29,6 +30,7 @@ const navigation = [
   { name: 'Pesanan', href: '/orders', icon: ShoppingCart },
   { name: 'Pengguna', href: '/users', icon: Users },
   { name: 'Analitik', href: '/analytics', icon: BarChart3 },
+  { name: 'DO Accounts', href: '/settings/do-accounts', icon: Cloud },
 ];
 
 export function AdminLayout({ children }: AdminLayoutProps) {

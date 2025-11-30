@@ -4,6 +4,8 @@ import { AuthClientModule } from '../auth-client/auth-client.module';
 import { EmailModule } from '../email/email.module';
 import { QueueModule } from '../queue/queue.module';
 import { TelegramModule } from '../telegram/telegram.module';
+import { UserNotificationModule } from '../user-notification/user-notification.module';
+import { WebsocketModule } from '../websocket/websocket.module';
 
 import { NotificationController } from './notification.controller';
 import { NotificationService } from './notification.service';
@@ -14,6 +16,8 @@ import { NotificationService } from './notification.service';
     TelegramModule,
     AuthClientModule,
     forwardRef(() => QueueModule),
+    UserNotificationModule,
+    WebsocketModule,
   ],
   controllers: [NotificationController],
   providers: [NotificationService],

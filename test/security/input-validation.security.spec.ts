@@ -120,12 +120,26 @@ describe('Input Validation Security', () => {
         it(`should sanitize XSS payload ${index + 1}: ${payload.substring(0, 30)}...`, () => {
           const sanitized = escapeHtml(payload);
 
-          // Sanitized output should not contain raw HTML tags
+          // html-escaper escapes HTML entities (<, >, &, ", ')
+          // This prevents the browser from parsing them as HTML tags
+          // Note: Event handler attributes (onerror=, onload=) are NOT stripped,
+          // but since < and > are escaped, they won't be parsed as HTML elements
+          
+          // Raw HTML tags should be escaped to entity-encoded versions
           expect(sanitized).not.toContain('<script');
           expect(sanitized).not.toContain('<img');
           expect(sanitized).not.toContain('<svg');
-          expect(sanitized).not.toContain('onerror=');
-          expect(sanitized).not.toContain('onload=');
+          expect(sanitized).not.toContain('<body');
+          expect(sanitized).not.toContain('<input');
+          expect(sanitized).not.toContain('<video');
+          expect(sanitized).not.toContain('<iframe');
+          expect(sanitized).not.toContain('<details');
+          expect(sanitized).not.toContain('<marquee');
+          
+          // If the payload contained HTML tags, they should be escaped
+          if (payload.includes('<')) {
+            expect(sanitized).toContain('&lt;');
+          }
         });
       });
 
@@ -435,10 +449,14 @@ describe('Input Validation Security', () => {
   });
 
   describe('Email Validation', () => {
-    it('should validate email format', () => {
+    it('should validate email format with strict regex', () => {
+      // Stricter email regex that also rejects HTML special chars
       const validateEmail = (email: string): boolean => {
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(email) && email.length <= 254;
+        // RFC 5322 compliant with additional XSS prevention
+        const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+        // Also reject HTML special characters
+        const noHtmlChars = !/[<>]/.test(email);
+        return emailRegex.test(email) && email.length <= 254 && noHtmlChars;
       };
 
       // Valid emails
@@ -454,6 +472,14 @@ describe('Input Validation Security', () => {
 
     it('should prevent email header injection', () => {
       const detectEmailInjection = (email: string): boolean => {
+        // Decode URL-encoded characters first
+        let decoded = email;
+        try {
+          decoded = decodeURIComponent(email);
+        } catch {
+          // If decoding fails, use original
+        }
+        
         const patterns = [
           /[\r\n]/,           // Newlines
           /bcc:/i,            // BCC injection
@@ -461,12 +487,12 @@ describe('Input Validation Security', () => {
           /content-type:/i,   // Content-type injection
         ];
 
-        return patterns.some((pattern) => pattern.test(email));
+        return patterns.some((pattern) => pattern.test(decoded));
       };
 
       expect(detectEmailInjection('user@example.com')).toBe(false);
       expect(detectEmailInjection('user@example.com\r\nBcc: hacker@evil.com')).toBe(true);
-      expect(detectEmailInjection('user@example.com%0ACc:hacker@evil.com')).toBe(false); // encoded
+      expect(detectEmailInjection('user@example.com%0ACc:hacker@evil.com')).toBe(true); // URL encoded newline
     });
   });
 

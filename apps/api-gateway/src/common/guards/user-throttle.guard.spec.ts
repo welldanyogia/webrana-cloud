@@ -81,5 +81,105 @@ describe('UserThrottlerGuard', () => {
       const tracker = await (guard as any).getTracker(mockRequest);
       expect(tracker).toBe('ip:203.0.113.195');
     });
+
+    it('should handle x-forwarded-for as array', async () => {
+      const mockRequest = {
+        user: undefined,
+        ip: '127.0.0.1',
+        headers: {
+          'x-forwarded-for': ['203.0.113.195', '70.41.3.18'],
+        },
+        socket: { remoteAddress: '127.0.0.1' },
+      };
+
+      const tracker = await (guard as any).getTracker(mockRequest);
+      expect(tracker).toBe('ip:203.0.113.195');
+    });
+
+    it('should handle x-forwarded-for with multiple IPs as string', async () => {
+      const mockRequest = {
+        user: undefined,
+        ip: '127.0.0.1',
+        headers: {
+          'x-forwarded-for': '203.0.113.195, 70.41.3.18, 150.172.238.178',
+        },
+        socket: { remoteAddress: '127.0.0.1' },
+      };
+
+      const tracker = await (guard as any).getTracker(mockRequest);
+      expect(tracker).toBe('ip:203.0.113.195');
+    });
+
+    it('should fallback to socket.remoteAddress if ip is not available', async () => {
+      const mockRequest = {
+        user: undefined,
+        ip: undefined,
+        headers: {},
+        socket: { remoteAddress: '10.0.0.1' },
+      };
+
+      const tracker = await (guard as any).getTracker(mockRequest);
+      expect(tracker).toBe('ip:10.0.0.1');
+    });
+
+    it('should return "unknown" if no IP is available', async () => {
+      const mockRequest = {
+        user: undefined,
+        ip: undefined,
+        headers: {},
+        socket: { remoteAddress: undefined },
+      };
+
+      const tracker = await (guard as any).getTracker(mockRequest);
+      expect(tracker).toBe('ip:unknown');
+    });
+
+    it('should handle null user object', async () => {
+      const mockRequest = {
+        user: null,
+        ip: '192.168.1.1',
+        headers: {},
+        socket: { remoteAddress: '192.168.1.1' },
+      };
+
+      const tracker = await (guard as any).getTracker(mockRequest);
+      expect(tracker).toBe('ip:192.168.1.1');
+    });
+
+    it('should handle empty user object', async () => {
+      const mockRequest = {
+        user: {},
+        ip: '192.168.1.1',
+        headers: {},
+        socket: { remoteAddress: '192.168.1.1' },
+      };
+
+      const tracker = await (guard as any).getTracker(mockRequest);
+      expect(tracker).toBe('ip:192.168.1.1');
+    });
+
+    it('should handle user with undefined sub property', async () => {
+      const mockRequest = {
+        user: { sub: undefined, email: 'test@example.com' },
+        ip: '10.0.0.1',
+        headers: {},
+        socket: { remoteAddress: '10.0.0.1' },
+      };
+
+      const tracker = await (guard as any).getTracker(mockRequest);
+      expect(tracker).toBe('ip:10.0.0.1');
+    });
+
+    it('should handle user with empty string sub property', async () => {
+      const mockRequest = {
+        user: { sub: '', email: 'test@example.com' },
+        ip: '10.0.0.1',
+        headers: {},
+        socket: { remoteAddress: '10.0.0.1' },
+      };
+
+      const tracker = await (guard as any).getTracker(mockRequest);
+      expect(tracker).toBe('ip:10.0.0.1');
+    });
   });
 });

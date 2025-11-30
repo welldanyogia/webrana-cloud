@@ -42,12 +42,8 @@ export function PasswordModal({
     };
   }, [isOpen, onClose]);
 
-  // Reset copied state when modal closes
-  useEffect(() => {
-    if (!isOpen) {
-      setCopied(false);
-    }
-  }, [isOpen]);
+  // Note: copied state will be reset when modal is closed via the setTimeout in copyToClipboard
+  // No need for additional reset logic
 
   const copyToClipboard = () => {
     if (!password) return;

@@ -48,6 +48,61 @@ export interface ProvisioningFailedData {
 }
 
 /**
+ * VPS Expiring Soon Data
+ */
+export interface VpsExpiringSoonData {
+  orderId: string;
+  customerName: string;
+  planName: string;
+  expiresAt: string;
+  hoursRemaining: number;
+  autoRenew: boolean;
+}
+
+/**
+ * VPS Suspended Data
+ */
+export interface VpsSuspendedData {
+  orderId: string;
+  customerName: string;
+  planName: string;
+  suspendedAt: string;
+  gracePeriodHours: number;
+}
+
+/**
+ * VPS Destroyed Data
+ */
+export interface VpsDestroyedData {
+  orderId: string;
+  customerName: string;
+  planName: string;
+  reason: string;
+  terminatedAt: string;
+}
+
+/**
+ * Renewal Success Data
+ */
+export interface RenewalSuccessData {
+  orderId: string;
+  customerName: string;
+  planName: string;
+  newExpiry: string;
+  amount: number;
+}
+
+/**
+ * Renewal Failed Data
+ */
+export interface RenewalFailedData {
+  orderId: string;
+  customerName: string;
+  planName: string;
+  required: number;
+}
+
+/**
  * Format currency to IDR
  */
 function formatCurrency(amount: number): string {
@@ -325,6 +380,301 @@ Tim teknis kami sedang menangani masalah ini. Anda akan mendapat notifikasi saat
 Jika dalam 24 jam tidak ada update, silakan hubungi kami di: ${supportEmail}
 
 Kami mohon maaf atas ketidaknyamanan ini.
+
+---
+WeBrana Cloud
+  `.trim();
+
+  return { subject, html, text };
+}
+
+/**
+ * VPS Expiring Soon Email Template
+ */
+export function vpsExpiringSoonTemplate(data: VpsExpiringSoonData): { subject: string; html: string; text: string } {
+  const urgencyClass = data.hoursRemaining <= 8 ? 'error' : 'warning';
+  const urgencyEmoji = data.hoursRemaining <= 8 ? '🚨' : '⚠️';
+  const subject = `[WeBrana Cloud] ${urgencyEmoji} VPS ${data.planName} Akan Berakhir dalam ${data.hoursRemaining} Jam`;
+
+  const html = wrapInHtmlTemplate(subject, `
+    <h2 class="${urgencyClass}">${urgencyEmoji} VPS Anda Akan Berakhir!</h2>
+    <p>Hai ${data.customerName}, VPS <strong>${data.planName}</strong> Anda akan berakhir dalam <strong>${data.hoursRemaining} jam</strong>.</p>
+    
+    <div class="info-box">
+      <h3>Detail VPS</h3>
+      <table>
+        <tr><th>Order ID</th><td>${data.orderId}</td></tr>
+        <tr><th>Paket</th><td>${data.planName}</td></tr>
+        <tr><th>Berakhir Pada</th><td class="${urgencyClass}"><strong>${data.expiresAt}</strong></td></tr>
+        <tr><th>Auto-Renew</th><td>${data.autoRenew ? '✅ Aktif' : '❌ Tidak Aktif'}</td></tr>
+      </table>
+    </div>
+    
+    ${data.autoRenew 
+      ? `<p class="success">✅ Auto-renewal aktif. Pastikan saldo Anda mencukupi untuk perpanjangan otomatis.</p>`
+      : `<p class="${urgencyClass}"><strong>Perpanjang sekarang untuk menghindari penonaktifan VPS!</strong></p>
+         <a href="/dashboard/instances" class="button">Perpanjang Sekarang</a>`
+    }
+    
+    <p>Jika VPS tidak diperpanjang, layanan akan:</p>
+    <ul>
+      <li>Disuspend (VPS dimatikan sementara)</li>
+      <li>Dihapus permanen setelah grace period berakhir</li>
+    </ul>
+    
+    <p>Butuh bantuan? Hubungi <a href="mailto:support@webrana.id">support@webrana.id</a></p>
+  `);
+
+  const text = `
+${urgencyEmoji} VPS Anda Akan Berakhir!
+
+Hai ${data.customerName}, VPS ${data.planName} Anda akan berakhir dalam ${data.hoursRemaining} jam.
+
+Detail VPS:
+- Order ID: ${data.orderId}
+- Paket: ${data.planName}
+- Berakhir Pada: ${data.expiresAt}
+- Auto-Renew: ${data.autoRenew ? 'Aktif' : 'Tidak Aktif'}
+
+${data.autoRenew 
+  ? 'Auto-renewal aktif. Pastikan saldo Anda mencukupi untuk perpanjangan otomatis.'
+  : 'Perpanjang sekarang untuk menghindari penonaktifan VPS!'
+}
+
+Jika VPS tidak diperpanjang, layanan akan:
+- Disuspend (VPS dimatikan sementara)
+- Dihapus permanen setelah grace period berakhir
+
+Butuh bantuan? Hubungi support@webrana.id
+
+---
+WeBrana Cloud
+  `.trim();
+
+  return { subject, html, text };
+}
+
+/**
+ * VPS Suspended Email Template
+ */
+export function vpsSuspendedTemplate(data: VpsSuspendedData): { subject: string; html: string; text: string } {
+  const subject = `[WeBrana Cloud] 🔴 VPS ${data.planName} Telah Disuspend`;
+
+  const html = wrapInHtmlTemplate(subject, `
+    <h2 class="error">🔴 VPS Anda Telah Disuspend</h2>
+    <p>Hai ${data.customerName}, VPS <strong>${data.planName}</strong> Anda telah disuspend karena masa berlaku habis.</p>
+    
+    <div class="info-box">
+      <h3>Detail Suspend</h3>
+      <table>
+        <tr><th>Order ID</th><td>${data.orderId}</td></tr>
+        <tr><th>Paket</th><td>${data.planName}</td></tr>
+        <tr><th>Disuspend Pada</th><td>${data.suspendedAt}</td></tr>
+        <tr><th>Grace Period</th><td><strong>${data.gracePeriodHours} jam</strong></td></tr>
+      </table>
+    </div>
+    
+    <div class="credentials">
+      <h3>⚠️ PENTING</h3>
+      <p>VPS Anda akan <strong>dihapus permanen</strong> dalam <strong>${data.gracePeriodHours} jam</strong> jika tidak diperpanjang!</p>
+      <p>Semua data akan hilang setelah penghapusan.</p>
+    </div>
+    
+    <a href="/dashboard/instances" class="button">Perpanjang Sekarang</a>
+    
+    <p>Butuh bantuan? Hubungi <a href="mailto:support@webrana.id">support@webrana.id</a></p>
+  `);
+
+  const text = `
+🔴 VPS Anda Telah Disuspend
+
+Hai ${data.customerName}, VPS ${data.planName} Anda telah disuspend karena masa berlaku habis.
+
+Detail Suspend:
+- Order ID: ${data.orderId}
+- Paket: ${data.planName}
+- Disuspend Pada: ${data.suspendedAt}
+- Grace Period: ${data.gracePeriodHours} jam
+
+⚠️ PENTING:
+VPS Anda akan dihapus permanen dalam ${data.gracePeriodHours} jam jika tidak diperpanjang!
+Semua data akan hilang setelah penghapusan.
+
+Perpanjang sekarang di dashboard Anda.
+
+Butuh bantuan? Hubungi support@webrana.id
+
+---
+WeBrana Cloud
+  `.trim();
+
+  return { subject, html, text };
+}
+
+/**
+ * VPS Destroyed Email Template
+ */
+export function vpsDestroyedTemplate(data: VpsDestroyedData): { subject: string; html: string; text: string } {
+  const reasonText = getDestroyReasonText(data.reason);
+  const subject = `[WeBrana Cloud] VPS ${data.planName} Telah Dihapus`;
+
+  const html = wrapInHtmlTemplate(subject, `
+    <h2>VPS Anda Telah Dihapus</h2>
+    <p>Hai ${data.customerName}, VPS <strong>${data.planName}</strong> Anda telah dihapus.</p>
+    
+    <div class="info-box">
+      <h3>Detail Penghapusan</h3>
+      <table>
+        <tr><th>Order ID</th><td>${data.orderId}</td></tr>
+        <tr><th>Paket</th><td>${data.planName}</td></tr>
+        <tr><th>Alasan</th><td>${reasonText}</td></tr>
+        <tr><th>Dihapus Pada</th><td>${data.terminatedAt}</td></tr>
+      </table>
+    </div>
+    
+    <p>Terima kasih telah menggunakan layanan WeBrana Cloud.</p>
+    
+    <a href="/dashboard/create-order" class="button">Buat Order Baru</a>
+    
+    <p>Butuh bantuan? Hubungi <a href="mailto:support@webrana.id">support@webrana.id</a></p>
+  `);
+
+  const text = `
+VPS Anda Telah Dihapus
+
+Hai ${data.customerName}, VPS ${data.planName} Anda telah dihapus.
+
+Detail Penghapusan:
+- Order ID: ${data.orderId}
+- Paket: ${data.planName}
+- Alasan: ${reasonText}
+- Dihapus Pada: ${data.terminatedAt}
+
+Terima kasih telah menggunakan layanan WeBrana Cloud.
+
+Butuh bantuan? Hubungi support@webrana.id
+
+---
+WeBrana Cloud
+  `.trim();
+
+  return { subject, html, text };
+}
+
+/**
+ * Helper function to translate termination reason
+ */
+function getDestroyReasonText(reason: string): string {
+  switch (reason) {
+    case 'EXPIRED_NO_RENEWAL':
+      return 'Masa berlaku habis dan tidak diperpanjang';
+    case 'INSUFFICIENT_BALANCE':
+      return 'Saldo tidak mencukupi untuk perpanjangan';
+    case 'USER_DELETED':
+      return 'Dihapus oleh pengguna';
+    case 'ADMIN_TERMINATED':
+      return 'Dihapus oleh administrator';
+    case 'DO_ACCOUNT_ISSUE':
+      return 'Masalah dengan akun DigitalOcean';
+    case 'POLICY_VIOLATION':
+      return 'Pelanggaran kebijakan layanan';
+    default:
+      return reason;
+  }
+}
+
+/**
+ * Renewal Success Email Template
+ */
+export function renewalSuccessTemplate(data: RenewalSuccessData): { subject: string; html: string; text: string } {
+  const subject = `[WeBrana Cloud] ✅ VPS ${data.planName} Berhasil Diperpanjang`;
+
+  const html = wrapInHtmlTemplate(subject, `
+    <h2 class="success">✅ Perpanjangan Berhasil!</h2>
+    <p>Hai ${data.customerName}, VPS <strong>${data.planName}</strong> Anda telah berhasil diperpanjang.</p>
+    
+    <div class="info-box">
+      <h3>Detail Perpanjangan</h3>
+      <table>
+        <tr><th>Order ID</th><td>${data.orderId}</td></tr>
+        <tr><th>Paket</th><td>${data.planName}</td></tr>
+        <tr><th>Biaya</th><td><strong>${formatCurrency(data.amount)}</strong></td></tr>
+        <tr><th>Berlaku Sampai</th><td class="success"><strong>${data.newExpiry}</strong></td></tr>
+      </table>
+    </div>
+    
+    <p>VPS Anda akan terus berjalan tanpa gangguan.</p>
+    
+    <p>Terima kasih telah mempercayakan layanan hosting Anda kepada WeBrana Cloud! 🙏</p>
+  `);
+
+  const text = `
+✅ Perpanjangan Berhasil!
+
+Hai ${data.customerName}, VPS ${data.planName} Anda telah berhasil diperpanjang.
+
+Detail Perpanjangan:
+- Order ID: ${data.orderId}
+- Paket: ${data.planName}
+- Biaya: ${formatCurrency(data.amount)}
+- Berlaku Sampai: ${data.newExpiry}
+
+VPS Anda akan terus berjalan tanpa gangguan.
+
+Terima kasih telah mempercayakan layanan hosting Anda kepada WeBrana Cloud!
+
+---
+WeBrana Cloud
+  `.trim();
+
+  return { subject, html, text };
+}
+
+/**
+ * Renewal Failed Email Template
+ */
+export function renewalFailedTemplate(data: RenewalFailedData): { subject: string; html: string; text: string } {
+  const subject = `[WeBrana Cloud] ❌ Perpanjangan VPS ${data.planName} Gagal - Saldo Tidak Cukup`;
+
+  const html = wrapInHtmlTemplate(subject, `
+    <h2 class="error">❌ Perpanjangan Gagal</h2>
+    <p>Hai ${data.customerName}, perpanjangan otomatis untuk VPS <strong>${data.planName}</strong> gagal karena saldo tidak mencukupi.</p>
+    
+    <div class="info-box">
+      <h3>Detail</h3>
+      <table>
+        <tr><th>Order ID</th><td>${data.orderId}</td></tr>
+        <tr><th>Paket</th><td>${data.planName}</td></tr>
+        <tr><th>Saldo Dibutuhkan</th><td class="error"><strong>${formatCurrency(data.required)}</strong></td></tr>
+      </table>
+    </div>
+    
+    <div class="credentials">
+      <h3>⚠️ Tindakan Diperlukan</h3>
+      <p>Segera top up saldo Anda untuk menghindari suspend/penghapusan VPS!</p>
+    </div>
+    
+    <a href="/dashboard/wallet/topup" class="button">Top Up Sekarang</a>
+    
+    <p>Butuh bantuan? Hubungi <a href="mailto:support@webrana.id">support@webrana.id</a></p>
+  `);
+
+  const text = `
+❌ Perpanjangan Gagal
+
+Hai ${data.customerName}, perpanjangan otomatis untuk VPS ${data.planName} gagal karena saldo tidak mencukupi.
+
+Detail:
+- Order ID: ${data.orderId}
+- Paket: ${data.planName}
+- Saldo Dibutuhkan: ${formatCurrency(data.required)}
+
+⚠️ Tindakan Diperlukan:
+Segera top up saldo Anda untuk menghindari suspend/penghapusan VPS!
+
+Top up sekarang di dashboard Anda.
+
+Butuh bantuan? Hubungi support@webrana.id
 
 ---
 WeBrana Cloud

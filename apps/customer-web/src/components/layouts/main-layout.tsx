@@ -14,11 +14,15 @@ import {
   LogOut,
   ChevronDown,
   Cloud,
+  Wallet,
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, formatCurrency } from '@/lib/utils';
 import { useAuthStore } from '@/stores/auth-store';
 import { useLogout } from '@/hooks/use-auth';
+import { useWalletBalance } from '@/hooks/use-wallet';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { NotificationBell } from '@/components/notifications';
+import { Button } from '@/components/ui/button';
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -28,6 +32,7 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Beli VPS', href: '/catalog', icon: ShoppingCart },
   { name: 'VPS Saya', href: '/vps', icon: Server },
+  { name: 'Wallet', href: '/wallet', icon: Wallet },
   { name: 'Tagihan', href: '/invoices', icon: FileText },
 ];
 
@@ -37,6 +42,7 @@ export function MainLayout({ children }: MainLayoutProps) {
   const pathname = usePathname();
   const { user } = useAuthStore();
   const logout = useLogout();
+  const { data: walletData, isLoading: isLoadingWallet } = useWalletBalance();
 
   const handleLogout = () => {
     logout.mutate();
@@ -87,8 +93,31 @@ export function MainLayout({ children }: MainLayoutProps) {
 
             {/* Right: User Menu */}
             <div className="flex items-center gap-1">
+              {/* Wallet Balance */}
+              <Link
+                href="/wallet"
+                className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--primary-muted)] hover:bg-[var(--primary-muted)]/80 transition-colors mr-1"
+                data-testid="header-wallet-balance"
+              >
+                <Wallet className="h-4 w-4 text-[var(--primary)]" />
+                <span className="text-sm font-medium text-[var(--text-primary)]">
+                  {isLoadingWallet ? '...' : formatCurrency(walletData?.balance ?? 0)}
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-xs bg-[var(--primary)] text-white hover:bg-[var(--primary-hover)] hover:text-white"
+                  asChild
+                >
+                  <span>Top Up</span>
+                </Button>
+              </Link>
+
               {/* Theme Toggle */}
               <ThemeToggle />
+              
+              {/* Notification Bell */}
+              <NotificationBell />
               
               {/* User Dropdown */}
               <div className="relative ml-2">

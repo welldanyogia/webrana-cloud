@@ -14,14 +14,12 @@ import {
   createWebhookWithModifiedPayload,
   createDuplicateWebhooks,
   MALFORMED_SIGNATURES,
-} from './helpers';
-import {
   checkSecurityHeaders,
   checkErrorLeakage,
   checkCorsHeaders,
   checkUserEnumeration,
   isTimingSafe,
-} from './helpers/utils';
+} from './helpers';
 
 describe('API Security', () => {
   describe('Rate Limiting', () => {
@@ -525,11 +523,12 @@ describe('API Security', () => {
 
       it('should mask sensitive fields in logs', () => {
         const maskSensitiveFields = (obj: Record<string, unknown>): Record<string, unknown> => {
-          const sensitiveFields = ['password', 'token', 'apiKey', 'secret', 'authorization'];
+          const sensitiveFields = ['password', 'token', 'apikey', 'secret', 'authorization'];
           const result: Record<string, unknown> = {};
 
           for (const [key, value] of Object.entries(obj)) {
-            if (sensitiveFields.some((f) => key.toLowerCase().includes(f))) {
+            // Compare in lowercase for case-insensitive matching
+            if (sensitiveFields.some((f) => key.toLowerCase().includes(f.toLowerCase()))) {
               result[key] = '***REDACTED***';
             } else if (typeof value === 'object' && value !== null) {
               result[key] = maskSensitiveFields(value as Record<string, unknown>);

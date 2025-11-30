@@ -291,3 +291,32 @@ export interface InstancePaginatedResult {
     totalPages: number;
   };
 }
+
+// Notification types
+export type NotificationType = 'order' | 'payment' | 'vps' | 'system';
+
+export interface Notification {
+  id: string;
+  userId: string;
+  title: string;
+  message: string;
+  type: NotificationType;
+  actionUrl?: string;
+  isRead: boolean;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface NotificationPaginatedResult {
+  data: Notification[];
+  meta: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+}
+
+export interface UnreadCountResponse {
+  count: number;
+}

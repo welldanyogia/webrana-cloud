@@ -15,6 +15,10 @@ const config: Config = {
   verbose: true,
   // Security tests should run serially to ensure clean state
   maxWorkers: 1,
+  // Transform ESM modules that Jest can't handle by default
+  transformIgnorePatterns: [
+    'node_modules/(?!(uuid)/)',
+  ],
 };
 
 export default config;

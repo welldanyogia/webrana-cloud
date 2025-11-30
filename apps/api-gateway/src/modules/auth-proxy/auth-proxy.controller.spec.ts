@@ -197,4 +197,117 @@ describe('AuthProxyController', () => {
       expect(path).toBe('auth');
     });
   });
+
+  describe('Edge cases and error scenarios', () => {
+    describe('login edge cases', () => {
+      it('should handle empty payload', async () => {
+        const result = await controller.login({});
+        expect(result).toBeDefined();
+        expect(result.data).toBeDefined();
+      });
+
+      it('should handle null values in payload', async () => {
+        const result = await controller.login({ email: null, password: null });
+        expect(result.data).toBeDefined();
+      });
+
+      it('should handle special characters in email', async () => {
+        const result = await controller.login({
+          email: "test+special'chars@example.com",
+          password: 'password123',
+        });
+        expect(result.data).toBeDefined();
+      });
+
+      it('should handle unicode characters in password', async () => {
+        const result = await controller.login({
+          email: 'test@example.com',
+          password: 'пароль密码كلمةالمرور',
+        });
+        expect(result.data).toBeDefined();
+      });
+
+      it('should handle very long email', async () => {
+        const longEmail = 'a'.repeat(200) + '@example.com';
+        const result = await controller.login({
+          email: longEmail,
+          password: 'password123',
+        });
+        expect(result.data).toBeDefined();
+      });
+    });
+
+    describe('register edge cases', () => {
+      it('should handle empty payload', async () => {
+        const result = await controller.register({});
+        expect(result).toBeDefined();
+        expect(result.data).toBeDefined();
+      });
+
+      it('should handle additional unexpected fields', async () => {
+        const result = await controller.register({
+          email: 'test@example.com',
+          password: 'password123',
+          name: 'Test User',
+          unexpectedField: 'some value',
+          anotherField: 12345,
+        });
+        expect(result.data).toBeDefined();
+      });
+
+      it('should handle special characters in name', async () => {
+        const result = await controller.register({
+          email: 'test@example.com',
+          password: 'password123',
+          name: "O'Brien-Smith Jr.",
+        });
+        expect(result.data).toBeDefined();
+      });
+    });
+
+    describe('forgotPassword edge cases', () => {
+      it('should handle empty payload', async () => {
+        const result = await controller.forgotPassword({});
+        expect(result).toBeDefined();
+        expect(result.data).toBeDefined();
+      });
+
+      it('should handle malformed email', async () => {
+        const result = await controller.forgotPassword({ email: 'not-an-email' });
+        expect(result.data).toBeDefined();
+      });
+
+      it('should handle empty email string', async () => {
+        const result = await controller.forgotPassword({ email: '' });
+        expect(result.data).toBeDefined();
+      });
+    });
+  });
+
+  describe('Decorator verification', () => {
+    it('should have method decorator for login', () => {
+      const method = Reflect.getMetadata('method', controller.login);
+      expect(method).toBeDefined();
+    });
+
+    it('should have method decorator for register', () => {
+      const method = Reflect.getMetadata('method', controller.register);
+      expect(method).toBeDefined();
+    });
+
+    it('should have method decorator for forgotPassword', () => {
+      const method = Reflect.getMetadata('method', controller.forgotPassword);
+      expect(method).toBeDefined();
+    });
+
+    it('should have route paths defined for all methods', () => {
+      const loginPath = Reflect.getMetadata('path', controller.login);
+      const registerPath = Reflect.getMetadata('path', controller.register);
+      const forgotPasswordPath = Reflect.getMetadata('path', controller.forgotPassword);
+
+      expect(loginPath).toBe('login');
+      expect(registerPath).toBe('register');
+      expect(forgotPasswordPath).toBe('forgot-password');
+    });
+  });
 });

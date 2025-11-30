@@ -1,0 +1,175 @@
+/**
+ * VPS Management UI - CSS Additions
+ * 
+ * INSTRUCTIONS:
+ * Add these CSS additions to apps/customer-web/src/app/globals.css
+ * 
+ * These extend the existing design system with:
+ * - VPS status colors and glow effects
+ * - Card enhancement gradients
+ * - Resource monitoring gauge colors
+ * - Danger zone styling
+ * - Animation keyframes
+ */
+
+/* ============================================================
+   SECTION 1: CSS Custom Properties
+   Add inside the :root {} block in @layer base
+   ============================================================ */
+
+/* VPS Status Colors - Light Mode */
+--status-active: 142 76% 36%;
+--status-active-glow: 142 76% 36% / 0.4;
+--status-active-bg: 142 76% 36% / 0.1;
+
+--status-stopped: 220 9% 46%;
+--status-stopped-bg: 220 9% 46% / 0.1;
+
+--status-suspended: 38 92% 50%;
+--status-suspended-glow: 38 92% 50% / 0.4;
+--status-suspended-bg: 38 92% 50% / 0.1;
+
+--status-expiring: 45 93% 47%;
+--status-expiring-glow: 45 93% 47% / 0.5;
+--status-expiring-bg: 45 93% 47% / 0.1;
+
+--status-terminated: 0 84% 60%;
+--status-terminated-bg: 0 84% 60% / 0.1;
+
+--status-provisioning: 217 91% 60%;
+--status-provisioning-glow: 217 91% 60% / 0.4;
+--status-provisioning-bg: 217 91% 60% / 0.1;
+
+/* Card Enhancement */
+--card-gradient-from: 0 0% 100%;
+--card-gradient-to: 240 5% 96%;
+--card-border-glow: 221 83% 53% / 0.2;
+--card-hover-lift: 0 10px 40px -15px rgba(0, 0, 0, 0.1);
+
+/* Resource Monitoring Gauges */
+--gauge-track: 220 14% 96%;
+--gauge-fill-low: 142 76% 36%;
+--gauge-fill-medium: 38 92% 50%;
+--gauge-fill-high: 0 84% 60%;
+
+/* Danger Zone */
+--danger-zone-bg: 0 84% 60% / 0.05;
+--danger-zone-border: 0 84% 60% / 0.2;
+
+/* ============================================================
+   SECTION 2: Dark Mode Overrides
+   Add inside the .dark {} block in @layer base
+   ============================================================ */
+
+/* VPS Status Colors - Dark Mode */
+--status-active: 142 71% 45%;
+--status-active-glow: 142 71% 45% / 0.5;
+--status-active-bg: 142 71% 45% / 0.15;
+
+--status-stopped: 220 9% 46%;
+--status-stopped-bg: 220 9% 46% / 0.15;
+
+--status-suspended: 38 92% 50%;
+--status-suspended-glow: 38 92% 50% / 0.5;
+--status-suspended-bg: 38 92% 50% / 0.15;
+
+--status-expiring: 45 93% 47%;
+--status-expiring-glow: 45 93% 47% / 0.6;
+--status-expiring-bg: 45 93% 47% / 0.15;
+
+--status-terminated: 0 62% 45%;
+--status-terminated-bg: 0 62% 45% / 0.15;
+
+--status-provisioning: 217 91% 60%;
+--status-provisioning-glow: 217 91% 60% / 0.5;
+--status-provisioning-bg: 217 91% 60% / 0.15;
+
+/* Card Enhancement - Dark Mode */
+--card-gradient-from: 240 10% 5%;
+--card-gradient-to: 240 10% 8%;
+--card-border-glow: 221 83% 53% / 0.3;
+--card-hover-lift: 0 10px 40px -15px rgba(0, 0, 0, 0.5);
+
+/* Resource Monitoring - Dark Mode */
+--gauge-track: 240 5% 15%;
+
+/* Danger Zone - Dark Mode */
+--danger-zone-bg: 0 62% 45% / 0.1;
+--danger-zone-border: 0 62% 45% / 0.3;
+
+/* ============================================================
+   SECTION 3: Animation Keyframes
+   Add at the top level (outside @layer base)
+   ============================================================ */
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 hsl(var(--status-active-glow));
+  }
+  50% {
+    opacity: 0.8;
+    box-shadow: 0 0 0 8px hsl(var(--status-active-glow) / 0);
+  }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes bounce-subtle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes countdown-pulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.9;
+  }
+}
+
+/* ============================================================
+   SECTION 4: Tailwind Theme Extensions
+   Add inside the @theme {} block
+   ============================================================ */
+
+--animate-pulse-glow: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+--animate-spin-slow: spin-slow 3s linear infinite;
+--animate-shimmer: shimmer 2s linear infinite;
+--animate-bounce-subtle: bounce-subtle 1s ease-in-out infinite;
+--animate-scale-in: scale-in 0.2s ease-out;
+--animate-slide-up: slide-up 0.3s ease-out;
+--animate-countdown-pulse: countdown-pulse 2s ease-in-out infinite;

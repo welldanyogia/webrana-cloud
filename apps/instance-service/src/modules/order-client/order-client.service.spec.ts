@@ -1,18 +1,21 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
+import axios, { AxiosError } from 'axios';
 
 import { OrderServiceUnavailableException } from '../../common/exceptions';
 
 import { OrderClientService, Order, ProvisioningTask } from './order-client.service';
 
 // Mock axios
-jest.mock('axios', () => ({
-  create: jest.fn().mockReturnValue({
-    get: jest.fn(),
-  }),
-}));
-
-import axios from 'axios';
+jest.mock('axios', () => {
+  const actualAxios = jest.requireActual('axios');
+  return {
+    ...actualAxios,
+    create: jest.fn().mockReturnValue({
+      get: jest.fn(),
+    }),
+  };
+});
 
 describe('OrderClientService', () => {
   let service: OrderClientService;
@@ -158,11 +161,10 @@ describe('OrderClientService', () => {
     });
 
     it('should throw OrderServiceUnavailableException on connection refused', async () => {
-      const error = {
-        code: 'ECONNREFUSED',
-        message: 'Connection refused',
-        isAxiosError: true,
-      };
+      const error = new AxiosError(
+        'Connection refused',
+        'ECONNREFUSED'
+      );
       mockAxiosInstance.get.mockRejectedValue(error);
 
       await expect(
@@ -171,11 +173,10 @@ describe('OrderClientService', () => {
     });
 
     it('should throw OrderServiceUnavailableException on timeout', async () => {
-      const error = {
-        code: 'ETIMEDOUT',
-        message: 'Timeout',
-        isAxiosError: true,
-      };
+      const error = new AxiosError(
+        'Timeout',
+        'ETIMEDOUT'
+      );
       mockAxiosInstance.get.mockRejectedValue(error);
 
       await expect(
@@ -184,13 +185,19 @@ describe('OrderClientService', () => {
     });
 
     it('should throw OrderServiceUnavailableException on 500 error', async () => {
-      const error = {
-        response: {
+      const error = new AxiosError(
+        'Internal server error',
+        'ERR_BAD_RESPONSE',
+        undefined,
+        undefined,
+        {
           status: 500,
+          statusText: 'Internal Server Error',
           data: { error: { message: 'Internal server error' } },
-        },
-        isAxiosError: true,
-      };
+          headers: {},
+          config: {} as any,
+        } as any
+      );
       mockAxiosInstance.get.mockRejectedValue(error);
 
       await expect(
@@ -214,13 +221,19 @@ describe('OrderClientService', () => {
     });
 
     it('should return null when order not found (404)', async () => {
-      const error = {
-        response: {
+      const error = new AxiosError(
+        'Order not found',
+        'ERR_BAD_REQUEST',
+        undefined,
+        undefined,
+        {
           status: 404,
+          statusText: 'Not Found',
           data: { error: { message: 'Order not found' } },
-        },
-        isAxiosError: true,
-      };
+          headers: {},
+          config: {} as any,
+        } as any
+      );
       mockAxiosInstance.get.mockRejectedValue(error);
 
       const result = await service.getOrderById('non-existent');
@@ -229,11 +242,10 @@ describe('OrderClientService', () => {
     });
 
     it('should throw OrderServiceUnavailableException on connection refused', async () => {
-      const error = {
-        code: 'ECONNREFUSED',
-        message: 'Connection refused',
-        isAxiosError: true,
-      };
+      const error = new AxiosError(
+        'Connection refused',
+        'ECONNREFUSED'
+      );
       mockAxiosInstance.get.mockRejectedValue(error);
 
       await expect(
@@ -242,13 +254,19 @@ describe('OrderClientService', () => {
     });
 
     it('should throw OrderServiceUnavailableException on non-404 HTTP error', async () => {
-      const error = {
-        response: {
+      const error = new AxiosError(
+        'Forbidden',
+        'ERR_BAD_REQUEST',
+        undefined,
+        undefined,
+        {
           status: 403,
+          statusText: 'Forbidden',
           data: { error: { message: 'Forbidden' } },
-        },
-        isAxiosError: true,
-      };
+          headers: {},
+          config: {} as any,
+        } as any
+      );
       mockAxiosInstance.get.mockRejectedValue(error);
 
       await expect(
@@ -290,13 +308,19 @@ describe('OrderClientService', () => {
     });
 
     it('should include error details in exception', async () => {
-      const error = {
-        response: {
+      const error = new AxiosError(
+        'Service temporarily unavailable',
+        'ERR_BAD_RESPONSE',
+        undefined,
+        undefined,
+        {
           status: 503,
+          statusText: 'Service Unavailable',
           data: { error: { message: 'Service temporarily unavailable' } },
-        },
-        isAxiosError: true,
-      };
+          headers: {},
+          config: {} as any,
+        } as any
+      );
       mockAxiosInstance.get.mockRejectedValue(error);
 
       try {

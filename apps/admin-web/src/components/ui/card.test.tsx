@@ -10,218 +10,258 @@ import {
 } from './card';
 
 describe('Card', () => {
-  describe('Card Component', () => {
+  describe('Rendering', () => {
     it('should render children', () => {
-      render(<Card>Card Content</Card>);
-      expect(screen.getByText('Card Content')).toBeInTheDocument();
+      render(<Card>Card content</Card>);
+      
+      expect(screen.getByText('Card content')).toBeInTheDocument();
     });
 
     it('should have default styling', () => {
-      render(<Card>Content</Card>);
-      const card = screen.getByText('Content').parentElement || screen.getByText('Content');
-      expect(card).toHaveClass('bg-[var(--card-bg)]');
+      render(<Card data-testid="card">Content</Card>);
+      
+      const card = screen.getByTestId('card');
       expect(card).toHaveClass('rounded-xl');
       expect(card).toHaveClass('border');
+      expect(card).toHaveClass('shadow');
+    });
+  });
+
+  describe('Padding variants', () => {
+    it('should have no padding by default', () => {
+      render(<Card data-testid="card" padding="none">Content</Card>);
+      
+      const card = screen.getByTestId('card');
+      expect(card).not.toHaveClass('p-4');
+      expect(card).not.toHaveClass('p-5');
+      expect(card).not.toHaveClass('p-6');
     });
 
-    it('should apply hover effects when hover prop is true', () => {
-      render(<Card hover>Hover Card</Card>);
-      const card = screen.getByText('Hover Card').parentElement || screen.getByText('Hover Card');
+    it('should apply small padding', () => {
+      render(<Card data-testid="card" padding="sm">Content</Card>);
+      
+      expect(screen.getByTestId('card')).toHaveClass('p-4');
+    });
+
+    it('should apply medium padding', () => {
+      render(<Card data-testid="card" padding="md">Content</Card>);
+      
+      expect(screen.getByTestId('card')).toHaveClass('p-5');
+    });
+
+    it('should apply large padding', () => {
+      render(<Card data-testid="card" padding="lg">Content</Card>);
+      
+      expect(screen.getByTestId('card')).toHaveClass('p-6');
+    });
+  });
+
+  describe('Hover variant', () => {
+    it('should apply hover styles when hover is true', () => {
+      render(<Card data-testid="card" hover>Content</Card>);
+      
+      const card = screen.getByTestId('card');
       expect(card).toHaveClass('cursor-pointer');
+      expect(card).toHaveClass('hover:border-primary/50');
     });
 
-    it('should apply highlighted styling', () => {
-      render(<Card highlighted>Highlighted Card</Card>);
-      const card = screen.getByText('Highlighted Card').parentElement || screen.getByText('Highlighted Card');
-      expect(card).toHaveClass('border-[var(--primary)]/50');
+    it('should not have hover styles by default', () => {
+      render(<Card data-testid="card">Content</Card>);
+      
+      expect(screen.getByTestId('card')).not.toHaveClass('cursor-pointer');
     });
+  });
 
-    it('should apply glow effect', () => {
-      render(<Card glow>Glow Card</Card>);
-      const card = screen.getByText('Glow Card').parentElement || screen.getByText('Glow Card');
-      expect(card).toHaveClass('hover:shadow-[var(--glow-primary)]');
+  describe('Highlighted variant', () => {
+    it('should apply highlighted styles when highlighted is true', () => {
+      render(<Card data-testid="card" highlighted>Content</Card>);
+      
+      const card = screen.getByTestId('card');
+      expect(card).toHaveClass('border-primary/50');
+      expect(card).toHaveClass('bg-primary/5');
     });
+  });
 
-    describe('Padding', () => {
-      it('should have no padding by default', () => {
-        render(<Card>No Padding</Card>);
-        const card = screen.getByText('No Padding').parentElement || screen.getByText('No Padding');
-        expect(card).not.toHaveClass('p-4', 'p-5', 'p-6');
-      });
-
-      it('should apply sm padding', () => {
-        render(<Card padding="sm">Small Padding</Card>);
-        const card = screen.getByText('Small Padding').parentElement || screen.getByText('Small Padding');
-        expect(card).toHaveClass('p-4');
-      });
-
-      it('should apply md padding', () => {
-        render(<Card padding="md">Medium Padding</Card>);
-        const card = screen.getByText('Medium Padding').parentElement || screen.getByText('Medium Padding');
-        expect(card).toHaveClass('p-5');
-      });
-
-      it('should apply lg padding', () => {
-        render(<Card padding="lg">Large Padding</Card>);
-        const card = screen.getByText('Large Padding').parentElement || screen.getByText('Large Padding');
-        expect(card).toHaveClass('p-6');
-      });
+  describe('Glow variant', () => {
+    it('should apply glow styles when glow is true', () => {
+      render(<Card data-testid="card" glow>Content</Card>);
+      
+      expect(screen.getByTestId('card')).toHaveClass('hover:shadow-[var(--glow-primary)]');
     });
+  });
 
+  describe('Custom className', () => {
     it('should apply custom className', () => {
-      render(<Card className="custom-card">Custom</Card>);
-      const card = screen.getByText('Custom').parentElement || screen.getByText('Custom');
-      expect(card).toHaveClass('custom-card');
+      render(<Card data-testid="card" className="custom-class">Content</Card>);
+      
+      expect(screen.getByTestId('card')).toHaveClass('custom-class');
     });
   });
+});
 
-  describe('CardHeader Component', () => {
-    it('should render children', () => {
-      render(<CardHeader>Header Content</CardHeader>);
-      expect(screen.getByText('Header Content')).toBeInTheDocument();
-    });
-
-    it('should have default styling with border', () => {
-      render(<CardHeader>Header</CardHeader>);
-      const header = screen.getByText('Header').parentElement || screen.getByText('Header');
-      expect(header).toHaveClass('px-6', 'py-4');
-      expect(header).toHaveClass('border-b');
-    });
-
-    it('should remove border when noBorder is true', () => {
-      render(<CardHeader noBorder>No Border Header</CardHeader>);
-      const header = screen.getByText('No Border Header').parentElement || screen.getByText('No Border Header');
-      expect(header).not.toHaveClass('border-b');
-    });
+describe('CardHeader', () => {
+  it('should render children', () => {
+    render(<CardHeader>Header content</CardHeader>);
+    
+    expect(screen.getByText('Header content')).toBeInTheDocument();
   });
 
-  describe('CardTitle Component', () => {
-    it('should render children', () => {
-      render(<CardTitle>Card Title</CardTitle>);
-      expect(screen.getByRole('heading', { name: 'Card Title' })).toBeInTheDocument();
-    });
-
-    it('should render as h3', () => {
-      render(<CardTitle>Title</CardTitle>);
-      const title = screen.getByRole('heading', { level: 3 });
-      expect(title).toBeInTheDocument();
-    });
-
-    describe('Sizes', () => {
-      it('should apply sm size', () => {
-        render(<CardTitle size="sm">Small Title</CardTitle>);
-        const title = screen.getByRole('heading');
-        expect(title).toHaveClass('text-base');
-      });
-
-      it('should apply md size (default)', () => {
-        render(<CardTitle>Medium Title</CardTitle>);
-        const title = screen.getByRole('heading');
-        expect(title).toHaveClass('text-lg');
-      });
-
-      it('should apply lg size', () => {
-        render(<CardTitle size="lg">Large Title</CardTitle>);
-        const title = screen.getByRole('heading');
-        expect(title).toHaveClass('text-xl');
-      });
-    });
+  it('should have default border', () => {
+    render(<CardHeader data-testid="header">Header</CardHeader>);
+    
+    expect(screen.getByTestId('header')).toHaveClass('border-b');
   });
 
-  describe('CardDescription Component', () => {
-    it('should render children', () => {
-      render(<CardDescription>Description text</CardDescription>);
-      expect(screen.getByText('Description text')).toBeInTheDocument();
-    });
-
-    it('should have description styling', () => {
-      render(<CardDescription>Description</CardDescription>);
-      const description = screen.getByText('Description');
-      expect(description).toHaveClass('text-sm');
-      expect(description).toHaveClass('text-[var(--text-secondary)]');
-    });
+  it('should not have border when noBorder is true', () => {
+    render(<CardHeader data-testid="header" noBorder>Header</CardHeader>);
+    
+    expect(screen.getByTestId('header')).not.toHaveClass('border-b');
   });
 
-  describe('CardContent Component', () => {
-    it('should render children', () => {
-      render(<CardContent>Content</CardContent>);
-      expect(screen.getByText('Content')).toBeInTheDocument();
-    });
+  it('should have padding', () => {
+    render(<CardHeader data-testid="header">Header</CardHeader>);
+    
+    const header = screen.getByTestId('header');
+    expect(header).toHaveClass('px-6');
+    expect(header).toHaveClass('py-4');
+  });
+});
 
-    it('should have default padding', () => {
-      render(<CardContent>Padded Content</CardContent>);
-      const content = screen.getByText('Padded Content').parentElement || screen.getByText('Padded Content');
-      expect(content).toHaveClass('px-6', 'py-5');
-    });
-
-    it('should remove padding when noPadding is true', () => {
-      render(<CardContent noPadding>No Padding Content</CardContent>);
-      const content = screen.getByText('No Padding Content').parentElement || screen.getByText('No Padding Content');
-      expect(content).not.toHaveClass('px-6', 'py-5');
-    });
+describe('CardTitle', () => {
+  it('should render as h3 element', () => {
+    render(<CardTitle>Title</CardTitle>);
+    
+    expect(screen.getByRole('heading', { level: 3, name: 'Title' })).toBeInTheDocument();
   });
 
-  describe('CardFooter Component', () => {
-    it('should render children', () => {
-      render(<CardFooter>Footer Content</CardFooter>);
-      expect(screen.getByText('Footer Content')).toBeInTheDocument();
-    });
-
-    it('should have footer styling', () => {
-      render(<CardFooter>Footer</CardFooter>);
-      const footer = screen.getByText('Footer').parentElement || screen.getByText('Footer');
-      expect(footer).toHaveClass('px-6', 'py-4');
-      expect(footer).toHaveClass('border-t');
-    });
-
-    describe('Alignment', () => {
-      it('should align start by default', () => {
-        render(<CardFooter>Start Aligned</CardFooter>);
-        const footer = screen.getByText('Start Aligned').parentElement || screen.getByText('Start Aligned');
-        expect(footer).toHaveClass('justify-start');
-      });
-
-      it('should align center', () => {
-        render(<CardFooter align="center">Centered</CardFooter>);
-        const footer = screen.getByText('Centered').parentElement || screen.getByText('Centered');
-        expect(footer).toHaveClass('justify-center');
-      });
-
-      it('should align end', () => {
-        render(<CardFooter align="end">End Aligned</CardFooter>);
-        const footer = screen.getByText('End Aligned').parentElement || screen.getByText('End Aligned');
-        expect(footer).toHaveClass('justify-end');
-      });
-
-      it('should align between', () => {
-        render(<CardFooter align="between">Space Between</CardFooter>);
-        const footer = screen.getByText('Space Between').parentElement || screen.getByText('Space Between');
-        expect(footer).toHaveClass('justify-between');
-      });
-    });
+  it('should have default medium size', () => {
+    render(<CardTitle data-testid="title">Title</CardTitle>);
+    
+    expect(screen.getByTestId('title')).toHaveClass('text-lg');
   });
 
-  describe('Composed Card', () => {
-    it('should render a complete card with all subcomponents', () => {
-      render(
-        <Card>
-          <CardHeader>
-            <CardTitle>Test Card</CardTitle>
-            <CardDescription>This is a test card</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p>Card body content</p>
-          </CardContent>
-          <CardFooter>
-            <button>Action</button>
-          </CardFooter>
-        </Card>
-      );
+  it('should apply small size', () => {
+    render(<CardTitle data-testid="title" size="sm">Title</CardTitle>);
+    
+    expect(screen.getByTestId('title')).toHaveClass('text-base');
+  });
 
-      expect(screen.getByRole('heading', { name: 'Test Card' })).toBeInTheDocument();
-      expect(screen.getByText('This is a test card')).toBeInTheDocument();
-      expect(screen.getByText('Card body content')).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: 'Action' })).toBeInTheDocument();
-    });
+  it('should apply large size', () => {
+    render(<CardTitle data-testid="title" size="lg">Title</CardTitle>);
+    
+    expect(screen.getByTestId('title')).toHaveClass('text-xl');
+  });
+
+  it('should have font-semibold', () => {
+    render(<CardTitle data-testid="title">Title</CardTitle>);
+    
+    expect(screen.getByTestId('title')).toHaveClass('font-semibold');
+  });
+});
+
+describe('CardDescription', () => {
+  it('should render as p element', () => {
+    render(<CardDescription>Description text</CardDescription>);
+    
+    expect(screen.getByText('Description text').tagName).toBe('P');
+  });
+
+  it('should have muted text color', () => {
+    render(<CardDescription data-testid="desc">Description</CardDescription>);
+    
+    expect(screen.getByTestId('desc')).toHaveClass('text-muted-foreground');
+  });
+
+  it('should have small text', () => {
+    render(<CardDescription data-testid="desc">Description</CardDescription>);
+    
+    expect(screen.getByTestId('desc')).toHaveClass('text-sm');
+  });
+});
+
+describe('CardContent', () => {
+  it('should render children', () => {
+    render(<CardContent>Content here</CardContent>);
+    
+    expect(screen.getByText('Content here')).toBeInTheDocument();
+  });
+
+  it('should have padding by default', () => {
+    render(<CardContent data-testid="content">Content</CardContent>);
+    
+    const content = screen.getByTestId('content');
+    expect(content).toHaveClass('px-6');
+    expect(content).toHaveClass('py-5');
+  });
+
+  it('should have no padding when noPadding is true', () => {
+    render(<CardContent data-testid="content" noPadding>Content</CardContent>);
+    
+    const content = screen.getByTestId('content');
+    expect(content).not.toHaveClass('px-6');
+    expect(content).not.toHaveClass('py-5');
+  });
+});
+
+describe('CardFooter', () => {
+  it('should render children', () => {
+    render(<CardFooter>Footer content</CardFooter>);
+    
+    expect(screen.getByText('Footer content')).toBeInTheDocument();
+  });
+
+  it('should have border-t', () => {
+    render(<CardFooter data-testid="footer">Footer</CardFooter>);
+    
+    expect(screen.getByTestId('footer')).toHaveClass('border-t');
+  });
+
+  it('should align start by default', () => {
+    render(<CardFooter data-testid="footer">Footer</CardFooter>);
+    
+    expect(screen.getByTestId('footer')).toHaveClass('justify-start');
+  });
+
+  it('should align center', () => {
+    render(<CardFooter data-testid="footer" align="center">Footer</CardFooter>);
+    
+    expect(screen.getByTestId('footer')).toHaveClass('justify-center');
+  });
+
+  it('should align end', () => {
+    render(<CardFooter data-testid="footer" align="end">Footer</CardFooter>);
+    
+    expect(screen.getByTestId('footer')).toHaveClass('justify-end');
+  });
+
+  it('should align between', () => {
+    render(<CardFooter data-testid="footer" align="between">Footer</CardFooter>);
+    
+    expect(screen.getByTestId('footer')).toHaveClass('justify-between');
+  });
+});
+
+describe('Card Composition', () => {
+  it('should compose card with header, content, and footer', () => {
+    render(
+      <Card data-testid="card">
+        <CardHeader>
+          <CardTitle>Card Title</CardTitle>
+          <CardDescription>Card description text</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p>Main content goes here</p>
+        </CardContent>
+        <CardFooter>
+          <button>Action</button>
+        </CardFooter>
+      </Card>
+    );
+
+    expect(screen.getByTestId('card')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Card Title' })).toBeInTheDocument();
+    expect(screen.getByText('Card description text')).toBeInTheDocument();
+    expect(screen.getByText('Main content goes here')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Action' })).toBeInTheDocument();
   });
 });

@@ -15,12 +15,21 @@ datasource db {
 // ===========================================
 
 enum OrderStatus {
-  PENDING_PAYMENT
-  PAID
-  PROVISIONING
-  ACTIVE
-  FAILED
-  CANCELED
+  // New balance-based flow statuses
+  PENDING           // Order created, awaiting balance deduction
+  PROCESSING        // Balance deducted, provisioning starting
+  PROVISIONING      // Creating VPS on DO
+  ACTIVE            // VPS running normally
+  EXPIRING_SOON     // < threshold before expiration
+  EXPIRED           // Past expiration date (grace period)
+  SUSPENDED         // VPS powered off (monthly/yearly grace)
+  TERMINATED        // VPS destroyed
+  FAILED            // Provisioning failed
+  CANCELED          // User canceled before provisioning
+  
+  // Legacy statuses for backward compatibility
+  PENDING_PAYMENT   // @deprecated - use PENDING
+  PAID              // @deprecated - use PROCESSING
 }
 
 enum PlanDuration {
@@ -43,9 +52,69 @@ enum ProvisioningStatus {
   FAILED
 }
 
+enum BillingPeriod {
+  DAILY
+  MONTHLY
+  YEARLY
+}
+
+enum TerminationReason {
+  USER_DELETED
+  EXPIRED_NO_RENEWAL
+  INSUFFICIENT_BALANCE
+  ADMIN_TERMINATED
+  DO_ACCOUNT_ISSUE
+  POLICY_VIOLATION
+}
+
+enum RenewalType {
+  AUTO_RENEWAL
+  MANUAL_RENEWAL
+  ADMIN_EXTENSION
+  REPLACEMENT_VPS
+}
+
+enum AccountHealth {
+  HEALTHY
+  DEGRADED
+  UNHEALTHY
+  UNKNOWN
+}
+
 // ===========================================
 // MODELS
 // ===========================================
+
+model DoAccount {
+  id              String        @id @default(uuid()) @db.Uuid
+  
+  // Account Info
+  name            String        @db.VarChar(100)
+  email           String        @db.VarChar(255)
+  accessToken     String        @map("access_token") @db.Text  // encrypted
+  
+  // Limits (cached from DO API)
+  dropletLimit    Int           @default(25) @map("droplet_limit")
+  activeDroplets  Int           @default(0) @map("active_droplets")
+  
+  // Status
+  isActive        Boolean       @default(true) @map("is_active")
+  isPrimary       Boolean       @default(false) @map("is_primary")
+  
+  // Health
+  lastHealthCheck DateTime?     @map("last_health_check") @db.Timestamptz
+  healthStatus    AccountHealth @default(UNKNOWN) @map("health_status")
+  
+  // Timestamps
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+  
+  // Relations
+  provisioningTasks ProvisioningTask[]
+  
+  @@index([isActive, healthStatus])
+  @@map("do_accounts")
+}
 
 model Order {
   id                String        @id @default(uuid()) @db.Uuid
@@ -57,7 +126,10 @@ model Order {
   planName          String        @map("plan_name") @db.VarChar(255)
   imageId           String        @map("image_id")
   imageName         String        @map("image_name") @db.VarChar(255)
-  duration          PlanDuration
+  duration          PlanDuration  // Legacy field for backward compatibility
+
+  // Billing Period (new balance-based system)
+  billingPeriod     BillingPeriod @default(MONTHLY) @map("billing_period")
 
   // Pricing Snapshot (all prices in smallest unit, e.g., cents or IDR)
   basePrice         Int           @map("base_price")
@@ -67,8 +139,23 @@ model Order {
   finalPrice        Int           @map("final_price")
   currency          String        @default("IDR") @db.VarChar(3)
 
-  // Status
+  // Status & Versioning (optimistic locking for race-condition safety)
   status            OrderStatus   @default(PENDING_PAYMENT)
+  version           Int           @default(0)
+
+  // Lifecycle Dates
+  activatedAt       DateTime?     @map("activated_at") @db.Timestamptz
+  expiresAt         DateTime?     @map("expires_at") @db.Timestamptz
+  suspendedAt       DateTime?     @map("suspended_at") @db.Timestamptz
+  terminatedAt      DateTime?     @map("terminated_at") @db.Timestamptz
+
+  // Auto-renewal configuration
+  autoRenew         Boolean       @default(true) @map("auto_renew")
+  lastRenewalAt     DateTime?     @map("last_renewal_at") @db.Timestamptz
+  renewalFailReason String?       @map("renewal_fail_reason") @db.VarChar(255)
+
+  // Termination tracking
+  terminationReason TerminationReason? @map("termination_reason")
 
   // Timestamps
   createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz
@@ -79,10 +166,14 @@ model Order {
   items             OrderItem[]
   provisioningTask  ProvisioningTask?
   statusHistory     StatusHistory[]
+  renewalHistory    RenewalHistory[]
 
   @@index([userId])
   @@index([status])
   @@index([createdAt])
+  @@index([userId, status])
+  @@index([status, expiresAt])
+  @@index([status, autoRenew, expiresAt])
   @@map("orders")
 }
 
@@ -108,6 +199,10 @@ model ProvisioningTask {
   id              String              @id @default(uuid()) @db.Uuid
   orderId         String              @unique @map("order_id") @db.Uuid
   order           Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  // DO Account used for provisioning (multi-account support)
+  doAccountId     String?             @map("do_account_id") @db.Uuid
+  doAccount       DoAccount?          @relation(fields: [doAccountId], references: [id])
 
   status          ProvisioningStatus  @default(PENDING)
 
@@ -157,4 +252,36 @@ model StatusHistory {
   @@index([orderId])
   @@index([createdAt])
   @@map("status_history")
+}
+
+model RenewalHistory {
+  id              String        @id @default(uuid()) @db.Uuid
+  orderId         String        @map("order_id") @db.Uuid
+  order           Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  renewalType     RenewalType   @map("renewal_type")
+  amount          Int           // Amount charged for renewal
+
+  previousExpiry  DateTime      @map("previous_expiry") @db.Timestamptz
+  newExpiry       DateTime      @map("new_expiry") @db.Timestamptz
+
+  // For failed renewals
+  success         Boolean       @default(true)
+  failReason      String?       @map("fail_reason") @db.VarChar(255)
+
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([orderId])
+  @@index([createdAt])
+  @@map("renewal_history")
+}
+
+model CronJobLock {
+  id          String   @id @default(uuid()) @db.Uuid
+  jobName     String   @unique @map("job_name")
+  lockedAt    DateTime @map("locked_at") @db.Timestamptz
+  lockedBy    String   @map("locked_by") @db.VarChar(100)
+  expiresAt   DateTime @map("expires_at") @db.Timestamptz
+
+  @@map("cron_job_locks")
 }

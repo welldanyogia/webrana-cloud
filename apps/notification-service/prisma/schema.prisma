@@ -32,6 +32,12 @@ enum NotificationEvent {
   VPS_ACTIVE
   PROVISIONING_FAILED
   VPS_EXPIRING
+  VPS_EXPIRING_SOON
+  VPS_SUSPENDED
+  VPS_DESTROYED
+  RENEWAL_SUCCESS
+  RENEWAL_FAILED
+  SYSTEM_ANNOUNCEMENT
   GENERIC
 }
 
@@ -73,4 +79,29 @@ model NotificationLog {
   @@index([status])
   @@index([createdAt])
   @@map("notification_logs")
+}
+
+// ===========================================
+// IN-APP NOTIFICATIONS
+// ===========================================
+
+model InAppNotification {
+  id          String            @id @default(uuid()) @db.Uuid
+  userId      String            @map("user_id")
+  
+  title       String            @db.VarChar(255)
+  message     String            @db.Text
+  type        NotificationEvent
+  
+  actionUrl   String?           @map("action_url") @db.VarChar(500)
+  metadata    Json?
+  
+  isRead      Boolean           @default(false) @map("is_read")
+  readAt      DateTime?         @map("read_at") @db.Timestamptz
+  
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@map("in_app_notifications")
 }

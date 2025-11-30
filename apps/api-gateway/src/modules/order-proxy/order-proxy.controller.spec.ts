@@ -208,4 +208,168 @@ describe('OrderProxyController', () => {
       expect(guards).toBeDefined();
     });
   });
+
+  describe('Edge cases and error scenarios', () => {
+    describe('createOrder edge cases', () => {
+      it('should handle empty payload', async () => {
+        const result = await controller.createOrder({});
+        expect(result).toBeDefined();
+        expect(result.data).toBeDefined();
+      });
+
+      it('should handle null values in payload', async () => {
+        const result = await controller.createOrder({
+          planId: null,
+          imageId: null,
+          duration: null,
+        });
+        expect(result.data).toBeDefined();
+      });
+
+      it('should handle special characters in IDs', async () => {
+        const result = await controller.createOrder({
+          planId: "plan-with-special'chars",
+          imageId: 'image_with_underscore',
+          duration: 'MONTHLY',
+        });
+        expect(result.data).toBeDefined();
+      });
+
+      it('should handle additional unexpected fields', async () => {
+        const result = await controller.createOrder({
+          planId: 'plan-123',
+          imageId: 'image-123',
+          duration: 'MONTHLY',
+          unexpectedField: 'value',
+          nested: { deep: { object: true } },
+        });
+        expect(result.data).toBeDefined();
+      });
+
+      it('should handle very long plan ID', async () => {
+        const longPlanId = 'plan-' + 'a'.repeat(500);
+        const result = await controller.createOrder({
+          planId: longPlanId,
+          imageId: 'image-123',
+          duration: 'MONTHLY',
+        });
+        expect(result.data).toBeDefined();
+      });
+    });
+
+    describe('listOrders edge cases', () => {
+      it('should handle negative page numbers', async () => {
+        const result = await controller.listOrders({ page: -1, limit: 10 });
+        expect(result).toBeDefined();
+        expect(result.meta).toBeDefined();
+      });
+
+      it('should handle zero limit', async () => {
+        const result = await controller.listOrders({ page: 1, limit: 0 });
+        expect(result.meta).toBeDefined();
+      });
+
+      it('should handle very large page numbers', async () => {
+        const result = await controller.listOrders({ page: 999999, limit: 10 });
+        expect(result.meta.page).toBe(999999);
+      });
+
+      it('should handle string values in query params', async () => {
+        const result = await controller.listOrders({
+          page: '5',
+          limit: '20',
+          status: 'ACTIVE',
+        });
+        expect(result).toBeDefined();
+      });
+
+      it('should handle multiple status filters', async () => {
+        const result = await controller.listOrders({
+          status: ['ACTIVE', 'PENDING_PAYMENT'],
+          page: 1,
+        });
+        expect(result).toBeDefined();
+      });
+
+      it('should handle empty query object', async () => {
+        const result = await controller.listOrders({});
+        expect(result.meta.page).toBe(1);
+        expect(result.meta.limit).toBe(10);
+      });
+    });
+
+    describe('getOrder edge cases', () => {
+      it('should handle UUID format order ID', async () => {
+        const result = await controller.getOrder('123e4567-e89b-12d3-a456-426614174000');
+        expect(result.data.message).toContain('123e4567-e89b-12d3-a456-426614174000');
+      });
+
+      it('should handle empty string order ID', async () => {
+        const result = await controller.getOrder('');
+        expect(result).toBeDefined();
+      });
+
+      it('should handle special characters in order ID', async () => {
+        const result = await controller.getOrder('order-with-special_chars.123');
+        expect(result.data).toBeDefined();
+      });
+
+      it('should handle very long order ID', async () => {
+        const longId = 'order-' + 'x'.repeat(1000);
+        const result = await controller.getOrder(longId);
+        expect(result.data.message).toContain(longId);
+      });
+    });
+  });
+
+  describe('Decorator verification', () => {
+    it('should have method decorator for createOrder', () => {
+      const method = Reflect.getMetadata('method', controller.createOrder);
+      expect(method).toBeDefined();
+    });
+
+    it('should have method decorator for listOrders', () => {
+      const method = Reflect.getMetadata('method', controller.listOrders);
+      expect(method).toBeDefined();
+    });
+
+    it('should have method decorator for getOrder', () => {
+      const method = Reflect.getMetadata('method', controller.getOrder);
+      expect(method).toBeDefined();
+    });
+
+    it('should have route paths defined for all methods', () => {
+      const createPath = Reflect.getMetadata('path', controller.createOrder);
+      const listPath = Reflect.getMetadata('path', controller.listOrders);
+      const getPath = Reflect.getMetadata('path', controller.getOrder);
+
+      expect(createPath).toBe('/');
+      expect(listPath).toBe('/');
+      expect(getPath).toBe(':id');
+    });
+  });
+
+  describe('Response format consistency', () => {
+    it('should always return data object in createOrder response', async () => {
+      const result = await controller.createOrder({ planId: 'test' });
+      expect(result).toHaveProperty('data');
+      expect(result.data).toHaveProperty('message');
+      expect(result.data).toHaveProperty('note');
+    });
+
+    it('should always return data and meta in listOrders response', async () => {
+      const result = await controller.listOrders({});
+      expect(result).toHaveProperty('data');
+      expect(result).toHaveProperty('meta');
+      expect(result.meta).toHaveProperty('page');
+      expect(result.meta).toHaveProperty('limit');
+    });
+
+    it('should always return data object in getOrder response', async () => {
+      const result = await controller.getOrder('test-id');
+      expect(result).toHaveProperty('data');
+      expect(result.data).toHaveProperty('message');
+      expect(result.data).toHaveProperty('note');
+    });
+  });
 });

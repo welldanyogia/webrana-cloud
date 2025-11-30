@@ -48,6 +48,18 @@ model VpsPlan {
   isActive        Boolean   @default(true) @map("is_active")
   sortOrder       Int       @default(0) @map("sort_order")
   tags            String[]  @default([])
+  
+  // Pricing (IDR) - Direct pricing fields for billing periods
+  priceHourly     Int?      @map("price_hourly")   // Reference only
+  priceDaily      Int?      @map("price_daily")
+  priceMonthly    Int?      @map("price_monthly")
+  priceYearly     Int?      @map("price_yearly")
+  
+  // Period availability (admin configurable)
+  allowDaily      Boolean   @default(false) @map("allow_daily")
+  allowMonthly    Boolean   @default(true) @map("allow_monthly")
+  allowYearly     Boolean   @default(true) @map("allow_yearly")
+  
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz
 

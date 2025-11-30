@@ -131,3 +131,117 @@ export class ProvisioningTimeoutException extends OrderException {
     );
   }
 }
+
+/**
+ * Insufficient balance for order creation
+ */
+export class InsufficientBalanceException extends OrderException {
+  constructor(requiredAmount: number, currentBalance?: number) {
+    super(
+      'INSUFFICIENT_BALANCE',
+      `Saldo tidak mencukupi untuk order ini. Dibutuhkan: Rp ${requiredAmount.toLocaleString('id-ID')}`,
+      HttpStatus.BAD_REQUEST,
+      { requiredAmount, currentBalance, deficit: currentBalance !== undefined ? requiredAmount - currentBalance : undefined }
+    );
+  }
+}
+
+/**
+ * Billing service unavailable
+ */
+export class BillingServiceUnavailableException extends OrderException {
+  constructor(details?: Record<string, unknown>) {
+    super(
+      'BILLING_SERVICE_UNAVAILABLE',
+      'Tidak dapat menghubungi billing-service',
+      HttpStatus.SERVICE_UNAVAILABLE,
+      details
+    );
+  }
+}
+
+/**
+ * State transition conflict (race condition detected)
+ * Thrown when trying to transition an order to a new state but the current state
+ * doesn't match the expected state (optimistic locking failure)
+ */
+export class StateTransitionConflictException extends OrderException {
+  constructor(orderId: string, fromStatus: string, toStatus: string) {
+    super(
+      'STATE_TRANSITION_CONFLICT',
+      `Order ${orderId} tidak dapat diubah dari ${fromStatus} ke ${toStatus}. Status mungkin sudah berubah.`,
+      HttpStatus.CONFLICT,
+      { orderId, fromStatus, toStatus }
+    );
+  }
+}
+
+/**
+ * Invalid billing period for the selected plan
+ */
+export class InvalidBillingPeriodException extends OrderException {
+  constructor(billingPeriod: string, planId?: string) {
+    super(
+      'INVALID_BILLING_PERIOD',
+      `Billing period ${billingPeriod} tidak tersedia untuk plan ini`,
+      HttpStatus.BAD_REQUEST,
+      { billingPeriod, planId }
+    );
+  }
+}
+
+/**
+ * Order is not in ACTIVE status for console/power operations
+ */
+export class OrderNotActiveException extends OrderException {
+  constructor(orderId: string) {
+    super(
+      'ORDER_NOT_ACTIVE',
+      'VPS harus dalam status ACTIVE untuk mengakses console',
+      HttpStatus.BAD_REQUEST,
+      { orderId }
+    );
+  }
+}
+
+/**
+ * Droplet is not ready or not provisioned
+ */
+export class DropletNotReadyException extends OrderException {
+  constructor(orderId: string) {
+    super(
+      'DROPLET_NOT_READY',
+      'Droplet belum siap atau tidak ditemukan',
+      HttpStatus.BAD_REQUEST,
+      { orderId }
+    );
+  }
+}
+
+/**
+ * Failed to get console access from DigitalOcean
+ */
+export class ConsoleAccessFailedException extends OrderException {
+  constructor(dropletId: string, reason?: string) {
+    super(
+      'CONSOLE_ACCESS_FAILED',
+      'Gagal mendapatkan akses console',
+      HttpStatus.SERVICE_UNAVAILABLE,
+      { dropletId, reason }
+    );
+  }
+}
+
+/**
+ * Failed to perform power action on droplet
+ */
+export class PowerActionFailedException extends OrderException {
+  constructor(dropletId: string, action: string, reason?: string) {
+    super(
+      'POWER_ACTION_FAILED',
+      `Gagal melakukan ${action} pada VPS`,
+      HttpStatus.SERVICE_UNAVAILABLE,
+      { dropletId, action, reason }
+    );
+  }
+}

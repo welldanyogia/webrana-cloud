@@ -3,16 +3,60 @@ import { ConfigService } from '@nestjs/config';
 import { ProvisioningService } from './provisioning.service';
 import { DigitalOceanClientService, DropletResponse } from './digitalocean-client.service';
 import { PrismaService } from '../../prisma/prisma.service';
-import { OrderStatus, ProvisioningStatus } from '@prisma/client';
 import {
   OrderNotFoundException,
   PaymentStatusConflictException,
 } from '../../common/exceptions';
+import { DoAccountService } from '../do-account/do-account.service';
+import { DoApiClient } from '../do-account/do-api.client';
+import {
+  NoAvailableAccountException,
+} from '../do-account/do-account.exceptions';
+
+// Define enums locally to avoid Prisma client dependency issues in tests
+const OrderStatus = {
+  PENDING_PAYMENT: 'PENDING_PAYMENT',
+  PAID: 'PAID',
+  PROVISIONING: 'PROVISIONING',
+  ACTIVE: 'ACTIVE',
+  FAILED: 'FAILED',
+  CANCELED: 'CANCELED',
+} as const;
+
+const ProvisioningStatus = {
+  PENDING: 'PENDING',
+  IN_PROGRESS: 'IN_PROGRESS',
+  SUCCESS: 'SUCCESS',
+  FAILED: 'FAILED',
+} as const;
+
+const AccountHealth = {
+  HEALTHY: 'HEALTHY',
+  DEGRADED: 'DEGRADED',
+  UNHEALTHY: 'UNHEALTHY',
+  UNKNOWN: 'UNKNOWN',
+} as const;
 
 describe('ProvisioningService', () => {
   let service: ProvisioningService;
   let prismaService: jest.Mocked<PrismaService>;
   let doClient: jest.Mocked<DigitalOceanClientService>;
+  let doAccountService: jest.Mocked<DoAccountService>;
+
+  const mockDoAccount = {
+    id: 'do-account-123',
+    name: 'Primary DO Account',
+    email: 'do@example.com',
+    accessToken: 'encrypted-token',
+    dropletLimit: 25,
+    activeDroplets: 10,
+    isActive: true,
+    isPrimary: true,
+    lastHealthCheck: new Date(),
+    healthStatus: AccountHealth.HEALTHY,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
 
   const mockOrder = {
     id: 'order-123',
@@ -122,12 +166,23 @@ describe('ProvisioningService', () => {
             extractPrivateIpv4: jest.fn(),
           },
         },
+        {
+          provide: DoAccountService,
+          useValue: {
+            selectAvailableAccount: jest.fn(),
+            getDecryptedToken: jest.fn(),
+            createClientForAccount: jest.fn(),
+            incrementActiveCount: jest.fn(),
+            decrementActiveCount: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<ProvisioningService>(ProvisioningService);
     prismaService = module.get(PrismaService);
     doClient = module.get(DigitalOceanClientService);
+    doAccountService = module.get(DoAccountService);
   });
 
   afterEach(() => {
@@ -154,9 +209,61 @@ describe('ProvisioningService', () => {
       );
     });
 
-    it('should create provisioning task and update order to PROVISIONING', async () => {
+    it('should create provisioning task with doAccountId when multi-account is available', async () => {
+      prismaService.order.findUnique.mockResolvedValue(mockOrder as any);
+      prismaService.provisioningTask.create.mockResolvedValue({
+        ...mockProvisioningTask,
+        doAccountId: mockDoAccount.id,
+      } as any);
+      doAccountService.selectAvailableAccount.mockResolvedValue(mockDoAccount as any);
+
+      // Don't await - startProvisioning is async with setImmediate
+      const promise = service.startProvisioning('order-123');
+
+      await promise;
+
+      expect(doAccountService.selectAvailableAccount).toHaveBeenCalled();
+      expect(prismaService.provisioningTask.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          orderId: 'order-123',
+          status: ProvisioningStatus.PENDING,
+          doAccountId: mockDoAccount.id,
+          doRegion: 'sgp1',
+        }),
+      });
+
+      expect(prismaService.$transaction).toHaveBeenCalled();
+    });
+
+    it('should fallback to legacy mode when no DO accounts available', async () => {
       prismaService.order.findUnique.mockResolvedValue(mockOrder as any);
       prismaService.provisioningTask.create.mockResolvedValue(mockProvisioningTask as any);
+      doAccountService.selectAvailableAccount.mockRejectedValue(
+        new NoAvailableAccountException()
+      );
+
+      const promise = service.startProvisioning('order-123');
+      await promise;
+
+      expect(doAccountService.selectAvailableAccount).toHaveBeenCalled();
+      expect(prismaService.provisioningTask.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          orderId: 'order-123',
+          status: ProvisioningStatus.PENDING,
+          doAccountId: null,
+          doRegion: 'sgp1',
+        }),
+      });
+
+      expect(prismaService.$transaction).toHaveBeenCalled();
+    });
+
+    it('should create provisioning task and update order to PROVISIONING (legacy mode)', async () => {
+      prismaService.order.findUnique.mockResolvedValue(mockOrder as any);
+      prismaService.provisioningTask.create.mockResolvedValue(mockProvisioningTask as any);
+      doAccountService.selectAvailableAccount.mockRejectedValue(
+        new NoAvailableAccountException()
+      );
 
       // Don't await - startProvisioning is async with setImmediate
       const promise = service.startProvisioning('order-123');

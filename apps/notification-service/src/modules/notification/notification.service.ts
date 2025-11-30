@@ -10,18 +10,35 @@ import {
   paymentConfirmedTemplate,
   vpsActiveTemplate,
   provisioningFailedTemplate,
+  vpsExpiringSoonTemplate,
+  vpsSuspendedTemplate,
+  vpsDestroyedTemplate,
+  renewalSuccessTemplate,
+  renewalFailedTemplate,
   OrderCreatedData,
   PaymentConfirmedData,
   VpsActiveData,
   ProvisioningFailedData,
+  VpsExpiringSoonData,
+  VpsSuspendedData,
+  VpsDestroyedData,
+  RenewalSuccessData,
+  RenewalFailedData,
 } from '../email/templates/email-templates';
 import { QueueService } from '../queue/queue.service';
 import {
   paymentConfirmedTelegramTemplate,
   vpsActiveTelegramTemplate,
   provisioningFailedTelegramTemplate,
+  vpsExpiringSoonTelegramTemplate,
+  vpsSuspendedTelegramTemplate,
+  vpsDestroyedTelegramTemplate,
+  renewalSuccessTelegramTemplate,
+  renewalFailedTelegramTemplate,
 } from '../telegram/telegram-templates';
 import { TelegramService } from '../telegram/telegram.service';
+import { UserNotificationService, InAppNotificationType } from '../user-notification';
+import { WebsocketService } from '../websocket/websocket.service';
 
 import {
   NotificationEventType,
@@ -29,6 +46,11 @@ import {
   PaymentConfirmedNotificationData,
   VpsActiveNotificationData,
   ProvisioningFailedNotificationData,
+  VpsExpiringSoonNotificationData,
+  VpsSuspendedNotificationData,
+  VpsDestroyedNotificationData,
+  RenewalSuccessNotificationData,
+  RenewalFailedNotificationData,
   ListNotificationLogsDto,
   NotificationLogListResponseDto,
   NotificationLogResponseDto,
@@ -54,7 +76,9 @@ export class NotificationService {
     private readonly telegramService: TelegramService,
     private readonly authClientService: AuthClientService,
     @Inject(forwardRef(() => QueueService))
-    private readonly queueService: QueueService
+    private readonly queueService: QueueService,
+    private readonly userNotificationService: UserNotificationService,
+    private readonly websocketService: WebsocketService
   ) {}
 
   /**
@@ -127,8 +151,29 @@ export class NotificationService {
       case NotificationEventType.PROVISIONING_FAILED:
         results = await this.notifyProvisioningFailed(userId, data as ProvisioningFailedNotificationData);
         break;
+      case NotificationEventType.VPS_EXPIRING_SOON:
+        results = await this.notifyVpsExpiringSoon(userId, data as VpsExpiringSoonNotificationData);
+        break;
+      case NotificationEventType.VPS_SUSPENDED:
+        results = await this.notifyVpsSuspended(userId, data as VpsSuspendedNotificationData);
+        break;
+      case NotificationEventType.VPS_DESTROYED:
+        results = await this.notifyVpsDestroyed(userId, data as VpsDestroyedNotificationData);
+        break;
+      case NotificationEventType.RENEWAL_SUCCESS:
+        results = await this.notifyRenewalSuccess(userId, data as RenewalSuccessNotificationData);
+        break;
+      case NotificationEventType.RENEWAL_FAILED:
+        results = await this.notifyRenewalFailed(userId, data as RenewalFailedNotificationData);
+        break;
       default:
         throw new InvalidNotificationEventException(event);
+    }
+
+    // Create in-app notification and push via WebSocket
+    const inAppResult = await this.createInAppNotification(event, userId, data);
+    if (inAppResult) {
+      results.push(inAppResult);
     }
 
     const successCount = results.filter((r) => r.status === 'SENT').length;
@@ -404,6 +449,336 @@ export class NotificationService {
   }
 
   /**
+   * Notify user about VPS expiring soon
+   * Channels: Email + Telegram
+   */
+  async notifyVpsExpiringSoon(
+    userId: string,
+    data: VpsExpiringSoonNotificationData
+  ): Promise<NotificationResult[]> {
+    this.logger.log(`Sending VPS_EXPIRING_SOON notification for order: ${data.orderId}`);
+
+    const results: NotificationResult[] = [];
+    const user = await this.getUserInfo(userId);
+
+    if (!user) {
+      this.logger.warn(`User ${userId} not found, skipping notification`);
+      results.push({
+        channel: 'EMAIL',
+        status: 'SKIPPED',
+        error: 'User not found',
+      });
+      return results;
+    }
+
+    // Email notification
+    const emailData: VpsExpiringSoonData = {
+      orderId: data.orderId,
+      customerName: user.name,
+      planName: data.planName,
+      expiresAt: data.expiresAt,
+      hoursRemaining: data.hoursRemaining,
+      autoRenew: data.autoRenew,
+    };
+
+    const emailTemplate = vpsExpiringSoonTemplate(emailData);
+    const emailResult = await this.sendEmailNotification(
+      userId,
+      NotificationEvent.VPS_EXPIRING_SOON,
+      user.email,
+      emailTemplate.subject,
+      emailTemplate.html,
+      emailTemplate.text,
+      data
+    );
+    results.push(emailResult);
+
+    // Telegram notification (if user has chatId)
+    if (user.telegramChatId) {
+      const telegramMessage = vpsExpiringSoonTelegramTemplate({
+        orderId: data.orderId,
+        planName: data.planName,
+        expiresAt: data.expiresAt,
+        hoursRemaining: data.hoursRemaining,
+        autoRenew: data.autoRenew,
+      });
+
+      const telegramResult = await this.sendTelegramNotification(
+        userId,
+        NotificationEvent.VPS_EXPIRING_SOON,
+        user.telegramChatId,
+        telegramMessage,
+        data
+      );
+      results.push(telegramResult);
+    }
+
+    return results;
+  }
+
+  /**
+   * Notify user about VPS being suspended
+   * Channels: Email + Telegram
+   */
+  async notifyVpsSuspended(
+    userId: string,
+    data: VpsSuspendedNotificationData
+  ): Promise<NotificationResult[]> {
+    this.logger.log(`Sending VPS_SUSPENDED notification for order: ${data.orderId}`);
+
+    const results: NotificationResult[] = [];
+    const user = await this.getUserInfo(userId);
+
+    if (!user) {
+      this.logger.warn(`User ${userId} not found, skipping notification`);
+      results.push({
+        channel: 'EMAIL',
+        status: 'SKIPPED',
+        error: 'User not found',
+      });
+      return results;
+    }
+
+    // Email notification
+    const emailData: VpsSuspendedData = {
+      orderId: data.orderId,
+      customerName: user.name,
+      planName: data.planName,
+      suspendedAt: data.suspendedAt,
+      gracePeriodHours: data.gracePeriodHours,
+    };
+
+    const emailTemplate = vpsSuspendedTemplate(emailData);
+    const emailResult = await this.sendEmailNotification(
+      userId,
+      NotificationEvent.VPS_SUSPENDED,
+      user.email,
+      emailTemplate.subject,
+      emailTemplate.html,
+      emailTemplate.text,
+      data
+    );
+    results.push(emailResult);
+
+    // Telegram notification (if user has chatId)
+    if (user.telegramChatId) {
+      const telegramMessage = vpsSuspendedTelegramTemplate({
+        orderId: data.orderId,
+        planName: data.planName,
+        suspendedAt: data.suspendedAt,
+        gracePeriodHours: data.gracePeriodHours,
+      });
+
+      const telegramResult = await this.sendTelegramNotification(
+        userId,
+        NotificationEvent.VPS_SUSPENDED,
+        user.telegramChatId,
+        telegramMessage,
+        data
+      );
+      results.push(telegramResult);
+    }
+
+    return results;
+  }
+
+  /**
+   * Notify user about VPS being destroyed/terminated
+   * Channels: Email + Telegram
+   */
+  async notifyVpsDestroyed(
+    userId: string,
+    data: VpsDestroyedNotificationData
+  ): Promise<NotificationResult[]> {
+    this.logger.log(`Sending VPS_DESTROYED notification for order: ${data.orderId}`);
+
+    const results: NotificationResult[] = [];
+    const user = await this.getUserInfo(userId);
+
+    if (!user) {
+      this.logger.warn(`User ${userId} not found, skipping notification`);
+      results.push({
+        channel: 'EMAIL',
+        status: 'SKIPPED',
+        error: 'User not found',
+      });
+      return results;
+    }
+
+    // Email notification
+    const emailData: VpsDestroyedData = {
+      orderId: data.orderId,
+      customerName: user.name,
+      planName: data.planName,
+      reason: data.reason,
+      terminatedAt: data.terminatedAt,
+    };
+
+    const emailTemplate = vpsDestroyedTemplate(emailData);
+    const emailResult = await this.sendEmailNotification(
+      userId,
+      NotificationEvent.VPS_DESTROYED,
+      user.email,
+      emailTemplate.subject,
+      emailTemplate.html,
+      emailTemplate.text,
+      data
+    );
+    results.push(emailResult);
+
+    // Telegram notification (if user has chatId)
+    if (user.telegramChatId) {
+      const telegramMessage = vpsDestroyedTelegramTemplate({
+        orderId: data.orderId,
+        planName: data.planName,
+        reason: data.reason,
+        terminatedAt: data.terminatedAt,
+      });
+
+      const telegramResult = await this.sendTelegramNotification(
+        userId,
+        NotificationEvent.VPS_DESTROYED,
+        user.telegramChatId,
+        telegramMessage,
+        data
+      );
+      results.push(telegramResult);
+    }
+
+    return results;
+  }
+
+  /**
+   * Notify user about successful VPS renewal
+   * Channels: Email + Telegram
+   */
+  async notifyRenewalSuccess(
+    userId: string,
+    data: RenewalSuccessNotificationData
+  ): Promise<NotificationResult[]> {
+    this.logger.log(`Sending RENEWAL_SUCCESS notification for order: ${data.orderId}`);
+
+    const results: NotificationResult[] = [];
+    const user = await this.getUserInfo(userId);
+
+    if (!user) {
+      this.logger.warn(`User ${userId} not found, skipping notification`);
+      results.push({
+        channel: 'EMAIL',
+        status: 'SKIPPED',
+        error: 'User not found',
+      });
+      return results;
+    }
+
+    // Email notification
+    const emailData: RenewalSuccessData = {
+      orderId: data.orderId,
+      customerName: user.name,
+      planName: data.planName,
+      newExpiry: data.newExpiry,
+      amount: data.amount,
+    };
+
+    const emailTemplate = renewalSuccessTemplate(emailData);
+    const emailResult = await this.sendEmailNotification(
+      userId,
+      NotificationEvent.RENEWAL_SUCCESS,
+      user.email,
+      emailTemplate.subject,
+      emailTemplate.html,
+      emailTemplate.text,
+      data
+    );
+    results.push(emailResult);
+
+    // Telegram notification (if user has chatId)
+    if (user.telegramChatId) {
+      const telegramMessage = renewalSuccessTelegramTemplate({
+        orderId: data.orderId,
+        planName: data.planName,
+        newExpiry: data.newExpiry,
+        amount: data.amount,
+      });
+
+      const telegramResult = await this.sendTelegramNotification(
+        userId,
+        NotificationEvent.RENEWAL_SUCCESS,
+        user.telegramChatId,
+        telegramMessage,
+        data
+      );
+      results.push(telegramResult);
+    }
+
+    return results;
+  }
+
+  /**
+   * Notify user about failed VPS renewal (insufficient balance)
+   * Channels: Email + Telegram
+   */
+  async notifyRenewalFailed(
+    userId: string,
+    data: RenewalFailedNotificationData
+  ): Promise<NotificationResult[]> {
+    this.logger.log(`Sending RENEWAL_FAILED notification for order: ${data.orderId}`);
+
+    const results: NotificationResult[] = [];
+    const user = await this.getUserInfo(userId);
+
+    if (!user) {
+      this.logger.warn(`User ${userId} not found, skipping notification`);
+      results.push({
+        channel: 'EMAIL',
+        status: 'SKIPPED',
+        error: 'User not found',
+      });
+      return results;
+    }
+
+    // Email notification
+    const emailData: RenewalFailedData = {
+      orderId: data.orderId,
+      customerName: user.name,
+      planName: data.planName,
+      required: data.required,
+    };
+
+    const emailTemplate = renewalFailedTemplate(emailData);
+    const emailResult = await this.sendEmailNotification(
+      userId,
+      NotificationEvent.RENEWAL_FAILED,
+      user.email,
+      emailTemplate.subject,
+      emailTemplate.html,
+      emailTemplate.text,
+      data
+    );
+    results.push(emailResult);
+
+    // Telegram notification (if user has chatId)
+    if (user.telegramChatId) {
+      const telegramMessage = renewalFailedTelegramTemplate({
+        orderId: data.orderId,
+        planName: data.planName,
+        required: data.required,
+      });
+
+      const telegramResult = await this.sendTelegramNotification(
+        userId,
+        NotificationEvent.RENEWAL_FAILED,
+        user.telegramChatId,
+        telegramMessage,
+        data
+      );
+      results.push(telegramResult);
+    }
+
+    return results;
+  }
+
+  /**
    * Get notification logs
    */
   async getNotificationLogs(
@@ -572,5 +947,153 @@ export class NotificationService {
       sentAt: log.sentAt?.toISOString(),
       createdAt: log.createdAt.toISOString(),
     };
+  }
+
+  // ============================================
+  // In-App Notification Methods
+  // ============================================
+
+  /**
+   * Create an in-app notification and push via WebSocket
+   */
+  private async createInAppNotification(
+    event: NotificationEventType,
+    userId: string,
+    data: Record<string, any>
+  ): Promise<NotificationResult | null> {
+    try {
+      const title = this.getInAppTitle(event, data);
+      const message = this.getInAppMessage(event, data);
+      const actionUrl = this.getInAppActionUrl(event, data);
+
+      // Create in-app notification
+      const notification = await this.userNotificationService.create({
+        userId,
+        type: event as unknown as InAppNotificationType,
+        title,
+        message,
+        actionUrl,
+        metadata: data,
+      });
+
+      // Push via WebSocket
+      await this.websocketService.pushNotification(userId, notification);
+
+      // Update unread count via WebSocket
+      const unreadCount = await this.userNotificationService.getUnreadCount(userId);
+      await this.websocketService.updateUnreadCount(userId, unreadCount.count);
+
+      this.logger.log(`Created in-app notification ${notification.id} for user ${userId}`);
+
+      return {
+        channel: 'IN_APP',
+        status: 'SENT',
+        recipient: userId,
+        logId: notification.id,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Failed to create in-app notification for user ${userId}: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+      return {
+        channel: 'IN_APP',
+        status: 'FAILED',
+        recipient: userId,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
+
+  /**
+   * Get in-app notification title based on event type
+   */
+  private getInAppTitle(event: NotificationEventType, data: Record<string, any>): string {
+    switch (event) {
+      case NotificationEventType.ORDER_CREATED:
+        return 'Order Baru Dibuat';
+      case NotificationEventType.PAYMENT_CONFIRMED:
+        return 'Pembayaran Dikonfirmasi';
+      case NotificationEventType.VPS_ACTIVE:
+        return 'VPS Anda Aktif!';
+      case NotificationEventType.PROVISIONING_FAILED:
+        return 'Gagal Membuat VPS';
+      case NotificationEventType.VPS_EXPIRING:
+        return 'VPS Akan Berakhir';
+      case NotificationEventType.VPS_EXPIRING_SOON:
+        return data.hoursRemaining <= 8 ? '🚨 VPS Segera Berakhir!' : '⚠️ VPS Akan Berakhir';
+      case NotificationEventType.VPS_SUSPENDED:
+        return '🔴 VPS Disuspend';
+      case NotificationEventType.VPS_DESTROYED:
+        return 'VPS Telah Dihapus';
+      case NotificationEventType.RENEWAL_SUCCESS:
+        return '✅ Perpanjangan Berhasil';
+      case NotificationEventType.RENEWAL_FAILED:
+        return '❌ Perpanjangan Gagal';
+      default:
+        return 'Notifikasi';
+    }
+  }
+
+  /**
+   * Get in-app notification message based on event type
+   */
+  private getInAppMessage(event: NotificationEventType, data: Record<string, any>): string {
+    switch (event) {
+      case NotificationEventType.ORDER_CREATED:
+        return `Order ${data.orderNumber || ''} berhasil dibuat untuk ${data.planName || 'VPS'}. Silakan lakukan pembayaran.`;
+      case NotificationEventType.PAYMENT_CONFIRMED:
+        return `Pembayaran untuk order ${data.orderNumber || ''} telah dikonfirmasi. VPS Anda sedang dipersiapkan.`;
+      case NotificationEventType.VPS_ACTIVE:
+        return `VPS ${data.planName || ''} Anda sudah aktif dengan IP ${data.ipAddress || ''}. Silakan cek email untuk detail akses.`;
+      case NotificationEventType.PROVISIONING_FAILED:
+        return `Maaf, terjadi kesalahan saat membuat VPS untuk order ${data.orderNumber || ''}. Tim kami akan segera menghubungi Anda.`;
+      case NotificationEventType.VPS_EXPIRING:
+        return `VPS ${data.planName || ''} Anda akan berakhir pada ${data.expiresAt || ''}. Perpanjang sekarang untuk menghindari penonaktifan.`;
+      case NotificationEventType.VPS_EXPIRING_SOON:
+        return `VPS ${data.planName || ''} akan berakhir dalam ${data.hoursRemaining || ''} jam. ${data.autoRenew ? 'Auto-renewal aktif.' : 'Perpanjang sekarang!'}`;
+      case NotificationEventType.VPS_SUSPENDED:
+        return `VPS ${data.planName || ''} telah disuspend. Anda memiliki ${data.gracePeriodHours || ''} jam untuk memperpanjang sebelum dihapus permanen.`;
+      case NotificationEventType.VPS_DESTROYED:
+        return `VPS ${data.planName || ''} telah dihapus. Terima kasih telah menggunakan layanan kami.`;
+      case NotificationEventType.RENEWAL_SUCCESS:
+        return `VPS ${data.planName || ''} berhasil diperpanjang. Berlaku sampai ${data.newExpiry || ''}.`;
+      case NotificationEventType.RENEWAL_FAILED:
+        return `Perpanjangan VPS ${data.planName || ''} gagal karena saldo tidak cukup. Segera top up untuk menghindari suspend.`;
+      default:
+        return 'Anda memiliki notifikasi baru.';
+    }
+  }
+
+  /**
+   * Get in-app notification action URL based on event type
+   */
+  private getInAppActionUrl(event: NotificationEventType, data: Record<string, any>): string | undefined {
+    const orderId = data.orderId || data.orderNumber;
+    const instanceId = data.instanceId;
+
+    switch (event) {
+      case NotificationEventType.ORDER_CREATED:
+        return orderId ? `/orders/${orderId}` : '/orders';
+      case NotificationEventType.PAYMENT_CONFIRMED:
+        return orderId ? `/orders/${orderId}` : '/orders';
+      case NotificationEventType.VPS_ACTIVE:
+        return instanceId ? `/instances/${instanceId}` : '/instances';
+      case NotificationEventType.PROVISIONING_FAILED:
+        return orderId ? `/orders/${orderId}` : '/orders';
+      case NotificationEventType.VPS_EXPIRING:
+        return instanceId ? `/instances/${instanceId}/renew` : '/instances';
+      case NotificationEventType.VPS_EXPIRING_SOON:
+        return orderId ? `/orders/${orderId}` : '/instances';
+      case NotificationEventType.VPS_SUSPENDED:
+        return orderId ? `/orders/${orderId}` : '/instances';
+      case NotificationEventType.VPS_DESTROYED:
+        return '/orders';
+      case NotificationEventType.RENEWAL_SUCCESS:
+        return orderId ? `/orders/${orderId}` : '/instances';
+      case NotificationEventType.RENEWAL_FAILED:
+        return '/wallet/topup';
+      default:
+        return undefined;
+    }
   }
 }

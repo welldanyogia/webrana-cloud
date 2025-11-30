@@ -4,6 +4,7 @@ import { BadRequestException } from '@nestjs/common';
 import { TripaySignatureException } from '../../common/exceptions/billing.exceptions';
 import { InvoiceService } from '../invoice/invoice.service';
 import { TripayService } from '../tripay/tripay.service';
+import { DepositService } from '../wallet/deposit.service';
 import { TripayCallbackPayload } from '../tripay/dto/tripay.dto';
 
 import { WebhookController } from './webhook.controller';
@@ -12,6 +13,7 @@ describe('WebhookController', () => {
   let controller: WebhookController;
   let invoiceService: jest.Mocked<InvoiceService>;
   let tripayService: jest.Mocked<TripayService>;
+  let depositService: jest.Mocked<DepositService>;
 
   const mockInvoiceService = {
     processCallback: jest.fn(),
@@ -19,6 +21,10 @@ describe('WebhookController', () => {
 
   const mockTripayService = {
     verifyCallbackSignatureRaw: jest.fn(),
+  };
+
+  const mockDepositService = {
+    processPaidDeposit: jest.fn(),
   };
 
   const validPayload: TripayCallbackPayload = {
@@ -55,12 +61,17 @@ describe('WebhookController', () => {
           provide: TripayService,
           useValue: mockTripayService,
         },
+        {
+          provide: DepositService,
+          useValue: mockDepositService,
+        },
       ],
     }).compile();
 
     controller = module.get<WebhookController>(WebhookController);
     invoiceService = module.get(InvoiceService);
     tripayService = module.get(TripayService);
+    depositService = module.get(DepositService);
 
     jest.clearAllMocks();
   });
@@ -217,11 +228,12 @@ describe('WebhookController', () => {
       mockTripayService.verifyCallbackSignatureRaw.mockReturnValue(undefined);
       mockInvoiceService.processCallback.mockResolvedValue(undefined);
 
-      const rawBodyWithWhitespace = '  {"reference":"T0001"}  ';
+      const testPayload = { ...validPayload, reference: 'T0001' };
+      const rawBodyWithWhitespace = `  ${JSON.stringify(testPayload)}  `;
       const request = createMockRequest(rawBodyWithWhitespace) as any;
 
       await controller.handleTripayCallback(
-        { reference: 'T0001' } as any,
+        testPayload,
         validSignature,
         request
       );

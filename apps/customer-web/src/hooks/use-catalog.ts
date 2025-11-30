@@ -5,6 +5,35 @@ import { catalogService } from '@/services/catalog.service';
 import type { VpsPlan, OsImage, CouponValidationResponse } from '@/types';
 
 /**
+ * Hook to fetch both plans and images (combined catalog)
+ */
+export function useCatalog() {
+  const plansQuery = useQuery<VpsPlan[]>({
+    queryKey: ['plans'],
+    queryFn: catalogService.getPlans,
+    staleTime: 5 * 60 * 1000,
+    placeholderData: [],
+  });
+
+  const imagesQuery = useQuery<OsImage[]>({
+    queryKey: ['images'],
+    queryFn: catalogService.getImages,
+    staleTime: 5 * 60 * 1000,
+    placeholderData: [],
+  });
+
+  return {
+    data: {
+      plans: plansQuery.data ?? [],
+      images: imagesQuery.data ?? [],
+    },
+    isLoading: plansQuery.isLoading || imagesQuery.isLoading,
+    isError: plansQuery.isError || imagesQuery.isError,
+    error: plansQuery.error || imagesQuery.error,
+  };
+}
+
+/**
  * Hook to fetch all VPS plans
  */
 export function usePlans() {

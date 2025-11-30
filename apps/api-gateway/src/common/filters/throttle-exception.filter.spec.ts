@@ -83,5 +83,119 @@ describe('ThrottleExceptionFilter', () => {
       // The filter logs the user ID, we're just verifying it runs without error
       expect(() => filter.catch(exception, mockHost)).not.toThrow();
     });
+
+    it('should handle x-forwarded-for as array', () => {
+      mockRequest.headers = {
+        'x-forwarded-for': ['203.0.113.195', '70.41.3.18'],
+      };
+      
+      const exception = new ThrottlerException('Rate limit exceeded');
+      
+      expect(() => filter.catch(exception, mockHost)).not.toThrow();
+      expect(mockResponse.status).toHaveBeenCalledWith(429);
+    });
+
+    it('should use socket.remoteAddress when ip is not available', () => {
+      mockRequest.ip = undefined;
+      mockRequest.socket.remoteAddress = '10.0.0.100';
+      
+      const exception = new ThrottlerException('Rate limit exceeded');
+      
+      expect(() => filter.catch(exception, mockHost)).not.toThrow();
+    });
+
+    it('should return "unknown" when no IP is available', () => {
+      mockRequest.ip = undefined;
+      mockRequest.socket.remoteAddress = undefined;
+      
+      const exception = new ThrottlerException('Rate limit exceeded');
+      
+      expect(() => filter.catch(exception, mockHost)).not.toThrow();
+    });
+
+    it('should include endpoint URL in response details', () => {
+      mockRequest.url = '/api/v1/orders';
+      
+      const exception = new ThrottlerException('Rate limit exceeded');
+      
+      filter.catch(exception, mockHost);
+      
+      expect(mockResponse.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: expect.objectContaining({
+            details: expect.objectContaining({
+              endpoint: '/api/v1/orders',
+            }),
+          }),
+        }),
+      );
+    });
+
+    it('should include retryAfter in response details', () => {
+      const exception = new ThrottlerException('Rate limit exceeded');
+      
+      filter.catch(exception, mockHost);
+      
+      expect(mockResponse.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: expect.objectContaining({
+            details: expect.objectContaining({
+              retryAfter: 60,
+              retryAfterUnit: 'seconds',
+            }),
+          }),
+        }),
+      );
+    });
+
+    it('should handle GET requests', () => {
+      mockRequest.method = 'GET';
+      mockRequest.url = '/api/v1/instances';
+      
+      const exception = new ThrottlerException('Rate limit exceeded');
+      
+      filter.catch(exception, mockHost);
+      
+      expect(mockResponse.status).toHaveBeenCalledWith(429);
+    });
+
+    it('should handle DELETE requests', () => {
+      mockRequest.method = 'DELETE';
+      mockRequest.url = '/api/v1/orders/123';
+      
+      const exception = new ThrottlerException('Rate limit exceeded');
+      
+      filter.catch(exception, mockHost);
+      
+      expect(mockResponse.status).toHaveBeenCalledWith(429);
+    });
+
+    it('should return correct error code', () => {
+      const exception = new ThrottlerException('Rate limit exceeded');
+      
+      filter.catch(exception, mockHost);
+      
+      expect(mockResponse.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: expect.objectContaining({
+            code: 'RATE_LIMIT_EXCEEDED',
+          }),
+        }),
+      );
+    });
+
+    it('should return Indonesian error message', () => {
+      const exception = new ThrottlerException('Rate limit exceeded');
+      
+      filter.catch(exception, mockHost);
+      
+      expect(mockResponse.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          error: expect.objectContaining({
+            message: 'Terlalu banyak permintaan. Silakan coba lagi nanti.',
+          }),
+        }),
+      );
+    });
   });
 });

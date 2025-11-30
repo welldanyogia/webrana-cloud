@@ -5,7 +5,7 @@
  * including Docker-based service orchestration and health checks.
  */
 
-import { execSync, exec } from 'child_process';
+import { execSync } from 'child_process';
 
 const SERVICE_PORTS = {
   'auth-service': 3001,

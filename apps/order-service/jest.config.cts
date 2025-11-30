@@ -16,4 +16,7 @@ module.exports = {
   },
   moduleFileExtensions: ['ts', 'js', 'html'],
   coverageDirectory: 'test-output/jest/coverage',
+  moduleNameMapper: {
+    '^@nestjs/schedule$': '<rootDir>/src/__mocks__/@nestjs/schedule.ts',
+  },
 };

@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="400" height="400" viewBox="0 0 400 400">
+  <defs>
+    <!-- Grid pattern definition -->
+    <pattern id="gridPattern" width="40" height="40" patternUnits="userSpaceOnUse">
+      <!-- Horizontal lines -->
+      <line x1="0" y1="40" x2="40" y2="40" stroke="#334155" stroke-width="0.5" opacity="0.3"/>
+      <!-- Vertical lines -->
+      <line x1="40" y1="0" x2="40" y2="40" stroke="#334155" stroke-width="0.5" opacity="0.3"/>
+      <!-- Grid intersection dots -->
+      <circle cx="40" cy="40" r="1" fill="#3B82F6" opacity="0.2"/>
+    </pattern>
+    
+    <!-- Circuit-like accent pattern -->
+    <pattern id="circuitPattern" width="80" height="80" patternUnits="userSpaceOnUse">
+      <!-- Circuit trace 1 -->
+      <path d="M0 40 L20 40 L20 20 L40 20" stroke="#3B82F6" stroke-width="0.5" fill="none" opacity="0.15"/>
+      <!-- Circuit trace 2 -->
+      <path d="M60 0 L60 30 L80 30" stroke="#6366F1" stroke-width="0.5" fill="none" opacity="0.15"/>
+      <!-- Circuit trace 3 -->
+      <path d="M40 60 L40 80" stroke="#3B82F6" stroke-width="0.5" fill="none" opacity="0.15"/>
+      <!-- Circuit node -->
+      <circle cx="40" cy="20" r="2" fill="#3B82F6" opacity="0.2"/>
+      <circle cx="60" cy="30" r="1.5" fill="#6366F1" opacity="0.15"/>
+    </pattern>
+    
+    <!-- Radial gradient for subtle glow effect -->
+    <radialGradient id="glowGradient" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#3B82F6" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#0F172A" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="400" height="400" fill="#0F172A"/>
+  
+  <!-- Grid layer -->
+  <rect width="400" height="400" fill="url(#gridPattern)"/>
+  
+  <!-- Circuit accent layer -->
+  <rect width="400" height="400" fill="url(#circuitPattern)"/>
+  
+  <!-- Subtle center glow -->
+  <ellipse cx="200" cy="200" rx="200" ry="200" fill="url(#glowGradient)"/>
+</svg>

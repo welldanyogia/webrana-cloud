@@ -1,42 +1,46 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
-import {
-  Server,
-  Plus,
-  ExternalLink,
-  AlertCircle,
-  Cpu,
-  HardDrive,
-  Globe,
-} from 'lucide-react';
+import { Plus, Server, AlertCircle, RefreshCw, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { StatusIndicator } from '@/components/vps';
-import { useInstances } from '@/hooks/use-instances';
-import { formatRelativeTime } from '@/lib/utils';
-import type { InstanceStatus } from '@/types';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { VpsCard, VpsEmptyState } from '@/components/vps';
+import { useVpsList } from '@/hooks/use-vps';
+import type { VpsOrderStatus } from '@/services/vps.service';
+
+// Filter tabs configuration
+type FilterTab = 'all' | 'active' | 'expiring' | 'suspended';
+
+const FILTER_TABS: { value: FilterTab; label: string; statuses?: VpsOrderStatus[] }[] = [
+  { value: 'all', label: 'Semua' },
+  { value: 'active', label: 'Aktif', statuses: ['ACTIVE', 'PROVISIONING', 'PROCESSING'] },
+  { value: 'expiring', label: 'Segera Berakhir', statuses: ['EXPIRING_SOON', 'EXPIRED'] },
+  { value: 'suspended', label: 'Ditangguhkan', statuses: ['SUSPENDED', 'TERMINATED'] },
+];
 
 function VpsListSkeleton() {
   return (
-    <div className="space-y-4">
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {[1, 2, 3].map((i) => (
-        <Card key={i}>
-          <CardContent className="p-0">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between p-6 gap-4">
-              <div className="flex items-start gap-4">
-                <Skeleton className="w-12 h-12 rounded-lg" />
-                <div>
-                  <Skeleton className="h-5 w-32 mb-2" />
-                  <Skeleton className="h-4 w-24 mb-2" />
-                  <Skeleton className="h-3 w-48" />
-                </div>
+        <Card key={i} className="overflow-hidden">
+          <div className="h-1 bg-gradient-to-r from-slate-300 to-slate-200" />
+          <CardContent className="p-5 pt-6 space-y-4">
+            <div className="flex items-start gap-3">
+              <Skeleton className="w-12 h-12 rounded-xl" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-5 w-32" />
+                <Skeleton className="h-3 w-24" />
               </div>
-              <div className="flex items-center gap-2">
-                <Skeleton className="h-9 w-24 rounded-lg" />
-              </div>
+              <Skeleton className="h-6 w-16 rounded-full" />
+            </div>
+            <Skeleton className="h-10 w-full rounded-lg" />
+            <Skeleton className="h-5 w-3/4" />
+            <Skeleton className="h-4 w-1/2" />
+            <div className="pt-2 border-t border-[var(--border)]">
+              <Skeleton className="h-9 w-full rounded-md" />
             </div>
           </CardContent>
         </Card>
@@ -45,179 +49,184 @@ function VpsListSkeleton() {
   );
 }
 
-function getStatusBadgeVariant(
-  status: InstanceStatus
-): 'success' | 'warning' | 'danger' | 'info' | 'default' {
-  switch (status) {
-    case 'active':
-      return 'success';
-    case 'new':
-      return 'info';
-    case 'off':
-      return 'danger';
-    case 'archive':
-      return 'default';
-    default:
-      return 'default';
-  }
-}
-
-function getStatusLabel(status: InstanceStatus): string {
-  const labels: Record<InstanceStatus, string> = {
-    active: 'Aktif',
-    off: 'Mati',
-    new: 'Baru',
-    archive: 'Arsip',
-  };
-  return labels[status] || status;
-}
-
-function formatRam(ramMb: number): string {
-  if (ramMb >= 1024) {
-    return `${ramMb / 1024} GB`;
-  }
-  return `${ramMb} MB`;
-}
-
 export default function VPSPage() {
-  const { data: instancesResponse, isLoading, isError, refetch } = useInstances({
-    limit: 50,
-  });
+  const [activeTab, setActiveTab] = useState<FilterTab>('all');
 
-  const instances = instancesResponse?.data ?? [];
+  // Get the status filter for the API call
+  const statusFilter = activeTab === 'all' 
+    ? undefined 
+    : FILTER_TABS.find(t => t.value === activeTab)?.statuses?.join(',');
+
+  const {
+    data: vpsResponse,
+    isLoading,
+    isError,
+    refetch,
+    isFetching,
+  } = useVpsList({ limit: 50, status: statusFilter });
+
+  const vpsList = vpsResponse?.data ?? [];
+
+  // Filter VPS list based on active tab (client-side fallback)
+  const filteredVps = activeTab === 'all' 
+    ? vpsList 
+    : vpsList.filter(vps => {
+        const tab = FILTER_TABS.find(t => t.value === activeTab);
+        return tab?.statuses?.includes(vps.status);
+      });
+
+  // Count VPS by category for tab badges
+  const counts = {
+    all: vpsList.length,
+    active: vpsList.filter(v => ['ACTIVE', 'PROVISIONING', 'PROCESSING'].includes(v.status)).length,
+    expiring: vpsList.filter(v => ['EXPIRING_SOON', 'EXPIRED'].includes(v.status)).length,
+    suspended: vpsList.filter(v => ['SUSPENDED', 'TERMINATED'].includes(v.status)).length,
+  };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-[var(--text-primary)]">
-            VPS Saya
+          <h1 className="text-2xl font-bold text-[var(--text-primary)] flex items-center gap-2">
+            <Server className="h-7 w-7 text-[var(--primary)]" />
+            Server Saya
           </h1>
           <p className="text-[var(--text-secondary)] mt-1">
-            Kelola dan monitor server virtual Anda
+            Kelola dan monitor VPS Anda
           </p>
         </div>
-        <Link href="/catalog">
-          <Button leftIcon={<Plus className="h-4 w-4" />}>Buat VPS Baru</Button>
-        </Link>
+        <div className="flex items-center gap-2">
+          {/* Refresh Button */}
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => refetch()}
+            disabled={isFetching}
+            title="Refresh"
+          >
+            <RefreshCw className={`h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+          </Button>
+          {/* Create VPS Button */}
+          <Link href="/catalog">
+            <Button leftIcon={<Plus className="h-4 w-4" />}>
+              Buat VPS Baru
+            </Button>
+          </Link>
+        </div>
       </div>
 
-      {/* Error State */}
-      {isError && (
-        <Card>
-          <CardContent className="py-12 text-center">
-            <div className="w-16 h-16 bg-[var(--error-bg)] rounded-full flex items-center justify-center mx-auto mb-4">
-              <AlertCircle className="h-8 w-8 text-[var(--error)]" />
-            </div>
-            <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">
-              Gagal Memuat Data
-            </h3>
-            <p className="text-[var(--text-secondary)] mb-6 max-w-md mx-auto">
-              Terjadi kesalahan saat memuat data VPS Anda. Silakan coba lagi.
-            </p>
-            <Button variant="outline" onClick={() => refetch()}>
-              Coba Lagi
-            </Button>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Loading State */}
-      {isLoading && <VpsListSkeleton />}
-
-      {/* VPS List */}
-      {!isLoading && !isError && instances.length > 0 && (
-        <div className="space-y-4">
-          {instances.map((instance) => (
-            <Card key={instance.id} hover>
-              <CardContent className="p-0">
-                <Link href={`/vps/${instance.id}`}>
-                  <div className="flex flex-col lg:flex-row lg:items-center justify-between p-6 gap-4">
-                    {/* Instance Info */}
-                    <div className="flex items-start gap-4">
-                      <div className="w-12 h-12 bg-[var(--primary-light)] rounded-lg flex items-center justify-center flex-shrink-0">
-                        <Server className="h-6 w-6 text-[var(--primary)]" />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-3 mb-1">
-                          <h3 className="font-semibold text-[var(--text-primary)]">
-                            {instance.hostname}
-                          </h3>
-                          <Badge
-                            variant={getStatusBadgeVariant(instance.status)}
-                            dot
-                          >
-                            {getStatusLabel(instance.status)}
-                          </Badge>
-                        </div>
-                        {instance.ipAddress && (
-                          <p className="text-sm text-[var(--text-muted)] font-mono mb-1">
-                            {instance.ipAddress}
-                          </p>
-                        )}
-                        <div className="flex items-center gap-4 text-xs text-[var(--text-muted)]">
-                          <span className="flex items-center gap-1">
-                            <Cpu className="h-3 w-3" />
-                            {instance.plan.cpu} vCPU
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Server className="h-3 w-3" />
-                            {formatRam(instance.plan.ram)}
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <HardDrive className="h-3 w-3" />
-                            {instance.plan.ssd} GB
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Globe className="h-3 w-3" />
-                            {instance.region.toUpperCase()}
-                          </span>
-                        </div>
-                        <p className="text-xs text-[var(--text-muted)] mt-1">
-                          {instance.image.name} • Dibuat {formatRelativeTime(instance.createdAt)}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <StatusIndicator status={instance.status} />
-                      <Button variant="outline" size="sm">
-                        Kelola
-                        <ExternalLink className="ml-2 h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                </Link>
-              </CardContent>
-            </Card>
+      {/* Filter Tabs */}
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as FilterTab)}>
+        <TabsList className="w-full sm:w-auto bg-[var(--surface)] border border-[var(--border)] p-1">
+          {FILTER_TABS.map((tab) => (
+            <TabsTrigger
+              key={tab.value}
+              value={tab.value}
+              className="relative data-[state=active]:bg-[var(--card-bg)]"
+            >
+              <span className="flex items-center gap-2">
+                {tab.label}
+                {counts[tab.value] > 0 && (
+                  <span className="inline-flex items-center justify-center h-5 min-w-5 px-1.5 text-[10px] font-semibold rounded-full bg-[var(--primary)]/10 text-[var(--primary)]">
+                    {counts[tab.value]}
+                  </span>
+                )}
+              </span>
+            </TabsTrigger>
           ))}
-        </div>
-      )}
+        </TabsList>
 
-      {/* Empty State */}
-      {!isLoading && !isError && instances.length === 0 && (
-        <Card>
-          <CardContent className="py-16 text-center">
-            <div className="w-16 h-16 bg-[var(--surface)] rounded-full flex items-center justify-center mx-auto mb-4">
-              <Server className="h-8 w-8 text-[var(--text-muted)]" />
-            </div>
-            <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">
-              Belum Ada VPS
-            </h3>
-            <p className="text-[var(--text-secondary)] mb-6 max-w-md mx-auto">
-              Anda belum memiliki VPS aktif. Buat VPS pertama Anda sekarang dan
-              mulai deploy dalam hitungan menit.
-            </p>
-            <Link href="/catalog">
-              <Button>
-                Buat VPS Pertama
-                <Plus className="ml-2 h-4 w-4" />
+        {/* Error State */}
+        {isError && (
+          <Card className="mt-6">
+            <CardContent className="py-12 text-center">
+              <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertCircle className="h-8 w-8 text-red-500" />
+              </div>
+              <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">
+                Gagal Memuat Data
+              </h3>
+              <p className="text-[var(--text-secondary)] mb-6 max-w-md mx-auto">
+                Terjadi kesalahan saat memuat data VPS Anda. Silakan coba lagi.
+              </p>
+              <Button variant="outline" onClick={() => refetch()}>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Coba Lagi
               </Button>
-            </Link>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Loading State */}
+        {isLoading && (
+          <div className="mt-6">
+            <VpsListSkeleton />
+          </div>
+        )}
+
+        {/* VPS List Content */}
+        {!isLoading && !isError && (
+          <>
+            {filteredVps.length > 0 ? (
+              <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {filteredVps.map((vps) => (
+                  <VpsCard key={vps.id} vps={vps} />
+                ))}
+              </div>
+            ) : (
+              <div className="mt-6">
+                {activeTab === 'all' ? (
+                  <Card>
+                    <VpsEmptyState />
+                  </Card>
+                ) : (
+                  <Card>
+                    <CardContent className="py-12 text-center">
+                      <div className="w-16 h-16 bg-[var(--surface)] rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Filter className="h-8 w-8 text-[var(--text-muted)]" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">
+                        Tidak Ada VPS
+                      </h3>
+                      <p className="text-[var(--text-secondary)] mb-4">
+                        Tidak ada VPS dengan status &quot;{FILTER_TABS.find(t => t.value === activeTab)?.label}&quot;
+                      </p>
+                      <Button
+                        variant="outline"
+                        onClick={() => setActiveTab('all')}
+                      >
+                        Lihat Semua VPS
+                      </Button>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
+          </>
+        )}
+      </Tabs>
+
+      {/* Quick Stats Summary (when there are VPS) */}
+      {!isLoading && !isError && vpsList.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="rounded-xl bg-emerald-500/5 border border-emerald-500/20 p-4">
+            <p className="text-2xl font-bold text-emerald-500">{counts.active}</p>
+            <p className="text-xs text-[var(--text-muted)]">VPS Aktif</p>
+          </div>
+          <div className="rounded-xl bg-amber-500/5 border border-amber-500/20 p-4">
+            <p className="text-2xl font-bold text-amber-500">{counts.expiring}</p>
+            <p className="text-xs text-[var(--text-muted)]">Segera Berakhir</p>
+          </div>
+          <div className="rounded-xl bg-orange-500/5 border border-orange-500/20 p-4">
+            <p className="text-2xl font-bold text-orange-500">{counts.suspended}</p>
+            <p className="text-xs text-[var(--text-muted)]">Ditangguhkan</p>
+          </div>
+          <div className="rounded-xl bg-[var(--primary)]/5 border border-[var(--primary)]/20 p-4">
+            <p className="text-2xl font-bold text-[var(--primary)]">{counts.all}</p>
+            <p className="text-xs text-[var(--text-muted)]">Total VPS</p>
+          </div>
+        </div>
       )}
 
       {/* All Orders History Link */}

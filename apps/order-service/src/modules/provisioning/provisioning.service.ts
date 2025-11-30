@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
-import { OrderStatus, ProvisioningStatus, Order } from '@prisma/client';
+import { OrderStatus, ProvisioningStatus, Order, DoAccount } from '@prisma/client';
 import {
   DigitalOceanClientService,
   DropletResponse,
@@ -12,6 +12,12 @@ import {
   ProvisioningFailedException,
   ProvisioningTimeoutException,
 } from '../../common/exceptions';
+import { DoAccountService } from '../do-account/do-account.service';
+import { DoApiClient, Droplet } from '../do-account/do-api.client';
+import {
+  NoAvailableAccountException,
+  AllAccountsFullException,
+} from '../do-account/do-account.exceptions';
 
 /**
  * Provisioning Service
@@ -32,7 +38,8 @@ export class ProvisioningService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
-    private readonly digitalOceanClient: DigitalOceanClientService
+    private readonly digitalOceanClient: DigitalOceanClientService,
+    private readonly doAccountService: DoAccountService
   ) {
     this.pollIntervalMs = this.configService.get<number>(
       'PROVISIONING_POLL_INTERVAL_MS',
@@ -55,12 +62,13 @@ export class ProvisioningService {
    * 
    * Flow:
    * 1. Validate order exists and status is PAID
-   * 2. Create ProvisioningTask with status PENDING
-   * 3. Update order status to PROVISIONING via state machine
-   * 4. Call DigitalOcean API to create droplet
-   * 5. Save initial droplet metadata
-   * 6. Update task status to IN_PROGRESS
-   * 7. Start async polling (non-blocking)
+   * 2. Select available DO account (multi-account support)
+   * 3. Create ProvisioningTask with status PENDING and doAccountId
+   * 4. Update order status to PROVISIONING via state machine
+   * 5. Call DigitalOcean API to create droplet
+   * 6. Save initial droplet metadata
+   * 7. Update task status to IN_PROGRESS
+   * 8. Start async polling (non-blocking)
    */
   async startProvisioning(orderId: string): Promise<void> {
     this.logger.log(`Starting provisioning for order ${orderId}`);
@@ -82,11 +90,34 @@ export class ProvisioningService {
       throw new PaymentStatusConflictException(order.status, 'PROVISIONING');
     }
 
-    // 2. Create provisioning task with PENDING status
+    // 2. Select available DO account (multi-account support)
+    let doAccount: (DoAccount & { decryptedToken: string }) | null = null;
+    try {
+      doAccount = await this.doAccountService.selectAvailableAccount();
+      this.logger.log(
+        `Selected DO account ${doAccount.name} (${doAccount.id}) for order ${orderId}`
+      );
+    } catch (error) {
+      // If no accounts configured or all full, log and continue with fallback (legacy mode)
+      if (
+        error instanceof NoAvailableAccountException ||
+        error instanceof AllAccountsFullException
+      ) {
+        this.logger.warn(
+          `No multi-account available for order ${orderId}: ${error.message}. Using legacy single-token mode.`
+        );
+      } else {
+        // For other errors, rethrow
+        throw error;
+      }
+    }
+
+    // 3. Create provisioning task with PENDING status (and doAccountId if available)
     const task = await this.prisma.provisioningTask.create({
       data: {
         orderId,
         status: ProvisioningStatus.PENDING,
+        doAccountId: doAccount?.id || null,
         doRegion: this.defaultRegion,
         doSize: this.mapPlanToDoSize(order),
         doImage: this.mapImageToDoImage(order),
@@ -95,13 +126,13 @@ export class ProvisioningService {
 
     this.logger.log(`Created provisioning task ${task.id} for order ${orderId}`);
 
-    // 3. Update order status to PROVISIONING via transaction (state machine)
+    // 4. Update order status to PROVISIONING via transaction (state machine)
     await this.updateOrderToProvisioning(orderId, task.id);
 
-    // 4-7. Create droplet and start polling (async, non-blocking)
+    // 5-8. Create droplet and start polling (async, non-blocking)
     setImmediate(async () => {
       try {
-        await this.executeProvisioning(task.id, order);
+        await this.executeProvisioning(task.id, order, doAccount);
       } catch (error) {
         this.logger.error(
           `Provisioning failed for task ${task.id}:`,
@@ -118,37 +149,79 @@ export class ProvisioningService {
    */
   private async executeProvisioning(
     taskId: string,
-    order: Order
+    order: Order,
+    doAccount: (DoAccount & { decryptedToken: string }) | null
   ): Promise<void> {
     const dropletName = `vps-${order.id.substring(0, 8)}`;
 
     try {
-      // 4. Call DigitalOcean API to create droplet
+      // 5. Call DigitalOcean API to create droplet
       this.logger.log(`Creating droplet for task ${taskId}: ${dropletName}`);
 
-      const droplet = await this.digitalOceanClient.createDroplet({
-        name: dropletName,
-        region: this.defaultRegion,
-        size: this.mapPlanToDoSize(order),
-        image: this.mapImageToDoImage(order),
-        tags: ['webrana', `order-${order.id}`],
-        monitoring: true,
-      });
+      let droplet: Droplet | DropletResponse;
+      let doApiClient: DoApiClient | null = null;
 
-      // 5. Save initial droplet metadata
+      if (doAccount) {
+        // Multi-account mode: use selected account's API client with decrypted token
+        this.logger.log(
+          `Using DO account ${doAccount.name} for droplet creation`
+        );
+        doApiClient = new DoApiClient(doAccount.decryptedToken);
+
+        droplet = await doApiClient.createDroplet({
+          name: dropletName,
+          region: this.defaultRegion,
+          size: this.mapPlanToDoSize(order),
+          image: this.mapImageToDoImage(order),
+          tags: ['webrana', `order-${order.id}`],
+          monitoring: true,
+        });
+
+        // Increment active count for the account
+        await this.doAccountService.incrementActiveCount(doAccount.id);
+        this.logger.log(
+          `Incremented active droplet count for account ${doAccount.id}`
+        );
+      } else {
+        // Legacy mode: use single-token DigitalOceanClientService
+        this.logger.log(
+          'Using legacy single-token mode for droplet creation'
+        );
+        droplet = await this.digitalOceanClient.createDroplet({
+          name: dropletName,
+          region: this.defaultRegion,
+          size: this.mapPlanToDoSize(order),
+          image: this.mapImageToDoImage(order),
+          tags: ['webrana', `order-${order.id}`],
+          monitoring: true,
+        });
+      }
+
+      // 6. Save initial droplet metadata
+      const dropletRegion =
+        'region' in droplet && droplet.region?.slug
+          ? droplet.region.slug
+          : this.defaultRegion;
+      const dropletSizeSlug =
+        'size_slug' in droplet
+          ? droplet.size_slug
+          : 'size' in droplet && droplet.size?.slug
+            ? droplet.size.slug
+            : this.mapPlanToDoSize(order);
+
       await this.prisma.provisioningTask.update({
         where: { id: taskId },
         data: {
           dropletId: String(droplet.id),
           dropletName: droplet.name,
           dropletStatus: droplet.status,
-          doRegion: droplet.region?.slug || this.defaultRegion,
-          doSize: droplet.size_slug || droplet.size?.slug,
+          doRegion: dropletRegion,
+          doSize: dropletSizeSlug,
           startedAt: new Date(),
         },
       });
 
-      // 6. Update task status to IN_PROGRESS
+      // 7. Update task status to IN_PROGRESS
       await this.prisma.provisioningTask.update({
         where: { id: taskId },
         data: { status: ProvisioningStatus.IN_PROGRESS },
@@ -158,8 +231,8 @@ export class ProvisioningService {
         `Droplet ${droplet.id} created, starting polling for task ${taskId}`
       );
 
-      // 7. Start polling
-      await this.pollDropletStatus(taskId, String(droplet.id));
+      // 8. Start polling (with account client if available)
+      await this.pollDropletStatus(taskId, String(droplet.id), doApiClient);
     } catch (error) {
       // Handle creation failure
       const errorMessage =
@@ -176,8 +249,16 @@ export class ProvisioningService {
 
   /**
    * Poll droplet status until active, errored, or timeout
+   * 
+   * @param taskId The provisioning task ID
+   * @param dropletId The DigitalOcean droplet ID
+   * @param doApiClient Optional DoApiClient for multi-account mode (falls back to legacy client)
    */
-  async pollDropletStatus(taskId: string, dropletId: string): Promise<void> {
+  async pollDropletStatus(
+    taskId: string,
+    dropletId: string,
+    doApiClient?: DoApiClient | null
+  ): Promise<void> {
     this.logger.log(
       `Starting polling for task ${taskId}, droplet ${dropletId} (interval: ${this.pollIntervalMs}ms, max: ${this.maxAttempts})`
     );
@@ -188,11 +269,16 @@ export class ProvisioningService {
       attempts++;
 
       try {
-        // Get current droplet status
-        const droplet = await this.digitalOceanClient.getDroplet(dropletId);
+        // Get current droplet status (use multi-account client if available)
+        let droplet: Droplet | DropletResponse;
+        if (doApiClient) {
+          droplet = await doApiClient.getDroplet(Number(dropletId));
+        } else {
+          droplet = await this.digitalOceanClient.getDroplet(dropletId);
+        }
 
         // Update metadata in DB
-        await this.updateDropletMetadata(taskId, droplet);
+        await this.updateDropletMetadataGeneric(taskId, droplet, doApiClient);
 
         this.logger.debug(
           `Poll ${attempts}/${this.maxAttempts}: Droplet ${dropletId} status = ${droplet.status}`
@@ -253,7 +339,7 @@ export class ProvisioningService {
   }
 
   /**
-   * Update droplet metadata in ProvisioningTask
+   * Update droplet metadata in ProvisioningTask (legacy method for backward compatibility)
    */
   private async updateDropletMetadata(
     taskId: string,
@@ -261,6 +347,43 @@ export class ProvisioningService {
   ): Promise<void> {
     const publicIp = this.digitalOceanClient.extractPublicIpv4(droplet);
     const privateIp = this.digitalOceanClient.extractPrivateIpv4(droplet);
+
+    await this.prisma.provisioningTask.update({
+      where: { id: taskId },
+      data: {
+        dropletStatus: droplet.status,
+        ipv4Public: publicIp,
+        ipv4Private: privateIp,
+        dropletTags: droplet.tags || [],
+        dropletCreatedAt: droplet.created_at
+          ? new Date(droplet.created_at)
+          : null,
+        attempts: { increment: 1 },
+      },
+    });
+  }
+
+  /**
+   * Update droplet metadata in ProvisioningTask (generic method for multi-account support)
+   * 
+   * Handles both Droplet (from DoApiClient) and DropletResponse (from legacy client)
+   */
+  private async updateDropletMetadataGeneric(
+    taskId: string,
+    droplet: Droplet | DropletResponse,
+    doApiClient?: DoApiClient | null
+  ): Promise<void> {
+    // Extract IPs (both types have the same network structure)
+    let publicIp: string | null = null;
+    let privateIp: string | null = null;
+
+    if (doApiClient) {
+      publicIp = doApiClient.extractPublicIpv4(droplet as Droplet);
+      privateIp = doApiClient.extractPrivateIpv4(droplet as Droplet);
+    } else {
+      publicIp = this.digitalOceanClient.extractPublicIpv4(droplet as DropletResponse);
+      privateIp = this.digitalOceanClient.extractPrivateIpv4(droplet as DropletResponse);
+    }
 
     await this.prisma.provisioningTask.update({
       where: { id: taskId },

@@ -98,6 +98,18 @@ Custom skills untuk webrana-cloud project, terletak di `.factory/droids/`.
 | **Senior Copywriter** | `/droid senior-copywriter` | `/copy` | Landing page copy, UX writing, product content |
 | **Senior Marketing Specialist** | `/droid senior-marketing-specialist` | `/marketing` | GTM strategy, campaigns, SEO, growth |
 
+### Specialized Skills (`.factory/skills/`)
+
+| Skill | Command | Purpose | Collaborates With |
+|-------|---------|---------|-------------------|
+| **shadcn-management** | `/skill shadcn-management` | Manage shadcn/ui components, build complex UI features | frontend-engineer, frontend-design |
+| **frontend-ui-animator** | `/skill frontend-ui-animator` | UI animations, micro-interactions, scroll reveals | frontend-engineer, frontend-design |
+| **frontend-design** | `/skill frontend-design` | Visual design direction, custom theming, distinctive aesthetics | ui-ux-designer, shadcn-management |
+| **browser** | `/skill browser` | Browser automation, visual QA, DOM inspection, screenshots | qa-engineer, frontend-engineer |
+| **skill-creator** | `/skill skill-creator` | Create & package new skills untuk expand team capabilities | all droids |
+| **skill-checker** | `/skill skill-checker` | Automatic routing to applicable skills | all skills |
+| **using-droids** | `/skill using-droids` | Gateway skill for task analysis | all droids |
+
 ### Typical Workflow
 
 ```

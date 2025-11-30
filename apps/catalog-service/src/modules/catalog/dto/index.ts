@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer';
 import {
   IsString,
   IsNotEmpty,
@@ -13,9 +14,15 @@ import {
   IsUUID,
   IsDateString,
 } from 'class-validator';
-import { Type } from 'class-transformer';
 
 export enum PlanDurationDto {
+  MONTHLY = 'MONTHLY',
+  YEARLY = 'YEARLY',
+}
+
+// Billing period enum for the new pricing system
+export enum BillingPeriodDto {
+  DAILY = 'DAILY',
   MONTHLY = 'MONTHLY',
   YEARLY = 'YEARLY',
 }
@@ -336,4 +343,55 @@ export class UpdateImageDto {
   @IsOptional()
   @IsInt({ message: 'sortOrder harus berupa integer' })
   sortOrder?: number;
+}
+
+// ========================================
+// BILLING PERIOD PRICING DTOs
+// ========================================
+
+export class UpdatePlanPricingDto {
+  @IsOptional()
+  @IsInt({ message: 'priceHourly harus berupa integer' })
+  @Min(0, { message: 'priceHourly tidak boleh negatif' })
+  priceHourly?: number;
+
+  @IsOptional()
+  @IsInt({ message: 'priceDaily harus berupa integer' })
+  @Min(0, { message: 'priceDaily tidak boleh negatif' })
+  priceDaily?: number;
+
+  @IsOptional()
+  @IsInt({ message: 'priceMonthly harus berupa integer' })
+  @Min(0, { message: 'priceMonthly tidak boleh negatif' })
+  priceMonthly?: number;
+
+  @IsOptional()
+  @IsInt({ message: 'priceYearly harus berupa integer' })
+  @Min(0, { message: 'priceYearly tidak boleh negatif' })
+  priceYearly?: number;
+
+  @IsOptional()
+  @IsBoolean({ message: 'allowDaily harus berupa boolean' })
+  allowDaily?: boolean;
+
+  @IsOptional()
+  @IsBoolean({ message: 'allowMonthly harus berupa boolean' })
+  allowMonthly?: boolean;
+
+  @IsOptional()
+  @IsBoolean({ message: 'allowYearly harus berupa boolean' })
+  allowYearly?: boolean;
+}
+
+// Response type for available periods (not validated, used for responses)
+export interface AvailablePeriodResponse {
+  period: string;
+  price: number;
+  pricePerMonth: number;
+}
+
+export interface PlanPriceResponse {
+  planId: string;
+  period: string;
+  price: number;
 }

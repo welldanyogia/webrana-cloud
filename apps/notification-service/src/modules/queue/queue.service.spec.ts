@@ -3,354 +3,355 @@ import { ConfigService } from '@nestjs/config';
 
 import { QueueService, NotificationJob, JobHandler } from './queue.service';
 
-// Mock Redis
+// Create mock Redis instance that will be used across tests
+const mockRedisInstance = {
+  ping: jest.fn().mockResolvedValue('PONG'),
+  quit: jest.fn().mockResolvedValue('OK'),
+  lpush: jest.fn().mockResolvedValue(1),
+  llen: jest.fn().mockResolvedValue(0),
+  lrem: jest.fn().mockResolvedValue(1),
+  del: jest.fn().mockResolvedValue(1),
+  rpoplpush: jest.fn().mockResolvedValue(null),
+  lset: jest.fn().mockResolvedValue('OK'),
+  brpoplpush: jest.fn().mockResolvedValue(null),
+};
+
+// Mock Redis before importing the service
 jest.mock('ioredis', () => {
-  return jest.fn().mockImplementation(() => ({
-    ping: jest.fn().mockResolvedValue('PONG'),
-    quit: jest.fn().mockResolvedValue('OK'),
-    lpush: jest.fn().mockResolvedValue(1),
-    llen: jest.fn().mockResolvedValue(0),
-    lrem: jest.fn().mockResolvedValue(1),
-    del: jest.fn().mockResolvedValue(1),
-    rpoplpush: jest.fn().mockResolvedValue(null),
-    lset: jest.fn().mockResolvedValue('OK'),
-    brpoplpush: jest.fn().mockResolvedValue(null),
-  }));
+  return jest.fn().mockImplementation(() => mockRedisInstance);
 });
 
 describe('QueueService', () => {
   let service: QueueService;
-  let configService: jest.Mocked<ConfigService>;
 
-  const mockConfigService = {
+  const createConfigService = (redisUrl?: string) => ({
     get: jest.fn((key: string, defaultValue?: any) => {
       const config: Record<string, any> = {
-        REDIS_URL: 'redis://localhost:6379',
+        REDIS_URL: redisUrl,
         QUEUE_MAX_ATTEMPTS: 3,
         QUEUE_POLL_INTERVAL: 1000,
       };
       return config[key] ?? defaultValue;
     }),
-  };
-
-  beforeEach(async () => {
-    jest.clearAllMocks();
-
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        QueueService,
-        {
-          provide: ConfigService,
-          useValue: mockConfigService,
-        },
-      ],
-    }).compile();
-
-    service = module.get<QueueService>(QueueService);
-    configService = module.get(ConfigService);
   });
 
-  afterEach(async () => {
-    await service.onModuleDestroy();
-  });
-
-  it('should be defined', () => {
-    expect(service).toBeDefined();
-  });
-
-  describe('onModuleInit', () => {
-    it('should connect to Redis when REDIS_URL is provided', async () => {
-      await service.onModuleInit();
-
-      expect(service.isQueueAvailable()).toBe(true);
-    });
-
-    it('should not connect when REDIS_URL is not provided', async () => {
-      mockConfigService.get.mockImplementation((key: string, defaultValue?: any) => {
-        if (key === 'REDIS_URL') return undefined;
-        return defaultValue;
-      });
-
-      const moduleWithoutRedis = await Test.createTestingModule({
-        providers: [
-          QueueService,
-          {
-            provide: ConfigService,
-            useValue: mockConfigService,
-          },
-        ],
-      }).compile();
-
-      const serviceWithoutRedis = moduleWithoutRedis.get<QueueService>(QueueService);
-      await serviceWithoutRedis.onModuleInit();
-
-      expect(serviceWithoutRedis.isQueueAvailable()).toBe(false);
-    });
-  });
-
-  describe('isQueueAvailable', () => {
-    it('should return true when Redis is connected', async () => {
-      await service.onModuleInit();
-
-      expect(service.isQueueAvailable()).toBe(true);
-    });
-
-    it('should return false when Redis is not connected', () => {
-      // Before init, Redis is not connected
-      expect(service.isQueueAvailable()).toBe(false);
-    });
-  });
-
-  describe('addJob', () => {
+  describe('with Redis available', () => {
     beforeEach(async () => {
-      await service.onModuleInit();
-    });
+      jest.clearAllMocks();
+      // Reset mock implementations
+      mockRedisInstance.ping.mockResolvedValue('PONG');
+      mockRedisInstance.llen.mockResolvedValue(0);
+      mockRedisInstance.lpush.mockResolvedValue(1);
+      mockRedisInstance.del.mockResolvedValue(1);
+      mockRedisInstance.rpoplpush.mockResolvedValue(null);
 
-    it('should add job to queue and return job ID', async () => {
-      const jobId = await service.addJob('ORDER_CREATED', 'user-123', {
-        orderNumber: 'ORD-001',
-      });
-
-      expect(jobId).toBeDefined();
-      expect(jobId).toContain('notif_');
-    });
-
-    it('should return null when Redis is not available', async () => {
-      // Create service without Redis
-      mockConfigService.get.mockImplementation((key: string, defaultValue?: any) => {
-        if (key === 'REDIS_URL') return undefined;
-        return defaultValue;
-      });
-
-      const moduleWithoutRedis = await Test.createTestingModule({
+      const module: TestingModule = await Test.createTestingModule({
         providers: [
           QueueService,
           {
             provide: ConfigService,
-            useValue: mockConfigService,
+            useValue: createConfigService('redis://localhost:6379'),
           },
         ],
       }).compile();
 
-      const serviceWithoutRedis = moduleWithoutRedis.get<QueueService>(QueueService);
-      await serviceWithoutRedis.onModuleInit();
-
-      const jobId = await serviceWithoutRedis.addJob('ORDER_CREATED', 'user-123', {});
-
-      expect(jobId).toBeNull();
+      service = module.get<QueueService>(QueueService);
+      await service.onModuleInit();
     });
 
-    it('should create job with correct structure', async () => {
-      const event = 'PAYMENT_CONFIRMED';
-      const userId = 'user-123';
-      const data = { amount: 100000 };
+    afterEach(async () => {
+      service.stopProcessing();
+      await service.onModuleDestroy();
+    });
 
-      const jobId = await service.addJob(event, userId, data);
+    it('should be defined', () => {
+      expect(service).toBeDefined();
+    });
 
-      expect(jobId).toBeDefined();
-      // Verify job structure would be created correctly
+    describe('isQueueAvailable', () => {
+      it('should return true when Redis is connected', () => {
+        expect(service.isQueueAvailable()).toBe(true);
+      });
+    });
+
+    describe('addJob', () => {
+      it('should add job to queue and return job ID', async () => {
+        const jobId = await service.addJob('ORDER_CREATED', 'user-123', {
+          orderNumber: 'ORD-001',
+        });
+
+        expect(jobId).toBeDefined();
+        expect(jobId).toContain('notif_');
+        expect(mockRedisInstance.lpush).toHaveBeenCalled();
+      });
+
+      it('should create job with correct event and userId', async () => {
+        const event = 'PAYMENT_CONFIRMED';
+        const userId = 'user-456';
+        const data = { amount: 100000 };
+
+        await service.addJob(event, userId, data);
+
+        expect(mockRedisInstance.lpush).toHaveBeenCalledWith(
+          'notification:queue',
+          expect.stringContaining('"event":"PAYMENT_CONFIRMED"')
+        );
+        expect(mockRedisInstance.lpush).toHaveBeenCalledWith(
+          'notification:queue',
+          expect.stringContaining('"userId":"user-456"')
+        );
+      });
+
+      it('should include maxAttempts in job data', async () => {
+        await service.addJob('VPS_ACTIVE', 'user-789', { ip: '1.2.3.4' });
+
+        expect(mockRedisInstance.lpush).toHaveBeenCalledWith(
+          'notification:queue',
+          expect.stringContaining('"maxAttempts":3')
+        );
+      });
+
+      it('should handle lpush failure gracefully', async () => {
+        mockRedisInstance.lpush.mockRejectedValueOnce(new Error('Redis error'));
+
+        const jobId = await service.addJob('ORDER_CREATED', 'user-123', {});
+
+        expect(jobId).toBeNull();
+      });
+    });
+
+    describe('getStats', () => {
+      it('should return queue statistics', async () => {
+        mockRedisInstance.llen
+          .mockResolvedValueOnce(10) // pending
+          .mockResolvedValueOnce(2)  // processing
+          .mockResolvedValueOnce(5); // failed
+
+        const stats = await service.getStats();
+
+        expect(stats).toEqual({
+          pending: 10,
+          processing: 2,
+          failed: 5,
+          connected: true,
+        });
+      });
+
+      it('should handle llen failure gracefully', async () => {
+        mockRedisInstance.llen.mockRejectedValueOnce(new Error('Redis error'));
+
+        const stats = await service.getStats();
+
+        expect(stats).toEqual({
+          pending: 0,
+          processing: 0,
+          failed: 0,
+          connected: false,
+        });
+      });
+    });
+
+    describe('clearFailedJobs', () => {
+      it('should clear failed jobs and return count', async () => {
+        mockRedisInstance.llen.mockResolvedValueOnce(15);
+        mockRedisInstance.del.mockResolvedValueOnce(1);
+
+        const count = await service.clearFailedJobs();
+
+        expect(count).toBe(15);
+        expect(mockRedisInstance.del).toHaveBeenCalledWith('notification:failed');
+      });
+
+      it('should handle del failure gracefully', async () => {
+        mockRedisInstance.llen.mockResolvedValueOnce(10);
+        mockRedisInstance.del.mockRejectedValueOnce(new Error('Redis error'));
+
+        const count = await service.clearFailedJobs();
+
+        expect(count).toBe(0);
+      });
+    });
+
+    describe('retryFailedJobs', () => {
+      it('should retry failed jobs and return count', async () => {
+        const failedJob = JSON.stringify({
+          id: 'job-1',
+          event: 'ORDER_CREATED',
+          userId: 'user-123',
+          data: {},
+          attempts: 3,
+          maxAttempts: 3,
+        });
+
+        mockRedisInstance.rpoplpush
+          .mockResolvedValueOnce(failedJob)
+          .mockResolvedValueOnce(null);
+
+        const count = await service.retryFailedJobs();
+
+        expect(count).toBe(1);
+      });
+
+      it('should reset attempts to 0 when retrying', async () => {
+        const failedJob = JSON.stringify({
+          id: 'job-1',
+          event: 'ORDER_CREATED',
+          userId: 'user-123',
+          data: {},
+          attempts: 3,
+          maxAttempts: 3,
+        });
+
+        mockRedisInstance.rpoplpush
+          .mockResolvedValueOnce(failedJob)
+          .mockResolvedValueOnce(null);
+
+        await service.retryFailedJobs();
+
+        expect(mockRedisInstance.lset).toHaveBeenCalledWith(
+          'notification:queue',
+          0,
+          expect.stringContaining('"attempts":0')
+        );
+      });
+
+      it('should return 0 when no failed jobs', async () => {
+        mockRedisInstance.rpoplpush.mockResolvedValue(null);
+
+        const count = await service.retryFailedJobs();
+
+        expect(count).toBe(0);
+      });
+
+      it('should handle rpoplpush failure gracefully', async () => {
+        mockRedisInstance.rpoplpush.mockRejectedValueOnce(new Error('Redis error'));
+
+        const count = await service.retryFailedJobs();
+
+        expect(count).toBe(0);
+      });
+    });
+
+    describe('registerHandler', () => {
+      it('should register job handler without throwing', () => {
+        const handler: JobHandler = jest.fn();
+
+        expect(() => service.registerHandler(handler)).not.toThrow();
+      });
+    });
+
+    describe('stopProcessing', () => {
+      it('should stop processing without error', () => {
+        const handler: JobHandler = jest.fn();
+        service.registerHandler(handler);
+
+        // Should not throw
+        expect(() => service.stopProcessing()).not.toThrow();
+      });
     });
   });
 
-  describe('getStats', () => {
+  describe('without Redis (synchronous fallback)', () => {
     beforeEach(async () => {
+      jest.clearAllMocks();
+
+      const module: TestingModule = await Test.createTestingModule({
+        providers: [
+          QueueService,
+          {
+            provide: ConfigService,
+            useValue: createConfigService(undefined), // No REDIS_URL
+          },
+        ],
+      }).compile();
+
+      service = module.get<QueueService>(QueueService);
       await service.onModuleInit();
     });
 
-    it('should return queue statistics', async () => {
-      const stats = await service.getStats();
+    afterEach(async () => {
+      await service.onModuleDestroy();
+    });
 
-      expect(stats).toEqual({
-        pending: expect.any(Number),
-        processing: expect.any(Number),
-        failed: expect.any(Number),
-        connected: true,
+    it('should be defined', () => {
+      expect(service).toBeDefined();
+    });
+
+    describe('isQueueAvailable', () => {
+      it('should return false when Redis is not configured', () => {
+        expect(service.isQueueAvailable()).toBe(false);
       });
     });
 
-    it('should return zeros when Redis is not available', async () => {
-      mockConfigService.get.mockImplementation((key: string, defaultValue?: any) => {
-        if (key === 'REDIS_URL') return undefined;
-        return defaultValue;
+    describe('addJob', () => {
+      it('should return null when Redis is not available', async () => {
+        const jobId = await service.addJob('ORDER_CREATED', 'user-123', {});
+
+        expect(jobId).toBeNull();
       });
+    });
 
-      const moduleWithoutRedis = await Test.createTestingModule({
-        providers: [
-          QueueService,
-          {
-            provide: ConfigService,
-            useValue: mockConfigService,
-          },
-        ],
-      }).compile();
+    describe('getStats', () => {
+      it('should return zeros when Redis is not available', async () => {
+        const stats = await service.getStats();
 
-      const serviceWithoutRedis = moduleWithoutRedis.get<QueueService>(QueueService);
-      await serviceWithoutRedis.onModuleInit();
+        expect(stats).toEqual({
+          pending: 0,
+          processing: 0,
+          failed: 0,
+          connected: false,
+        });
+      });
+    });
 
-      const stats = await serviceWithoutRedis.getStats();
+    describe('clearFailedJobs', () => {
+      it('should return 0 when Redis is not available', async () => {
+        const count = await service.clearFailedJobs();
 
-      expect(stats).toEqual({
-        pending: 0,
-        processing: 0,
-        failed: 0,
-        connected: false,
+        expect(count).toBe(0);
+      });
+    });
+
+    describe('retryFailedJobs', () => {
+      it('should return 0 when Redis is not available', async () => {
+        const count = await service.retryFailedJobs();
+
+        expect(count).toBe(0);
+      });
+    });
+
+    describe('startProcessing', () => {
+      it('should not start processing without Redis', async () => {
+        const handler: JobHandler = jest.fn();
+        service.registerHandler(handler);
+
+        await service.startProcessing();
+
+        // Should complete without error
+        expect(handler).not.toHaveBeenCalled();
       });
     });
   });
 
-  describe('clearFailedJobs', () => {
-    beforeEach(async () => {
-      await service.onModuleInit();
-    });
+  describe('Redis connection failure handling', () => {
+    it('should handle ping failure during init', async () => {
+      mockRedisInstance.ping.mockRejectedValueOnce(new Error('Connection refused'));
 
-    it('should clear failed jobs and return count', async () => {
-      const count = await service.clearFailedJobs();
-
-      expect(count).toBeGreaterThanOrEqual(0);
-    });
-
-    it('should return 0 when Redis is not available', async () => {
-      mockConfigService.get.mockImplementation((key: string, defaultValue?: any) => {
-        if (key === 'REDIS_URL') return undefined;
-        return defaultValue;
-      });
-
-      const moduleWithoutRedis = await Test.createTestingModule({
+      const module: TestingModule = await Test.createTestingModule({
         providers: [
           QueueService,
           {
             provide: ConfigService,
-            useValue: mockConfigService,
+            useValue: createConfigService('redis://localhost:6379'),
           },
         ],
       }).compile();
 
-      const serviceWithoutRedis = moduleWithoutRedis.get<QueueService>(QueueService);
-      await serviceWithoutRedis.onModuleInit();
+      const failingService = module.get<QueueService>(QueueService);
+      await failingService.onModuleInit();
 
-      const count = await serviceWithoutRedis.clearFailedJobs();
-
-      expect(count).toBe(0);
-    });
-  });
-
-  describe('retryFailedJobs', () => {
-    beforeEach(async () => {
-      await service.onModuleInit();
-    });
-
-    it('should retry failed jobs and return count', async () => {
-      const count = await service.retryFailedJobs();
-
-      expect(count).toBeGreaterThanOrEqual(0);
-    });
-
-    it('should return 0 when Redis is not available', async () => {
-      mockConfigService.get.mockImplementation((key: string, defaultValue?: any) => {
-        if (key === 'REDIS_URL') return undefined;
-        return defaultValue;
-      });
-
-      const moduleWithoutRedis = await Test.createTestingModule({
-        providers: [
-          QueueService,
-          {
-            provide: ConfigService,
-            useValue: mockConfigService,
-          },
-        ],
-      }).compile();
-
-      const serviceWithoutRedis = moduleWithoutRedis.get<QueueService>(QueueService);
-      await serviceWithoutRedis.onModuleInit();
-
-      const count = await serviceWithoutRedis.retryFailedJobs();
-
-      expect(count).toBe(0);
-    });
-  });
-
-  describe('registerHandler', () => {
-    it('should register job handler', () => {
-      const handler: JobHandler = jest.fn();
-
-      // Should not throw
-      expect(() => service.registerHandler(handler)).not.toThrow();
-    });
-  });
-
-  describe('startProcessing and stopProcessing', () => {
-    beforeEach(async () => {
-      await service.onModuleInit();
-    });
-
-    it('should stop processing when stopProcessing is called', () => {
-      const handler: JobHandler = jest.fn();
-      service.registerHandler(handler);
-
-      // Should not throw
-      expect(() => service.stopProcessing()).not.toThrow();
-    });
-
-    it('should not start processing without handler', async () => {
-      // Don't register handler
-      await service.startProcessing();
-
-      // Should log warning but not throw
-    });
-
-    it('should not start processing without Redis', async () => {
-      mockConfigService.get.mockImplementation((key: string, defaultValue?: any) => {
-        if (key === 'REDIS_URL') return undefined;
-        return defaultValue;
-      });
-
-      const moduleWithoutRedis = await Test.createTestingModule({
-        providers: [
-          QueueService,
-          {
-            provide: ConfigService,
-            useValue: mockConfigService,
-          },
-        ],
-      }).compile();
-
-      const serviceWithoutRedis = moduleWithoutRedis.get<QueueService>(QueueService);
-      serviceWithoutRedis.registerHandler(jest.fn());
-
-      // Should not throw
-      await serviceWithoutRedis.startProcessing();
-    });
-  });
-
-  describe('Graceful degradation', () => {
-    it('should work synchronously when Redis is unavailable', async () => {
-      mockConfigService.get.mockImplementation((key: string, defaultValue?: any) => {
-        if (key === 'REDIS_URL') return undefined;
-        return defaultValue;
-      });
-
-      const moduleWithoutRedis = await Test.createTestingModule({
-        providers: [
-          QueueService,
-          {
-            provide: ConfigService,
-            useValue: mockConfigService,
-          },
-        ],
-      }).compile();
-
-      const serviceWithoutRedis = moduleWithoutRedis.get<QueueService>(QueueService);
-      await serviceWithoutRedis.onModuleInit();
-
-      // All operations should complete without error
-      expect(serviceWithoutRedis.isQueueAvailable()).toBe(false);
-
-      const jobId = await serviceWithoutRedis.addJob('TEST', 'user-1', {});
-      expect(jobId).toBeNull();
-
-      const stats = await serviceWithoutRedis.getStats();
-      expect(stats.connected).toBe(false);
+      // Should fallback to unavailable state
+      expect(failingService.isQueueAvailable()).toBe(false);
     });
   });
 });

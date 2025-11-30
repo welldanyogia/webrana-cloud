@@ -10,6 +10,11 @@ export enum NotificationEventType {
   VPS_ACTIVE = 'VPS_ACTIVE',
   PROVISIONING_FAILED = 'PROVISIONING_FAILED',
   VPS_EXPIRING = 'VPS_EXPIRING',
+  VPS_EXPIRING_SOON = 'VPS_EXPIRING_SOON',
+  VPS_SUSPENDED = 'VPS_SUSPENDED',
+  VPS_DESTROYED = 'VPS_DESTROYED',
+  RENEWAL_SUCCESS = 'RENEWAL_SUCCESS',
+  RENEWAL_FAILED = 'RENEWAL_FAILED',
   GENERIC = 'GENERIC',
 }
 
@@ -75,6 +80,56 @@ export interface ProvisioningFailedNotificationData {
   planName: string;
   errorMessage: string;
   supportEmail?: string;
+}
+
+/**
+ * VPS Expiring Soon Data (Lifecycle Notification)
+ */
+export interface VpsExpiringSoonNotificationData {
+  orderId: string;
+  planName: string;
+  expiresAt: string;
+  hoursRemaining: number;
+  autoRenew: boolean;
+}
+
+/**
+ * VPS Suspended Data (Lifecycle Notification)
+ */
+export interface VpsSuspendedNotificationData {
+  orderId: string;
+  planName: string;
+  suspendedAt: string;
+  gracePeriodHours: number;
+}
+
+/**
+ * VPS Destroyed Data (Lifecycle Notification)
+ */
+export interface VpsDestroyedNotificationData {
+  orderId: string;
+  planName: string;
+  reason: string;
+  terminatedAt: string;
+}
+
+/**
+ * Renewal Success Data (Lifecycle Notification)
+ */
+export interface RenewalSuccessNotificationData {
+  orderId: string;
+  planName: string;
+  newExpiry: string;
+  amount: number;
+}
+
+/**
+ * Renewal Failed Data (Lifecycle Notification)
+ */
+export interface RenewalFailedNotificationData {
+  orderId: string;
+  planName: string;
+  required: number;
 }
 
 /**

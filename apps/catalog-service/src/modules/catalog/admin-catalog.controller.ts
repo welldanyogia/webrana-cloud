@@ -7,8 +7,8 @@ import {
   Body,
   Param,
 } from '@nestjs/common';
-import { VpsPlanService } from './vps-plan.service';
-import { VpsImageService } from './vps-image.service';
+import { PlanDuration, DiscountType, ImageCategory } from '@prisma/client';
+
 import {
   CreatePlanDto,
   UpdatePlanDto,
@@ -19,11 +19,10 @@ import {
   AddPlanImageDto,
   CreateImageDto,
   UpdateImageDto,
-  PlanDurationDto,
-  DiscountTypeDto,
-  ImageCategoryDto,
+  UpdatePlanPricingDto,
 } from './dto';
-import { PlanDuration, DiscountType, ImageCategory } from '@prisma/client';
+import { VpsImageService } from './vps-image.service';
+import { VpsPlanService } from './vps-plan.service';
 
 @Controller('admin/catalog')
 export class AdminCatalogController {
@@ -74,7 +73,19 @@ export class AdminCatalogController {
   }
 
   // ========================================
-  // PLAN PRICING ENDPOINTS
+  // BILLING PERIOD PRICING ENDPOINTS
+  // ========================================
+
+  @Patch('plans/:id/billing-pricing')
+  async updateBillingPricing(
+    @Param('id') id: string,
+    @Body() dto: UpdatePlanPricingDto
+  ) {
+    return this.vpsPlanService.updatePlanPricing(id, dto);
+  }
+
+  // ========================================
+  // PLAN PRICING ENDPOINTS (Legacy)
   // ========================================
 
   @Post('plans/:planId/pricings')

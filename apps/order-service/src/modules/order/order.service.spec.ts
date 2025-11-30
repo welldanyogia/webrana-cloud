@@ -2,15 +2,18 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { OrderService } from './order.service';
 import { PrismaService } from '../../prisma/prisma.service';
 import { CatalogClientService } from '../catalog-client/catalog-client.service';
+import { BillingClientService } from '../billing-client/billing-client.service';
+import { DoAccountService } from '../do-account/do-account.service';
 import { OrderStateMachine } from './order-state-machine';
 import { CreateOrderDto } from './dto';
 import {
   OrderNotFoundException,
   OrderAccessDeniedException,
   InvalidDurationException,
+  InvalidBillingPeriodException,
   PaymentStatusConflictException,
 } from '../../common/exceptions';
-import { OrderStatus, PlanDuration, ItemType } from '@prisma/client';
+import { OrderStatus, PlanDuration, BillingPeriod, ItemType } from '@prisma/client';
 
 describe('OrderService', () => {
   let service: OrderService;
@@ -31,6 +34,14 @@ describe('OrderService', () => {
     isActive: true,
     sortOrder: 1,
     tags: [],
+    // New billing period pricing fields
+    priceDaily: 10000,
+    priceMonthly: 150000,
+    priceYearly: 1500000,
+    allowDaily: true,
+    allowMonthly: true,
+    allowYearly: true,
+    // Legacy pricings for backward compat
     pricings: [
       {
         id: 'pricing-1',
@@ -73,6 +84,7 @@ describe('OrderService', () => {
     imageId: 'image-123',
     imageName: 'Ubuntu 22.04 LTS',
     duration: PlanDuration.MONTHLY,
+    billingPeriod: BillingPeriod.MONTHLY,
     basePrice: 150000,
     promoDiscount: 15000,
     couponCode: null,
@@ -80,9 +92,15 @@ describe('OrderService', () => {
     finalPrice: 135000,
     currency: 'IDR',
     status: OrderStatus.PENDING_PAYMENT,
+    version: 0,
+    autoRenew: true,
     createdAt: new Date(),
     updatedAt: new Date(),
     paidAt: null,
+    activatedAt: null,
+    expiresAt: null,
+    suspendedAt: null,
+    terminatedAt: null,
   };
 
   const mockPrismaService = {
@@ -91,12 +109,16 @@ describe('OrderService', () => {
       findUnique: jest.fn(),
       findMany: jest.fn(),
       update: jest.fn(),
+      updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       count: jest.fn(),
     },
     orderItem: {
       create: jest.fn(),
     },
     statusHistory: {
+      create: jest.fn(),
+    },
+    renewalHistory: {
       create: jest.fn(),
     },
     $transaction: jest.fn((callback) => callback(mockPrismaService)),
@@ -106,6 +128,24 @@ describe('OrderService', () => {
     getPlanById: jest.fn(),
     getImageById: jest.fn(),
     validateCoupon: jest.fn(),
+  };
+
+  const mockBillingClientService = {
+    getBalance: jest.fn().mockResolvedValue(500000),
+    checkSufficientBalance: jest.fn().mockResolvedValue(true),
+    deductBalance: jest.fn().mockResolvedValue(undefined),
+    refundBalance: jest.fn().mockResolvedValue(undefined),
+  };
+
+  const mockDoAccountService = {
+    getDecryptedToken: jest.fn().mockResolvedValue('mock-do-token'),
+    selectAvailableAccount: jest.fn().mockResolvedValue({ id: 'do-account-123' }),
+    incrementActiveCount: jest.fn().mockResolvedValue(undefined),
+    decrementActiveCount: jest.fn().mockResolvedValue(undefined),
+    getDropletConsoleUrl: jest.fn().mockResolvedValue({ 
+      url: 'https://console.digitalocean.com/test', 
+      expiresAt: new Date().toISOString() 
+    }),
   };
 
   beforeEach(async () => {
@@ -119,6 +159,14 @@ describe('OrderService', () => {
         {
           provide: CatalogClientService,
           useValue: mockCatalogClientService,
+        },
+        {
+          provide: BillingClientService,
+          useValue: mockBillingClientService,
+        },
+        {
+          provide: DoAccountService,
+          useValue: mockDoAccountService,
         },
       ],
     }).compile();
@@ -136,7 +184,7 @@ describe('OrderService', () => {
     const createOrderDto: CreateOrderDto = {
       planId: 'plan-123',
       imageId: 'image-123',
-      duration: PlanDuration.MONTHLY,
+      billingPeriod: BillingPeriod.MONTHLY,
     };
 
     it('should create an order with pricing snapshot from catalog', async () => {
@@ -193,14 +241,20 @@ describe('OrderService', () => {
       });
     });
 
-    it('should throw InvalidDurationException if duration not available', async () => {
-      const planNoPricing = { ...mockPlan, pricings: [] };
-      mockCatalogClientService.getPlanById.mockResolvedValue(planNoPricing);
+    it('should throw InvalidBillingPeriodException if billing period not available', async () => {
+      // Plan with no pricings at all
+      const planNoPricings = { 
+        ...mockPlan, 
+        pricings: [],  // Empty pricings array
+        allowMonthly: false, 
+        priceMonthly: null 
+      };
+      mockCatalogClientService.getPlanById.mockResolvedValue(planNoPricings);
       mockCatalogClientService.getImageById.mockResolvedValue(mockImage);
 
       await expect(
         service.createOrder('user-123', createOrderDto)
-      ).rejects.toThrow(InvalidDurationException);
+      ).rejects.toThrow(InvalidBillingPeriodException);
     });
   });
 
@@ -394,8 +448,8 @@ describe('OrderStateMachine', () => {
   });
 
   describe('isTerminalState', () => {
-    it('should identify ACTIVE as terminal', () => {
-      expect(OrderStateMachine.isTerminalState(OrderStatus.ACTIVE)).toBe(true);
+    it('should identify TERMINATED as terminal', () => {
+      expect(OrderStateMachine.isTerminalState(OrderStatus.TERMINATED)).toBe(true);
     });
 
     it('should identify FAILED as terminal', () => {
@@ -404,6 +458,10 @@ describe('OrderStateMachine', () => {
 
     it('should identify CANCELED as terminal', () => {
       expect(OrderStateMachine.isTerminalState(OrderStatus.CANCELED)).toBe(true);
+    });
+
+    it('should NOT identify ACTIVE as terminal (can transition to EXPIRING_SOON)', () => {
+      expect(OrderStateMachine.isTerminalState(OrderStatus.ACTIVE)).toBe(false);
     });
 
     it('should NOT identify PENDING_PAYMENT as terminal', () => {

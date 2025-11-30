@@ -1,3 +1,4 @@
+import React from 'react';
 import '@testing-library/jest-dom';
 import { cleanup } from '@testing-library/react';
 import { afterEach, vi } from 'vitest';
@@ -19,6 +20,21 @@ vi.mock('next/navigation', () => ({
   }),
   usePathname: () => '/',
   useSearchParams: () => new URLSearchParams(),
+}));
+
+// Mock Next.js Image component
+vi.mock('next/image', () => ({
+  default: function MockImage({ src, alt, ...props }: { src: string; alt: string; [key: string]: unknown }) {
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img src={src} alt={alt} {...props} />;
+  },
+}));
+
+// Mock Next.js Link component
+vi.mock('next/link', () => ({
+  default: function MockLink({ href, children, ...props }: { href: string; children: React.ReactNode; [key: string]: unknown }) {
+    return <a href={href} {...props}>{children}</a>;
+  },
 }));
 
 // Mock sonner toast
