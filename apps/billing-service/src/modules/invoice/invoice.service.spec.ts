@@ -455,4 +455,61 @@ describe('InvoiceService', () => {
       );
     });
   });
+
+  describe('generatePdf', () => {
+    it('should generate PDF for valid invoice', async () => {
+      mockPrismaService.invoice.findUnique.mockResolvedValue(mockInvoice);
+
+      const result = await service.generatePdf(mockInvoice.id);
+
+      expect(result).toBeInstanceOf(Buffer);
+      expect(result.length).toBeGreaterThan(0);
+      // Check PDF header
+      expect(result.toString('utf8', 0, 5)).toBe('%PDF-');
+    });
+
+    it('should generate PDF with payment details for paid invoice', async () => {
+      const paidInvoice = {
+        ...mockInvoice,
+        status: 'PAID',
+        paidAt: new Date(),
+        paidAmount: 100000,
+        paymentChannel: 'BRI_VA',
+        paymentMethod: 'VIRTUAL_ACCOUNT',
+        tripayReference: 'T0001',
+        paymentFee: 2000,
+      };
+      mockPrismaService.invoice.findUnique.mockResolvedValue(paidInvoice);
+
+      const result = await service.generatePdf(paidInvoice.id);
+
+      expect(result).toBeInstanceOf(Buffer);
+      expect(result.length).toBeGreaterThan(0);
+    });
+
+    it('should throw InvoiceNotFoundException if not found', async () => {
+      mockPrismaService.invoice.findUnique.mockResolvedValue(null);
+
+      await expect(service.generatePdf('non-existent')).rejects.toThrow(
+        InvoiceNotFoundException
+      );
+    });
+
+    it('should throw InvoiceAccessDeniedException if user does not own invoice', async () => {
+      mockPrismaService.invoice.findUnique.mockResolvedValue(mockInvoice);
+
+      await expect(
+        service.generatePdf(mockInvoice.id, 'different-user')
+      ).rejects.toThrow(InvoiceAccessDeniedException);
+    });
+
+    it('should generate PDF when userId matches', async () => {
+      mockPrismaService.invoice.findUnique.mockResolvedValue(mockInvoice);
+
+      const result = await service.generatePdf(mockInvoice.id, mockInvoice.userId);
+
+      expect(result).toBeInstanceOf(Buffer);
+      expect(result.length).toBeGreaterThan(0);
+    });
+  });
 });

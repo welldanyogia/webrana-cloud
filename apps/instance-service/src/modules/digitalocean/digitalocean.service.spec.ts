@@ -1,12 +1,16 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
+import { Test, TestingModule } from '@nestjs/testing';
+import axios, { AxiosError, AxiosHeaders } from 'axios';
+
+import { DigitalOceanApiException } from '../../common/exceptions';
+
 import {
   DigitalOceanService,
   DropletResponse,
   DropletActionResponse,
 } from './digitalocean.service';
-import { DigitalOceanApiException } from '../../common/exceptions';
-import axios, { AxiosError, AxiosHeaders } from 'axios';
+
+
 
 jest.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;
@@ -273,6 +277,58 @@ describe('DigitalOceanService', () => {
       };
       const ip = service.extractPrivateIpv4(noPrivateIp);
       expect(ip).toBeNull();
+    });
+  });
+
+  describe('getConsoleUrl', () => {
+    it('should return console URL for active droplet', async () => {
+      mockAxiosInstance.get.mockResolvedValue({
+        data: { droplet: mockDropletResponse },
+      });
+
+      const result = await service.getConsoleUrl('12345678');
+
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/v2/droplets/12345678');
+      expect(result.consoleUrl).toBe('https://cloud.digitalocean.com/droplets/12345678/console');
+      expect(result.dropletStatus).toBe('active');
+    });
+
+    it('should return console URL for off droplet', async () => {
+      const offDroplet = { ...mockDropletResponse, status: 'off' as const };
+      mockAxiosInstance.get.mockResolvedValue({
+        data: { droplet: offDroplet },
+      });
+
+      const result = await service.getConsoleUrl('12345678');
+
+      expect(result.consoleUrl).toBe('https://cloud.digitalocean.com/droplets/12345678/console');
+      expect(result.dropletStatus).toBe('off');
+    });
+
+    it('should throw DigitalOceanApiException on 404 (droplet not found)', async () => {
+      const error = new AxiosError('Not Found');
+      error.response = {
+        status: 404,
+        data: { message: 'Droplet not found' },
+        statusText: 'Not Found',
+        headers: {},
+        config: { headers: new AxiosHeaders() },
+      };
+      mockAxiosInstance.get.mockRejectedValue(error);
+
+      await expect(service.getConsoleUrl('99999999')).rejects.toThrow(
+        DigitalOceanApiException
+      );
+    });
+
+    it('should throw DigitalOceanApiException on connection error', async () => {
+      const error = new AxiosError('Connection refused');
+      error.code = 'ECONNREFUSED';
+      mockAxiosInstance.get.mockRejectedValue(error);
+
+      await expect(service.getConsoleUrl('12345678')).rejects.toThrow(
+        DigitalOceanApiException
+      );
     });
   });
 });

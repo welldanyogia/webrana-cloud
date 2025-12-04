@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance, AxiosError } from 'axios';
+
 import { DigitalOceanApiException } from '../../common/exceptions';
 
 // DigitalOcean API Types
@@ -183,6 +184,31 @@ export class DigitalOceanService {
       (n) => n.type === 'private'
     );
     return privateNetwork?.ip_address || null;
+  }
+
+  /**
+   * Get console URL for a droplet
+   * 
+   * DigitalOcean provides a web-based console for droplet access.
+   * This method validates the droplet exists and returns the console URL.
+   * 
+   * @param dropletId Droplet ID
+   * @returns Console URL and metadata
+   */
+  async getConsoleUrl(dropletId: string): Promise<{ consoleUrl: string; dropletStatus: string }> {
+    this.logger.log(`Getting console URL for droplet: ${dropletId}`);
+
+    // First, verify the droplet exists and get its status
+    const droplet = await this.getDroplet(dropletId);
+
+    // DigitalOcean's web console URL pattern
+    // The console is accessed via the DO dashboard
+    const consoleUrl = `https://cloud.digitalocean.com/droplets/${dropletId}/console`;
+
+    return {
+      consoleUrl,
+      dropletStatus: droplet.status,
+    };
   }
 
   /**

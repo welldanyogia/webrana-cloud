@@ -1,5 +1,7 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { StreamableFile } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Test, TestingModule } from '@nestjs/testing';
+import { Response } from 'express';
 
 import {
   InvoiceNotFoundException,
@@ -44,6 +46,7 @@ describe('InvoiceController', () => {
     getInvoiceById: jest.fn(),
     getInvoiceByOrderId: jest.fn(),
     initiatePayment: jest.fn(),
+    generatePdf: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -290,6 +293,58 @@ describe('InvoiceController', () => {
 
       await expect(
         controller.initiatePayment(mockInvoice.id, initiateDto, 'different-user')
+      ).rejects.toThrow(InvoiceAccessDeniedException);
+    });
+  });
+
+  describe('downloadPdf', () => {
+    const mockPdfBuffer = Buffer.from('%PDF-1.4 mock pdf content');
+    const mockResponse = {
+      set: jest.fn(),
+    } as unknown as Response;
+
+    beforeEach(() => {
+      (mockResponse.set as jest.Mock).mockClear();
+    });
+
+    it('should return PDF file successfully', async () => {
+      mockInvoiceService.generatePdf.mockResolvedValue(mockPdfBuffer);
+
+      const result = await controller.downloadPdf(
+        mockInvoice.id,
+        mockUserId,
+        mockResponse
+      );
+
+      expect(result).toBeInstanceOf(StreamableFile);
+      expect(mockInvoiceService.generatePdf).toHaveBeenCalledWith(
+        mockInvoice.id,
+        mockUserId
+      );
+      expect(mockResponse.set).toHaveBeenCalledWith({
+        'Content-Type': 'application/pdf',
+        'Content-Disposition': `attachment; filename="invoice-${mockInvoice.id}.pdf"`,
+        'Content-Length': mockPdfBuffer.length,
+      });
+    });
+
+    it('should throw InvoiceNotFoundException when invoice not found', async () => {
+      mockInvoiceService.generatePdf.mockRejectedValue(
+        new InvoiceNotFoundException('non-existent')
+      );
+
+      await expect(
+        controller.downloadPdf('non-existent', mockUserId, mockResponse)
+      ).rejects.toThrow(InvoiceNotFoundException);
+    });
+
+    it('should throw InvoiceAccessDeniedException when user does not own invoice', async () => {
+      mockInvoiceService.generatePdf.mockRejectedValue(
+        new InvoiceAccessDeniedException(mockInvoice.id)
+      );
+
+      await expect(
+        controller.downloadPdf(mockInvoice.id, 'different-user', mockResponse)
       ).rejects.toThrow(InvoiceAccessDeniedException);
     });
   });

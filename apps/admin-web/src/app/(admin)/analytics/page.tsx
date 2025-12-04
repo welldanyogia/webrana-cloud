@@ -1,17 +1,19 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
 import {
   ShoppingCart,
   DollarSign,
   TrendingUp,
   BarChart3,
 } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+
+import { OrdersChart, RevenueChart, PlansChart } from '@/components/charts';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Select } from '@/components/ui/select';
-import { StatCard } from '@/components/ui/stat-card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { OrdersChart, RevenueChart, PlansChart } from '@/components/charts';
+import { StatCard } from '@/components/ui/stat-card';
+import { formatCurrency } from '@/lib/utils';
 import {
   getDailyStats,
   getPlanDistribution,
@@ -20,7 +22,6 @@ import {
   type PlanDistribution,
   type AnalyticsSummary,
 } from '@/services/analytics.service';
-import { formatCurrency } from '@/lib/utils';
 
 type DateRange = '7' | '30' | '90';
 

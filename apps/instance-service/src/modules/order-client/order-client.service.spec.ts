@@ -1,5 +1,5 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
+import { Test, TestingModule } from '@nestjs/testing';
 import axios, { AxiosError } from 'axios';
 
 import { OrderServiceUnavailableException } from '../../common/exceptions';

@@ -1,18 +1,19 @@
-import request from 'supertest';
 import { INestApplication } from '@nestjs/common';
+import request from 'supertest';
+
 import { DigitalOceanService } from '../../src/modules/digitalocean/digitalocean.service';
 import { OrderClientService } from '../../src/modules/order-client/order-client.service';
-import {
-  createTestApp,
-  generateTestToken,
-  TEST_USER_ID,
-} from '../helpers/test-app';
 import {
   createMockDigitalOceanService,
   createMockOrderClientService,
   createMockOrder,
   createMockDroplet,
 } from '../helpers/mock-services';
+import {
+  createTestApp,
+  generateTestToken,
+  TEST_USER_ID,
+} from '../helpers/test-app';
 
 // Skip integration tests unless RUN_INTEGRATION_TESTS=true
 const runIntegrationTests = process.env.RUN_INTEGRATION_TESTS === 'true';

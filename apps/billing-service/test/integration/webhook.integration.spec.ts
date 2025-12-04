@@ -1,22 +1,24 @@
-import request from 'supertest';
-import { INestApplication } from '@nestjs/common';
 import { createHmac } from 'crypto';
-import { PrismaService } from '../../src/prisma/prisma.service';
-import { TripayService } from '../../src/modules/tripay/tripay.service';
+
+import { INestApplication } from '@nestjs/common';
+import request from 'supertest';
+
 import { OrderClientService } from '../../src/modules/order-client/order-client.service';
+import { TripayService } from '../../src/modules/tripay/tripay.service';
+import { PrismaService } from '../../src/prisma/prisma.service';
 import {
-  setupTestDatabase,
-  teardownTestDatabase,
-  isDockerAvailable,
-} from '../helpers/test-database';
+  createMockTripayService,
+  createMockOrderClientService,
+} from '../helpers/mock-services';
 import {
   createTestApp,
   TEST_USER_ID,
 } from '../helpers/test-app';
 import {
-  createMockTripayService,
-  createMockOrderClientService,
-} from '../helpers/mock-services';
+  setupTestDatabase,
+  teardownTestDatabase,
+  isDockerAvailable,
+} from '../helpers/test-database';
 
 // Skip integration tests unless RUN_INTEGRATION_TESTS=true
 const runIntegrationTests = process.env.RUN_INTEGRATION_TESTS === 'true';

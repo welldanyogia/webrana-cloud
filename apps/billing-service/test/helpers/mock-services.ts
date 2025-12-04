@@ -1,6 +1,6 @@
-import { TripayService } from '../../src/modules/tripay/tripay.service';
 import { OrderClientService } from '../../src/modules/order-client/order-client.service';
 import { TripayPaymentChannel, TripayTransaction } from '../../src/modules/tripay/dto/tripay.dto';
+import { TripayService } from '../../src/modules/tripay/tripay.service';
 
 /**
  * Mock Tripay payment channels for testing

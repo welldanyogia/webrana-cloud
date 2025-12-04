@@ -14,8 +14,8 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiSecurity } from '@nestjs/swagger';
 
-import { ApiKeyGuard } from '../../common/guards/api-key.guard';
 import { AdminRoleGuard } from '../../common/guards/admin-role.guard';
+import { ApiKeyGuard } from '../../common/guards/api-key.guard';
 
 import {
   CreatePromoDto,

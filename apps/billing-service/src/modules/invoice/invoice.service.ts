@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Invoice, InvoiceStatus, PaymentChannel, PaymentMethod, Prisma } from '@prisma/client';
+import PDFDocument from 'pdfkit';
 
 import {
   InvoiceNotFoundException,
@@ -501,5 +502,314 @@ export class InvoiceService {
         totalPages: Math.ceil(total / limit),
       },
     };
+  }
+
+  /**
+   * Format currency in IDR
+   */
+  private formatCurrency(amount: number): string {
+    return new Intl.NumberFormat('id-ID', {
+      style: 'currency',
+      currency: 'IDR',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  }
+
+  /**
+   * Format date in Indonesian locale
+   */
+  private formatDate(date: Date): string {
+    return date.toLocaleDateString('id-ID', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+  }
+
+  /**
+   * Format datetime in Indonesian locale
+   */
+  private formatDateTime(date: Date): string {
+    return date.toLocaleString('id-ID', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+
+  /**
+   * Generate PDF invoice
+   */
+  async generatePdf(invoiceId: string, userId?: string): Promise<Buffer> {
+    this.logger.log(`Generating PDF for invoice: ${invoiceId}`);
+
+    // Get invoice with ownership validation
+    const invoice = await this.prisma.invoice.findUnique({
+      where: { id: invoiceId },
+    });
+
+    if (!invoice) {
+      throw new InvoiceNotFoundException(invoiceId);
+    }
+
+    // Check ownership if userId provided
+    if (userId && invoice.userId !== userId) {
+      throw new InvoiceAccessDeniedException(invoiceId);
+    }
+
+    return new Promise((resolve, reject) => {
+      const chunks: Buffer[] = [];
+      const doc = new PDFDocument({
+        size: 'A4',
+        margin: 50,
+        bufferPages: true,
+      });
+
+      // Collect data
+      doc.on('data', (chunk: Buffer) => chunks.push(chunk));
+      doc.on('end', () => resolve(Buffer.concat(chunks)));
+      doc.on('error', reject);
+
+      // Page dimensions
+      const pageWidth = doc.page.width;
+      const marginLeft = 50;
+      const marginRight = pageWidth - 50;
+      const contentWidth = marginRight - marginLeft;
+
+      // Colors
+      const primaryColor = '#1a365d';
+      const secondaryColor = '#4a5568';
+      const accentColor = '#3182ce';
+      const lightGray = '#e2e8f0';
+
+      // Header - Company Name
+      doc
+        .fontSize(24)
+        .fillColor(primaryColor)
+        .font('Helvetica-Bold')
+        .text('WEBRANA CLOUD', marginLeft, 50, { align: 'center' });
+
+      doc
+        .fontSize(10)
+        .fillColor(secondaryColor)
+        .font('Helvetica')
+        .text('VPS Cloud Hosting Services', { align: 'center' });
+
+      // Horizontal line
+      doc
+        .moveTo(marginLeft, 100)
+        .lineTo(marginRight, 100)
+        .strokeColor(lightGray)
+        .lineWidth(2)
+        .stroke();
+
+      // Invoice Title and Number
+      doc
+        .fontSize(18)
+        .fillColor(primaryColor)
+        .font('Helvetica-Bold')
+        .text('INVOICE', marginLeft, 120);
+
+      doc
+        .fontSize(12)
+        .fillColor(accentColor)
+        .font('Helvetica-Bold')
+        .text(`#${invoice.invoiceNumber}`, marginLeft, 145);
+
+      // Invoice Meta (right side)
+      const metaX = marginRight - 150;
+      doc
+        .fontSize(10)
+        .fillColor(secondaryColor)
+        .font('Helvetica')
+        .text('Issue Date:', metaX, 120, { width: 70 })
+        .text(this.formatDate(invoice.createdAt), metaX + 70, 120)
+        .text('Due Date:', metaX, 135, { width: 70 })
+        .text(this.formatDate(invoice.expiredAt), metaX + 70, 135);
+
+      // Status badge
+      const statusColors: Record<string, string> = {
+        PENDING: '#d69e2e',
+        PAID: '#38a169',
+        EXPIRED: '#e53e3e',
+        CANCELLED: '#718096',
+      };
+      const statusColor = statusColors[invoice.status] || '#718096';
+      
+      doc
+        .roundedRect(metaX, 155, 80, 20, 3)
+        .fillColor(statusColor)
+        .fill();
+      
+      doc
+        .fontSize(9)
+        .fillColor('white')
+        .font('Helvetica-Bold')
+        .text(invoice.status, metaX, 160, { width: 80, align: 'center' });
+
+      // Bill To Section
+      doc
+        .fontSize(10)
+        .fillColor(secondaryColor)
+        .font('Helvetica-Bold')
+        .text('Bill To:', marginLeft, 200);
+
+      doc
+        .fontSize(10)
+        .fillColor(primaryColor)
+        .font('Helvetica')
+        .text(`User ID: ${invoice.userId}`, marginLeft, 215);
+
+      // Items Table Header
+      const tableTop = 260;
+      const tableHeaderHeight = 25;
+      
+      // Table header background
+      doc
+        .rect(marginLeft, tableTop, contentWidth, tableHeaderHeight)
+        .fillColor(primaryColor)
+        .fill();
+
+      // Table header text
+      const colDescription = marginLeft + 10;
+      const colQty = marginRight - 150;
+      const colAmount = marginRight - 80;
+
+      doc
+        .fontSize(10)
+        .fillColor('white')
+        .font('Helvetica-Bold')
+        .text('Description', colDescription, tableTop + 8)
+        .text('Qty', colQty, tableTop + 8)
+        .text('Amount', colAmount, tableTop + 8);
+
+      // Table content
+      const rowHeight = 30;
+      let currentY = tableTop + tableHeaderHeight;
+
+      // Invoice line item
+      doc
+        .fontSize(10)
+        .fillColor(primaryColor)
+        .font('Helvetica')
+        .text(`Order #${invoice.orderId.substring(0, 8)}...`, colDescription, currentY + 10, { width: colQty - colDescription - 20 })
+        .text('1', colQty, currentY + 10)
+        .text(this.formatCurrency(invoice.amount), colAmount, currentY + 10);
+
+      currentY += rowHeight;
+
+      // If there's a payment fee, show it
+      if (invoice.paymentFee && invoice.paymentFee > 0) {
+        doc
+          .text(`Payment Fee (${invoice.paymentChannel || 'N/A'})`, colDescription, currentY + 10)
+          .text('1', colQty, currentY + 10)
+          .text(this.formatCurrency(invoice.paymentFee), colAmount, currentY + 10);
+        
+        currentY += rowHeight;
+      }
+
+      // Horizontal line before totals
+      currentY += 10;
+      doc
+        .moveTo(marginLeft, currentY)
+        .lineTo(marginRight, currentY)
+        .strokeColor(lightGray)
+        .lineWidth(1)
+        .stroke();
+
+      // Totals section
+      currentY += 15;
+      const totalLabelX = marginRight - 150;
+      const totalValueX = marginRight - 80;
+
+      // Subtotal
+      doc
+        .fontSize(10)
+        .fillColor(secondaryColor)
+        .font('Helvetica')
+        .text('Subtotal:', totalLabelX, currentY)
+        .text(this.formatCurrency(invoice.amount), totalValueX, currentY);
+
+      currentY += 20;
+
+      // Payment fee
+      if (invoice.paymentFee && invoice.paymentFee > 0) {
+        doc
+          .text('Payment Fee:', totalLabelX, currentY)
+          .text(this.formatCurrency(invoice.paymentFee), totalValueX, currentY);
+        
+        currentY += 20;
+      }
+
+      // Total
+      const totalAmount = invoice.amount + (invoice.paymentFee || 0);
+      doc
+        .fontSize(12)
+        .fillColor(primaryColor)
+        .font('Helvetica-Bold')
+        .text('Total:', totalLabelX, currentY)
+        .text(this.formatCurrency(totalAmount), totalValueX, currentY);
+
+      // Payment Info Box (if paid)
+      if (invoice.status === 'PAID' && invoice.paidAt) {
+        currentY += 40;
+        
+        // Payment info box
+        doc
+          .roundedRect(marginLeft, currentY, contentWidth, 60, 5)
+          .fillColor('#f0fff4')
+          .fill()
+          .strokeColor('#38a169')
+          .lineWidth(1)
+          .stroke();
+
+        doc
+          .fontSize(11)
+          .fillColor('#38a169')
+          .font('Helvetica-Bold')
+          .text('Payment Received', marginLeft + 15, currentY + 12);
+
+        doc
+          .fontSize(10)
+          .fillColor(secondaryColor)
+          .font('Helvetica')
+          .text(`Method: ${invoice.paymentChannel || invoice.paymentMethod || 'N/A'}`, marginLeft + 15, currentY + 28)
+          .text(`Paid on: ${this.formatDateTime(invoice.paidAt)}`, marginLeft + 15, currentY + 43);
+
+        if (invoice.paidAmount) {
+          doc
+            .text(`Amount Received: ${this.formatCurrency(invoice.paidAmount)}`, marginLeft + 250, currentY + 28);
+        }
+
+        if (invoice.tripayReference) {
+          doc
+            .text(`Reference: ${invoice.tripayReference}`, marginLeft + 250, currentY + 43);
+        }
+      }
+
+      // Footer
+      const footerY = doc.page.height - 80;
+
+      doc
+        .moveTo(marginLeft, footerY)
+        .lineTo(marginRight, footerY)
+        .strokeColor(lightGray)
+        .lineWidth(1)
+        .stroke();
+
+      doc
+        .fontSize(9)
+        .fillColor(secondaryColor)
+        .font('Helvetica')
+        .text('Thank you for your business!', marginLeft, footerY + 15, { align: 'center' })
+        .text('Webrana Cloud - VPS Cloud Hosting Services', marginLeft, footerY + 30, { align: 'center' })
+        .text('support@webrana.cloud | www.webrana.cloud', marginLeft, footerY + 45, { align: 'center' });
+
+      // Finalize PDF
+      doc.end();
+    });
   }
 }

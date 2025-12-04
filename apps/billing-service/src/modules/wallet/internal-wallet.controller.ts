@@ -10,9 +10,11 @@ import {
   ParseUUIDPipe,
   Logger,
 } from '@nestjs/common';
-import { ApiKeyGuard } from '../../common/guards/api-key.guard';
-import { WalletService } from './wallet.service';
 import { ReferenceType } from '@prisma/client';
+
+import { ApiKeyGuard } from '../../common/guards/api-key.guard';
+
+import { WalletService } from './wallet.service';
 
 /**
  * DTO for deducting balance

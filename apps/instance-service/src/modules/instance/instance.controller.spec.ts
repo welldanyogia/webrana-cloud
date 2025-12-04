@@ -1,5 +1,5 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
+import { Test, TestingModule } from '@nestjs/testing';
 
 import {
   InstanceNotFoundException,
@@ -9,9 +9,9 @@ import {
   ActionNotFoundException,
 } from '../../common/exceptions';
 
+import { InstanceActionType, PaginationQueryDto } from './dto';
 import { InstanceController } from './instance.controller';
 import { InstanceService } from './instance.service';
-import { InstanceActionType, PaginationQueryDto } from './dto';
 
 describe('InstanceController', () => {
   let controller: InstanceController;
@@ -56,11 +56,19 @@ describe('InstanceController', () => {
 
   const mockUserId = 'user-uuid-456';
 
+  const mockConsoleResponse = {
+    consoleUrl: 'https://cloud.digitalocean.com/droplets/12345678/console',
+    type: 'web_console' as const,
+    expiresAt: '2024-01-15T11:30:00Z',
+    instructions: 'Klik URL untuk membuka console. Login menggunakan credentials VPS Anda.',
+  };
+
   const mockInstanceService = {
     getInstancesByUserId: jest.fn(),
     getInstanceById: jest.fn(),
     triggerAction: jest.fn(),
     getActionStatus: jest.fn(),
+    getConsoleUrl: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -395,6 +403,91 @@ describe('InstanceController', () => {
     it('triggerAction should return 202 Accepted', () => {
       const metadata = Reflect.getMetadata('__httpCode__', controller.triggerAction);
       expect(metadata).toBe(202);
+    });
+  });
+
+  describe('getConsoleUrl', () => {
+    it('should return console URL successfully', async () => {
+      mockInstanceService.getConsoleUrl.mockResolvedValue(mockConsoleResponse);
+
+      const result = await controller.getConsoleUrl(mockUserId, 'order-uuid-123');
+
+      expect(result).toEqual({ data: mockConsoleResponse });
+      expect(mockInstanceService.getConsoleUrl).toHaveBeenCalledWith(
+        'order-uuid-123',
+        mockUserId
+      );
+    });
+
+    it('should return console URL with correct type', async () => {
+      mockInstanceService.getConsoleUrl.mockResolvedValue(mockConsoleResponse);
+
+      const result = await controller.getConsoleUrl(mockUserId, 'order-uuid-123');
+
+      expect(result.data.type).toBe('web_console');
+      expect(result.data.consoleUrl).toContain('cloud.digitalocean.com');
+    });
+
+    it('should include expiry time in response', async () => {
+      mockInstanceService.getConsoleUrl.mockResolvedValue(mockConsoleResponse);
+
+      const result = await controller.getConsoleUrl(mockUserId, 'order-uuid-123');
+
+      expect(result.data.expiresAt).toBeDefined();
+    });
+
+    it('should include instructions in response', async () => {
+      mockInstanceService.getConsoleUrl.mockResolvedValue(mockConsoleResponse);
+
+      const result = await controller.getConsoleUrl(mockUserId, 'order-uuid-123');
+
+      expect(result.data.instructions).toBeDefined();
+      expect(typeof result.data.instructions).toBe('string');
+    });
+
+    it('should return different instructions for off instance', async () => {
+      const offConsoleResponse = {
+        ...mockConsoleResponse,
+        instructions: 'Instance dalam status "off". Power on instance terlebih dahulu untuk menggunakan console.',
+      };
+      mockInstanceService.getConsoleUrl.mockResolvedValue(offConsoleResponse);
+
+      const result = await controller.getConsoleUrl(mockUserId, 'order-uuid-123');
+
+      expect(result.data.instructions).toContain('Power on');
+    });
+
+    it('should throw InstanceNotFoundException when instance not found', async () => {
+      mockInstanceService.getConsoleUrl.mockRejectedValue(
+        new InstanceNotFoundException('non-existent')
+      );
+
+      await expect(
+        controller.getConsoleUrl(mockUserId, 'non-existent')
+      ).rejects.toThrow(InstanceNotFoundException);
+    });
+
+    it('should throw InstanceAccessDeniedException when user is not owner', async () => {
+      mockInstanceService.getConsoleUrl.mockRejectedValue(
+        new InstanceAccessDeniedException('order-uuid-123')
+      );
+
+      await expect(
+        controller.getConsoleUrl('different-user', 'order-uuid-123')
+      ).rejects.toThrow(InstanceAccessDeniedException);
+    });
+
+    it('should throw ActionNotAllowedException when instance not ready', async () => {
+      mockInstanceService.getConsoleUrl.mockRejectedValue(
+        new ActionNotAllowedException(
+          'get_console',
+          'Console hanya tersedia untuk instance yang sudah aktif dan selesai provisioning'
+        )
+      );
+
+      await expect(
+        controller.getConsoleUrl(mockUserId, 'order-uuid-123')
+      ).rejects.toThrow(ActionNotAllowedException);
     });
   });
 });

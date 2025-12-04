@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import {
   ShoppingCart,
   Clock,
@@ -9,12 +8,18 @@ import {
   ArrowRight,
   ChevronRight,
 } from 'lucide-react';
-import { useAdminStats } from '@/hooks/use-admin-stats';
-import { useAdminRecentOrders } from '@/hooks/use-admin-orders';
-import { StatCard } from '@/components/ui/stat-card';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import Link from 'next/link';
+
 import { Badge } from '@/components/ui/badge';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { SkeletonCard, Skeleton } from '@/components/ui/skeleton';
+import { StatCard } from '@/components/ui/stat-card';
+import { useAdminRecentOrders } from '@/hooks/use-admin-orders';
+import { useAdminStats } from '@/hooks/use-admin-stats';
+import { useAnalytics } from '@/hooks/use-analytics';
+import { RevenueChart } from '@/components/charts/revenue-chart';
+import { OrdersChart } from '@/components/charts/orders-chart';
+import { PlansChart } from '@/components/charts/plans-chart';
 import {
   formatCurrency,
   formatRelativeTime,
@@ -25,6 +30,12 @@ import {
 export default function DashboardPage() {
   const { data: stats, isLoading: statsLoading } = useAdminStats();
   const { data: recentOrders, isLoading: ordersLoading } = useAdminRecentOrders(10);
+  const {
+    dailyStats,
+    dailyStatsLoading,
+    planDistribution,
+    planDistributionLoading
+  } = useAnalytics();
 
   return (
     <div className="space-y-6">
@@ -76,6 +87,36 @@ export default function DashboardPage() {
           </>
         )}
       </div>
+
+      {/* Analytics Charts */}
+      <div className="grid gap-4 lg:grid-cols-7">
+        <Card className="col-span-7 lg:col-span-4">
+          <CardHeader>
+            <CardTitle>Trend Pendapatan</CardTitle>
+          </CardHeader>
+          <CardContent className="pl-2">
+            <RevenueChart data={dailyStats} isLoading={dailyStatsLoading} />
+          </CardContent>
+        </Card>
+        
+        <Card className="col-span-7 lg:col-span-3">
+          <CardHeader>
+            <CardTitle>Distribusi Paket</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <PlansChart data={planDistribution} isLoading={planDistributionLoading} />
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Statistik Pesanan (30 Hari Terakhir)</CardTitle>
+        </CardHeader>
+        <CardContent className="pl-2">
+          <OrdersChart data={dailyStats} isLoading={dailyStatsLoading} />
+        </CardContent>
+      </Card>
 
       {/* Recent Orders */}
       <Card>

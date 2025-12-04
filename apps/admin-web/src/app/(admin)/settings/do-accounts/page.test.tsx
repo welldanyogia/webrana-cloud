@@ -1,6 +1,8 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
 import DoAccountsPage from './page';
+
 import * as doAccountsApi from '@/lib/api/do-accounts';
 
 // Mock the API module

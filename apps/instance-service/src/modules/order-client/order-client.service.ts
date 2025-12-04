@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance, AxiosError } from 'axios';
+
 import { OrderServiceUnavailableException } from '../../common/exceptions';
 
 // Order types matching order-service response

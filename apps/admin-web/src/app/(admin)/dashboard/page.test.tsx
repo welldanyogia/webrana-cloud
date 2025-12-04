@@ -1,6 +1,8 @@
-import { render, screen } from '@/test/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
 import DashboardPage from './page';
+
+import { render, screen } from '@/test/test-utils';
 
 // Mock the hooks
 const mockStats = {

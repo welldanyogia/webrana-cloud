@@ -1,12 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import {
-  DigitalOceanService,
-  DropletActionType,
-  DropletActionResponse,
-  DropletResponse,
-} from '../digitalocean/digitalocean.service';
-import { OrderClientService, Order } from '../order-client/order-client.service';
+
 import {
   InstanceNotFoundException,
   InstanceAccessDeniedException,
@@ -15,12 +9,21 @@ import {
   RateLimitExceededException,
 } from '../../common/exceptions';
 import {
+  DigitalOceanService,
+  DropletActionType,
+  DropletActionResponse,
+  DropletResponse,
+} from '../digitalocean/digitalocean.service';
+import { OrderClientService, Order } from '../order-client/order-client.service';
+
+import {
   InstanceActionType,
   InstanceResponseDto,
   InstanceDetailResponseDto,
   ActionResponseDto,
   PaginatedResult,
   PaginationQueryDto,
+  ConsoleAccessResponseDto,
 } from './dto';
 
 // In-memory rate limiter for actions (simple implementation)
@@ -225,6 +228,65 @@ export class InstanceService {
       // If DO returns 404 for action, throw our custom exception
       throw new ActionNotFoundException(actionId);
     }
+  }
+
+  /**
+   * Get console access URL for an instance
+   * 
+   * Returns a DigitalOcean web console URL for the instance.
+   * Validates ownership before returning the URL.
+   * 
+   * @param instanceId Instance UUID (order ID)
+   * @param userId User ID for ownership validation
+   * @returns Console access response with URL and metadata
+   */
+  async getConsoleUrl(
+    instanceId: string,
+    userId: string
+  ): Promise<ConsoleAccessResponseDto> {
+    this.logger.log(
+      `Getting console URL for instance: ${instanceId}, user: ${userId}`
+    );
+
+    // Validate instance ownership
+    const order = await this.orderClientService.getOrderById(instanceId);
+
+    if (!order) {
+      throw new InstanceNotFoundException(instanceId);
+    }
+
+    if (order.userId !== userId) {
+      throw new InstanceAccessDeniedException(instanceId);
+    }
+
+    // Verify it's an active instance with completed provisioning
+    if (
+      order.status !== 'ACTIVE' ||
+      !order.provisioningTask?.dropletId ||
+      order.provisioningTask?.status !== 'COMPLETED'
+    ) {
+      throw new ActionNotAllowedException(
+        'get_console',
+        'Console hanya tersedia untuk instance yang sudah aktif dan selesai provisioning'
+      );
+    }
+
+    const dropletId = order.provisioningTask.dropletId;
+
+    // Get console URL from DigitalOcean service
+    const { consoleUrl, dropletStatus } = await this.digitalOceanService.getConsoleUrl(dropletId);
+
+    // Console access is recommended to be refreshed periodically (1 hour expiry recommendation)
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
+
+    return {
+      consoleUrl,
+      type: 'web_console',
+      expiresAt: expiresAt.toISOString(),
+      instructions: dropletStatus === 'active'
+        ? 'Klik URL untuk membuka console. Login menggunakan credentials VPS Anda.'
+        : `Instance dalam status "${dropletStatus}". Power on instance terlebih dahulu untuk menggunakan console.`,
+    };
   }
 
   /**

@@ -1,6 +1,6 @@
-import { IsEnum, IsInt, IsOptional, Min, Max } from 'class-validator';
-import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+import { IsEnum, IsInt, IsOptional, Min, Max } from 'class-validator';
 
 /**
  * Instance Action Types
@@ -109,4 +109,18 @@ export interface PaginatedResult<T> {
     total: number;
     totalPages: number;
   };
+}
+
+/**
+ * Console access response DTO
+ */
+export interface ConsoleAccessResponseDto {
+  /** DigitalOcean web console URL */
+  consoleUrl: string;
+  /** Console access type */
+  type: 'web_console';
+  /** Expiration time for the console session recommendation */
+  expiresAt: string;
+  /** Additional instructions for the user */
+  instructions: string;
 }

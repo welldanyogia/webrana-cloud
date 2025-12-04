@@ -1,15 +1,18 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
-import { InstanceService } from './instance.service';
-import { DigitalOceanService, DropletResponse, DropletActionResponse } from '../digitalocean/digitalocean.service';
-import { OrderClientService, Order } from '../order-client/order-client.service';
+import { Test, TestingModule } from '@nestjs/testing';
+
+
 import {
   InstanceNotFoundException,
   InstanceAccessDeniedException,
   ActionNotAllowedException,
   RateLimitExceededException,
 } from '../../common/exceptions';
+import { DigitalOceanService, DropletResponse, DropletActionResponse } from '../digitalocean/digitalocean.service';
+import { OrderClientService, Order } from '../order-client/order-client.service';
+
 import { InstanceActionType } from './dto';
+import { InstanceService } from './instance.service';
 
 describe('InstanceService', () => {
   let service: InstanceService;
@@ -112,6 +115,7 @@ describe('InstanceService', () => {
       getDroplet: jest.fn(),
       triggerAction: jest.fn(),
       getActionStatus: jest.fn(),
+      getConsoleUrl: jest.fn(),
       extractPublicIpv4: jest.fn(),
       extractPrivateIpv4: jest.fn(),
     };
@@ -383,6 +387,110 @@ describe('InstanceService', () => {
       );
 
       expect(result.id).toBe(987654321);
+    });
+  });
+
+  describe('getConsoleUrl', () => {
+    beforeEach(() => {
+      orderClientService.getOrderById.mockResolvedValue(mockOrder);
+      digitalOceanService.getConsoleUrl.mockResolvedValue({
+        consoleUrl: 'https://cloud.digitalocean.com/droplets/12345678/console',
+        dropletStatus: 'active',
+      });
+    });
+
+    it('should return console URL for active instance', async () => {
+      const result = await service.getConsoleUrl('order-uuid-123', 'user-uuid-456');
+
+      expect(orderClientService.getOrderById).toHaveBeenCalledWith('order-uuid-123');
+      expect(digitalOceanService.getConsoleUrl).toHaveBeenCalledWith('12345678');
+      expect(result.consoleUrl).toBe('https://cloud.digitalocean.com/droplets/12345678/console');
+      expect(result.type).toBe('web_console');
+    });
+
+    it('should return correct instructions for active instance', async () => {
+      const result = await service.getConsoleUrl('order-uuid-123', 'user-uuid-456');
+
+      expect(result.instructions).toContain('Klik URL');
+      expect(result.instructions).toContain('credentials');
+    });
+
+    it('should return different instructions for off instance', async () => {
+      digitalOceanService.getConsoleUrl.mockResolvedValue({
+        consoleUrl: 'https://cloud.digitalocean.com/droplets/12345678/console',
+        dropletStatus: 'off',
+      });
+
+      const result = await service.getConsoleUrl('order-uuid-123', 'user-uuid-456');
+
+      expect(result.instructions).toContain('Power on');
+      expect(result.instructions).toContain('off');
+    });
+
+    it('should include expiry time in response', async () => {
+      const beforeCall = Date.now();
+      const result = await service.getConsoleUrl('order-uuid-123', 'user-uuid-456');
+      const afterCall = Date.now();
+
+      expect(result.expiresAt).toBeDefined();
+      const expiresAt = new Date(result.expiresAt).getTime();
+      // Should expire approximately 1 hour from now
+      expect(expiresAt).toBeGreaterThanOrEqual(beforeCall + 60 * 60 * 1000 - 1000);
+      expect(expiresAt).toBeLessThanOrEqual(afterCall + 60 * 60 * 1000 + 1000);
+    });
+
+    it('should throw InstanceNotFoundException if instance not found', async () => {
+      orderClientService.getOrderById.mockResolvedValue(null);
+
+      await expect(
+        service.getConsoleUrl('non-existent', 'user-uuid-456')
+      ).rejects.toThrow(InstanceNotFoundException);
+    });
+
+    it('should throw InstanceAccessDeniedException if not owner', async () => {
+      await expect(
+        service.getConsoleUrl('order-uuid-123', 'different-user')
+      ).rejects.toThrow(InstanceAccessDeniedException);
+    });
+
+    it('should throw ActionNotAllowedException if order status is not ACTIVE', async () => {
+      const pendingOrder = { ...mockOrder, status: 'PENDING_PAYMENT' };
+      orderClientService.getOrderById.mockResolvedValue(pendingOrder);
+
+      await expect(
+        service.getConsoleUrl('order-uuid-123', 'user-uuid-456')
+      ).rejects.toThrow(ActionNotAllowedException);
+    });
+
+    it('should throw ActionNotAllowedException if provisioning not completed', async () => {
+      const pendingProvisioningOrder = {
+        ...mockOrder,
+        provisioningTask: {
+          ...mockOrder.provisioningTask!,
+          status: 'PENDING',
+          dropletId: null,
+        },
+      };
+      orderClientService.getOrderById.mockResolvedValue(pendingProvisioningOrder);
+
+      await expect(
+        service.getConsoleUrl('order-uuid-123', 'user-uuid-456')
+      ).rejects.toThrow(ActionNotAllowedException);
+    });
+
+    it('should throw ActionNotAllowedException if no dropletId', async () => {
+      const noDropletOrder = {
+        ...mockOrder,
+        provisioningTask: {
+          ...mockOrder.provisioningTask!,
+          dropletId: null,
+        },
+      };
+      orderClientService.getOrderById.mockResolvedValue(noDropletOrder);
+
+      await expect(
+        service.getConsoleUrl('order-uuid-123', 'user-uuid-456')
+      ).rejects.toThrow(ActionNotAllowedException);
     });
   });
 });

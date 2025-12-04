@@ -2,8 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 
 import { TripayApiException } from '../../common/exceptions/billing.exceptions';
 
-import { PaymentChannelController } from './payment-channel.controller';
 import { InvoiceService } from './invoice.service';
+import { PaymentChannelController } from './payment-channel.controller';
 
 describe('PaymentChannelController', () => {
   let controller: PaymentChannelController;

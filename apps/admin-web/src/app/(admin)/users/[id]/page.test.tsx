@@ -1,6 +1,8 @@
-import { render, screen } from '@/test/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
 import UserDetailPage from './page';
+
+import { render, screen } from '@/test/test-utils';
 
 // Mock user detail data
 const mockUser = {

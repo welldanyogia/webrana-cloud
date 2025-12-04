@@ -1,6 +1,7 @@
 'use client';
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+
 import type { PlanDistribution } from '@/services/analytics.service';
 
 interface PlansChartProps {
@@ -103,7 +104,7 @@ export function PlansChart({ data, isLoading }: PlansChartProps) {
     <ResponsiveContainer width="100%" height={300}>
       <PieChart>
         <Pie
-          data={data as any[]}
+          data={data}
           cx="50%"
           cy="45%"
           innerRadius={60}

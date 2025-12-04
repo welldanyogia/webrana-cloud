@@ -1,6 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
 import { PlansChart } from './plans-chart';
+
 import type { PlanDistribution } from '@/services/analytics.service';
 
 // Mock recharts to avoid complex SVG rendering issues

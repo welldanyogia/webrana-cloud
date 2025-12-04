@@ -1,8 +1,6 @@
 'use client';
 
 import {
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -11,8 +9,9 @@ import {
   Area,
   AreaChart,
 } from 'recharts';
-import type { DailyStats } from '@/services/analytics.service';
+
 import { formatCurrency } from '@/lib/utils';
+import type { DailyStats } from '@/services/analytics.service';
 
 interface RevenueChartProps {
   data: DailyStats[];

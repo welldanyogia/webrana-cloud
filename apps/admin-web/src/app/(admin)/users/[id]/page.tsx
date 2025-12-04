@@ -1,13 +1,14 @@
 'use client';
 
-import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { ArrowLeft, Mail, Calendar, ShoppingCart, CreditCard, ChevronRight } from 'lucide-react';
-import { useAdminUserDetail, useUserOrders } from '@/hooks/use-admin-users';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { useParams, useRouter } from 'next/navigation';
+
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useAdminUserDetail, useUserOrders } from '@/hooks/use-admin-users';
 import {
   formatCurrency,
   formatDateTime,

@@ -1,6 +1,8 @@
-import { render, screen, fireEvent } from '@/test/test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
 import OrderDetailPage from './page';
+
+import { render, screen, fireEvent } from '@/test/test-utils';
 
 // Mock order detail data
 const mockOrderDetail = {

@@ -1,5 +1,5 @@
-import Link from 'next/link';
 import { Shield } from 'lucide-react';
+import Link from 'next/link';
 
 interface AuthLayoutProps {
   children: React.ReactNode;

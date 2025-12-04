@@ -1,9 +1,12 @@
+import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
+import { ReferenceType, TransactionType } from '@prisma/client';
+
+import { InsufficientBalanceException, WalletNotFoundException } from '../../common/exceptions/wallet.exceptions';
+
 import { InternalWalletController } from './internal-wallet.controller';
 import { WalletService } from './wallet.service';
-import { ConfigService } from '@nestjs/config';
-import { ReferenceType, TransactionType } from '@prisma/client';
-import { InsufficientBalanceException, WalletNotFoundException } from '../../common/exceptions/wallet.exceptions';
+
 
 describe('InternalWalletController', () => {
   let controller: InternalWalletController;

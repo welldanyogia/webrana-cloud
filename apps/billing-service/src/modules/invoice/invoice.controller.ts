@@ -8,6 +8,8 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Res,
+  StreamableFile,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -15,7 +17,9 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiParam,
+  ApiProduces,
 } from '@nestjs/swagger';
+import { Response } from 'express';
 
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
@@ -57,6 +61,30 @@ export class InvoiceController {
   ) {
     const invoice = await this.invoiceService.getInvoiceById(id, userId);
     return { data: invoice };
+  }
+
+  @Get(':id/pdf')
+  @ApiOperation({ summary: 'Download invoice as PDF', description: 'Generate and download invoice as PDF file' })
+  @ApiParam({ name: 'id', description: 'Invoice UUID' })
+  @ApiProduces('application/pdf')
+  @ApiResponse({ status: 200, description: 'PDF generated successfully', content: { 'application/pdf': {} } })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Access denied' })
+  @ApiResponse({ status: 404, description: 'Invoice not found' })
+  async downloadPdf(
+    @Param('id') id: string,
+    @CurrentUser('userId') userId: string,
+    @Res({ passthrough: true }) res: Response
+  ): Promise<StreamableFile> {
+    const pdfBuffer = await this.invoiceService.generatePdf(id, userId);
+
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="invoice-${id}.pdf"`,
+      'Content-Length': pdfBuffer.length,
+    });
+
+    return new StreamableFile(pdfBuffer);
   }
 
   @Get('order/:orderId')

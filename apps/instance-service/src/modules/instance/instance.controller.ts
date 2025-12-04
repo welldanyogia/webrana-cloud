@@ -18,7 +18,10 @@ import {
   ApiBearerAuth,
   ApiParam,
 } from '@nestjs/swagger';
-import { InstanceService } from './instance.service';
+
+import { CurrentUser, CurrentUserData } from '../../common/decorators';
+import { JwtAuthGuard } from '../../common/guards';
+
 import {
   TriggerActionDto,
   PaginationQueryDto,
@@ -26,9 +29,9 @@ import {
   InstanceDetailResponseDto,
   ActionResponseDto,
   PaginatedResult,
+  ConsoleAccessResponseDto,
 } from './dto';
-import { JwtAuthGuard } from '../../common/guards';
-import { CurrentUser, CurrentUserData } from '../../common/decorators';
+import { InstanceService } from './instance.service';
 
 @ApiTags('Instances')
 @ApiBearerAuth('bearer')
@@ -65,6 +68,26 @@ export class InstanceController {
     );
 
     return { data: instance };
+  }
+
+  @Get(':id/console')
+  @ApiOperation({ summary: 'Get VNC console URL', description: 'Get web console URL for VPS instance access' })
+  @ApiParam({ name: 'id', description: 'Instance UUID' })
+  @ApiResponse({ status: 200, description: 'Console URL retrieved successfully' })
+  @ApiResponse({ status: 400, description: 'Console not available - instance not ready' })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Access denied - not owner' })
+  @ApiResponse({ status: 404, description: 'Instance not found' })
+  async getConsoleUrl(
+    @CurrentUser('userId') userId: string,
+    @Param('id', new ParseUUIDPipe({ version: '4' })) instanceId: string
+  ): Promise<{ data: ConsoleAccessResponseDto }> {
+    const consoleAccess = await this.instanceService.getConsoleUrl(
+      instanceId,
+      userId
+    );
+
+    return { data: consoleAccess };
   }
 
   @Post(':id/actions')

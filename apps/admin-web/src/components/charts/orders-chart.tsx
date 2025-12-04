@@ -9,6 +9,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
+
 import type { DailyStats } from '@/services/analytics.service';
 
 interface OrdersChartProps {
