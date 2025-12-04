@@ -1,7 +1,7 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER } from '@nestjs/core';
+import { Test, TestingModule } from '@nestjs/testing';
 
 import { AppModule } from '../../src/app/app.module';
 import { HttpExceptionFilter } from '../../src/common/filters/http-exception.filter';

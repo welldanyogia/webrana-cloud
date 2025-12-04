@@ -1,8 +1,8 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
-import { of, throwError } from 'rxjs';
+import { Test, TestingModule } from '@nestjs/testing';
 import { AxiosResponse, AxiosError } from 'axios';
+import { of, throwError } from 'rxjs';
 
 import { NotificationClientService } from './notification-client.service';
 

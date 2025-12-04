@@ -1,11 +1,13 @@
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
 import {
   useNotificationsList,
   useUnreadCount,
   useMarkAsRead,
   useMarkAllAsRead,
 } from './use-notifications';
+
 import { createWrapper } from '@/test/test-utils';
 
 // Mock the notification service

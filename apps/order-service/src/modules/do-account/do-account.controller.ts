@@ -18,6 +18,9 @@ import {
   ApiParam,
   ApiHeader,
 } from '@nestjs/swagger';
+
+import { ApiKeyGuard } from '../../common/guards';
+
 import { DoAccountService } from './do-account.service';
 import {
   CreateDoAccountDto,
@@ -25,7 +28,6 @@ import {
   DoAccountResponseDto,
   DoAccountStatsDto,
 } from './dto';
-import { ApiKeyGuard } from '../../common/guards';
 
 /**
  * Internal DO Account Controller

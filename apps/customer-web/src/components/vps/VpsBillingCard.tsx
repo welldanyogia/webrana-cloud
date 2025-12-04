@@ -1,9 +1,11 @@
 'use client';
 
 import { Calendar, RefreshCw, CreditCard, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+
 import { VpsExpiryCountdown, formatExpiryDate } from './VpsExpiryCountdown';
+
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { formatCurrency } from '@/lib/utils';
 import { cn } from '@/lib/utils';
 import type { BillingPeriod, VpsOrderStatus } from '@/services/vps.service';

@@ -7,6 +7,8 @@ import {
   Body,
   Param,
 } from '@nestjs/common';
+import { DiscountType } from '@prisma/client';
+
 import { CouponService } from './coupon.service';
 import {
   CreateCouponDto,
@@ -15,7 +17,6 @@ import {
   AddCouponUserDto,
   DiscountTypeDto,
 } from './dto';
-import { DiscountType } from '@prisma/client';
 
 @Controller('admin/coupons')
 export class AdminCouponController {

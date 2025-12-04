@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
 import { AlertTriangle, Trash2, RefreshCw } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { useState } from 'react';
+
 import { VpsDeleteModal } from './VpsDeleteModal';
 import { VpsRebuildModal } from './VpsRebuildModal';
+
+import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import type { VpsOrderStatus } from '@/services/vps.service';
 
 interface VpsDangerZoneProps {

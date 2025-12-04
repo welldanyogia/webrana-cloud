@@ -1,5 +1,5 @@
-import axios, { AxiosInstance, AxiosError } from 'axios';
 import { Logger } from '@nestjs/common';
+import axios, { AxiosInstance, AxiosError } from 'axios';
 
 /**
  * Configuration for creating a new droplet

@@ -1,10 +1,15 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import request from 'supertest';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER } from '@nestjs/core';
+import { Test, TestingModule } from '@nestjs/testing';
 import { DiscountType } from '@prisma/client';
+import request from 'supertest';
 import { v4 as uuidv4 } from 'uuid';
+
+import { HttpExceptionFilter } from '../../src/common/filters/http-exception.filter';
+import { CouponModule } from '../../src/modules/coupon/coupon.module';
+import { PrismaModule } from '../../src/prisma/prisma.module';
+import { PrismaService } from '../../src/prisma/prisma.service';
 import {
   startDatabase,
   stopDatabase,
@@ -19,10 +24,6 @@ import {
   addCouponUserRestriction,
   createCouponRedemption,
 } from '../helpers/test-fixtures';
-import { PrismaModule } from '../../src/prisma/prisma.module';
-import { CouponModule } from '../../src/modules/coupon/coupon.module';
-import { HttpExceptionFilter } from '../../src/common/filters/http-exception.filter';
-import { PrismaService } from '../../src/prisma/prisma.service';
 
 describe('Coupon Integration Tests', () => {
   let app: INestApplication;

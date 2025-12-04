@@ -1,7 +1,7 @@
-import { IsOptional, IsInt, Min, Max, IsEnum } from 'class-validator';
-import { Type } from 'class-transformer';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { OrderStatus } from '@prisma/client';
+import { Type } from 'class-transformer';
+import { IsOptional, IsInt, Min, Max, IsEnum } from 'class-validator';
 
 export class PaginationQueryDto {
   @ApiPropertyOptional({ example: 1, description: 'Page number', default: 1 })

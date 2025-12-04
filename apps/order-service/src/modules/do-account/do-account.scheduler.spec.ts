@@ -1,7 +1,8 @@
+import { Logger } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
+
 import { DoAccountScheduler } from './do-account.scheduler';
 import { DoAccountService } from './do-account.service';
-import { Logger } from '@nestjs/common';
 
 // Define AccountHealth locally to avoid Prisma client dependency issues in tests
 const AccountHealth = {

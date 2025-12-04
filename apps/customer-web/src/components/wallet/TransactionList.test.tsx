@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
-import { render, screen } from '@/test/test-utils';
+
 import { TransactionList } from './TransactionList';
+
 import type { WalletTransaction } from '@/services/wallet.service';
+import { render, screen } from '@/test/test-utils';
 
 const mockTransactions: WalletTransaction[] = [
   {

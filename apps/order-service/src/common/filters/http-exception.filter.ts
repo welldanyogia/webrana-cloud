@@ -7,6 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Response } from 'express';
+
 import { OrderException } from '../exceptions/order.exceptions';
 
 @Catch()

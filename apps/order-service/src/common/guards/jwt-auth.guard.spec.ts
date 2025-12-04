@@ -1,9 +1,11 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import * as crypto from 'crypto';
+
 import { ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { JwtAuthGuard } from './jwt-auth.guard';
+import { Test, TestingModule } from '@nestjs/testing';
 import * as jwt from 'jsonwebtoken';
-import * as crypto from 'crypto';
+
+import { JwtAuthGuard } from './jwt-auth.guard';
 
 describe('JwtAuthGuard', () => {
   const createMockExecutionContext = (authHeader?: string): ExecutionContext => {

@@ -1,13 +1,17 @@
+import * as path from 'path';
+
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER } from '@nestjs/core';
-import * as path from 'path';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { PrismaModule } from '../prisma/prisma.module';
+
+import { HttpExceptionFilter } from '../common/filters/http-exception.filter';
 import { CatalogModule } from '../modules/catalog/catalog.module';
 import { CouponModule } from '../modules/coupon/coupon.module';
-import { HttpExceptionFilter } from '../common/filters/http-exception.filter';
+import { PrismaModule } from '../prisma/prisma.module';
+
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+
 
 @Module({
   imports: [

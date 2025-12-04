@@ -1,8 +1,9 @@
 'use client';
 
 import { Sun, Moon } from 'lucide-react';
-import { useThemeStore } from '@/stores/theme-store';
+
 import { cn } from '@/lib/utils';
+import { useThemeStore } from '@/stores/theme-store';
 
 interface ThemeToggleProps {
   className?: string;

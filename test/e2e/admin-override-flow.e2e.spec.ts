@@ -8,13 +8,14 @@
  */
 
 import request from 'supertest';
-import { isDockerAvailable, waitFor, getServiceBaseUrl } from './helpers/setup.js';
+
 import {
   createTestUserWithToken,
   apiKeyHeader,
   authHeader,
 } from './helpers/auth.js';
 import { createOrderPayload, TEST_PLANS, TEST_IMAGES } from './helpers/mocks.js';
+import { isDockerAvailable, waitFor, getServiceBaseUrl } from './helpers/setup.js';
 
 // Service base URLs
 const ORDER_SERVICE_URL = getServiceBaseUrl('order-service');

@@ -1,5 +1,6 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
+import { Test, TestingModule } from '@nestjs/testing';
+
 import { DoAccountController } from './do-account.controller';
 import { DoAccountService } from './do-account.service';
 

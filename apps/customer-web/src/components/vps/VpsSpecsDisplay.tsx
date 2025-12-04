@@ -1,6 +1,7 @@
 'use client';
 
 import { Cpu, HardDrive, Wifi, Server } from 'lucide-react';
+
 import { cn } from '@/lib/utils';
 
 interface VpsSpecsDisplayProps {

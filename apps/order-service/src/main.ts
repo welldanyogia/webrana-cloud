@@ -1,7 +1,9 @@
 import { Logger, ValidationPipe } from '@nestjs/common';
-import { NestFactory } from '@nestjs/core';
 import { ConfigService } from '@nestjs/config';
+import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+
+import { SentryFilter } from '@webrana-cloud/common';
 import { AppModule } from './app/app.module';
 
 async function bootstrap() {
@@ -20,6 +22,9 @@ async function bootstrap() {
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-API-Key'],
   });
+
+  // Global filters
+  app.useGlobalFilters(new SentryFilter());
 
   // Global pipes
   app.useGlobalPipes(

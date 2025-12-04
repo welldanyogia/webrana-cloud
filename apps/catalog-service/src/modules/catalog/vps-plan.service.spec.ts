@@ -1,13 +1,17 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
-import { VpsPlanService, BillingPeriod } from './vps-plan.service';
-import { PrismaService } from '../../prisma/prisma.service';
+import { Test, TestingModule } from '@nestjs/testing';
+import { VpsPlan } from '@prisma/client';
+
 import {
   PlanNotFoundException,
   BillingPeriodNotAllowedException,
   PriceNotSetException,
 } from '../../common/exceptions';
-import { VpsPlan } from '@prisma/client';
+import { PrismaService } from '../../prisma/prisma.service';
+
+import { VpsPlanService, BillingPeriod } from './vps-plan.service';
+
+
 
 describe('VpsPlanService - Billing Periods', () => {
   let service: VpsPlanService;

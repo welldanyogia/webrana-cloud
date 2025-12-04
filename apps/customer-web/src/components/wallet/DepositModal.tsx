@@ -1,6 +1,10 @@
 'use client';
 
+import { Loader2, CreditCard } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
+
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -8,14 +12,11 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useWallet } from '@/hooks/use-wallet';
 import { usePaymentChannels } from '@/hooks/use-billing';
+import { useWallet } from '@/hooks/use-wallet';
 import { formatCurrency, cn } from '@/lib/utils';
-import { toast } from 'sonner';
-import { Loader2, CreditCard } from 'lucide-react';
 import type { PaymentChannel } from '@/types';
 
 const PRESET_AMOUNTS = [50000, 100000, 200000, 500000, 1000000];

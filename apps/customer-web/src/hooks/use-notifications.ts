@@ -1,16 +1,17 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { toast } from 'sonner';
-import { useAuthStore } from '@/stores/auth-store';
+
 import {
   getNotifications,
   getUnreadCount,
   markAsRead,
   markAllAsRead,
 } from '@/services/notification.service';
+import { useAuthStore } from '@/stores/auth-store';
 import type { Notification } from '@/types';
 
 const WEBSOCKET_URL = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3004';

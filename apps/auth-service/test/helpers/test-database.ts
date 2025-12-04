@@ -1,6 +1,7 @@
-import { PostgreSqlContainer, StartedPostgreSqlContainer } from '@testcontainers/postgresql';
-import { PrismaClient } from '@prisma/client';
 import { execSync } from 'child_process';
+
+import { PrismaClient } from '@prisma/client';
+import { PostgreSqlContainer, StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 
 let container: StartedPostgreSqlContainer | null = null;
 let prisma: PrismaClient | null = null;

@@ -1,13 +1,15 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
-import { of, throwError } from 'rxjs';
+import { Test, TestingModule } from '@nestjs/testing';
 import { AxiosResponse, AxiosError } from 'axios';
-import { BillingClientService } from './billing-client.service';
+import { of, throwError } from 'rxjs';
+
 import {
   InsufficientBalanceException,
   BillingServiceUnavailableException,
 } from '../../common/exceptions';
+
+import { BillingClientService } from './billing-client.service';
 
 describe('BillingClientService', () => {
   let service: BillingClientService;

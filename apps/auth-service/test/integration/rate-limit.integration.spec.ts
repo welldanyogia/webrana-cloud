@@ -1,9 +1,19 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import request from 'supertest';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { Test, TestingModule } from '@nestjs/testing';
 import { ThrottlerModule } from '@nestjs/throttler';
+import Redis from 'ioredis';
+import request from 'supertest';
+import { GenericContainer, StartedTestContainer } from 'testcontainers';
+
+import { HttpExceptionFilter } from '../../src/common/filters/http-exception.filter';
+import { ThrottlerExceptionFilter } from '../../src/common/filters/throttler-exception.filter';
+import { CustomThrottlerGuard } from '../../src/common/guards/custom-throttler.guard';
+import { ThrottlerRedisStorage } from '../../src/common/throttler/throttler-redis-storage';
+import { AuthModule } from '../../src/modules/auth/auth.module';
+import { PrismaModule } from '../../src/prisma/prisma.module';
+import { PrismaService } from '../../src/prisma/prisma.service';
 import {
   startDatabase,
   stopDatabase,
@@ -11,15 +21,6 @@ import {
   getPrismaClient,
   isDockerAvailable,
 } from '../helpers/test-database';
-import { GenericContainer, StartedTestContainer } from 'testcontainers';
-import Redis from 'ioredis';
-import { PrismaModule } from '../../src/prisma/prisma.module';
-import { AuthModule } from '../../src/modules/auth/auth.module';
-import { HttpExceptionFilter } from '../../src/common/filters/http-exception.filter';
-import { ThrottlerExceptionFilter } from '../../src/common/filters/throttler-exception.filter';
-import { ThrottlerRedisStorage } from '../../src/common/throttler/throttler-redis-storage';
-import { CustomThrottlerGuard } from '../../src/common/guards/custom-throttler.guard';
-import { PrismaService } from '../../src/prisma/prisma.service';
 
 describe('Rate Limiting Integration Tests', () => {
   let app: INestApplication;

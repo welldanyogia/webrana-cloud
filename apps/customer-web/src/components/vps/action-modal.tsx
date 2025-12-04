@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
 import { X, AlertTriangle } from 'lucide-react';
-import type { InstanceActionType } from '@/types';
+import { useEffect, useRef } from 'react';
+
+import { Button } from '@/components/ui/button';
 import { ACTION_LABELS } from '@/hooks/use-instances';
+import { cn } from '@/lib/utils';
+import type { InstanceActionType } from '@/types';
 
 interface ActionModalProps {
   isOpen: boolean;

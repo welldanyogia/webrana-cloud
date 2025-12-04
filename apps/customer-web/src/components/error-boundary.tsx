@@ -1,8 +1,9 @@
 import * as Sentry from '@sentry/react';
+import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 import { useRouteError, isRouteErrorResponse } from 'react-router-dom';
+
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 
 interface ErrorFallbackProps {
   error?: Error;

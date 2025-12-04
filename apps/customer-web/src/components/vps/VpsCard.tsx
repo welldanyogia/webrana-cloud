@@ -1,14 +1,16 @@
 'use client';
 
-import Link from 'next/link';
 import { Server, Copy, ExternalLink, RefreshCw, Settings } from 'lucide-react';
+import Link from 'next/link';
 import { toast } from 'sonner';
+
+import { VpsConsoleButton } from './VpsConsoleButton';
+import { VpsExpiryCountdown } from './VpsExpiryCountdown';
+import { VpsSpecsDisplay } from './VpsSpecsDisplay';
+import { VpsStatusBadge } from './VpsStatusBadge';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { VpsStatusBadge } from './VpsStatusBadge';
-import { VpsSpecsDisplay } from './VpsSpecsDisplay';
-import { VpsExpiryCountdown } from './VpsExpiryCountdown';
-import { VpsConsoleButton } from './VpsConsoleButton';
 import { cn } from '@/lib/utils';
 import type { VpsOrder, VpsOrderStatus } from '@/services/vps.service';
 

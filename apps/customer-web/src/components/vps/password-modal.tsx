@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
 import { X, Copy, Check, Key, AlertTriangle, Mail } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
+
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface PasswordModalProps {
   isOpen: boolean;

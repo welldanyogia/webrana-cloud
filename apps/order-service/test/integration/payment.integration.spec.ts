@@ -1,19 +1,20 @@
-import request from 'supertest';
 import { INestApplication } from '@nestjs/common';
-import { PrismaService } from '../../src/prisma/prisma.service';
+import request from 'supertest';
+
 import { CatalogClientService } from '../../src/modules/catalog-client/catalog-client.service';
 import { DigitalOceanClientService } from '../../src/modules/provisioning/digitalocean-client.service';
-import {
-  createTestApp,
-  TEST_USER_ID,
-  TEST_INTERNAL_API_KEY,
-} from '../helpers/test-app';
+import { PrismaService } from '../../src/prisma/prisma.service';
 import {
   MOCK_PLAN_ID,
   MOCK_IMAGE_ID,
   createMockCatalogClientService,
 } from '../helpers/mock-catalog-service';
 import { createMockDigitalOceanClientService } from '../helpers/mock-digitalocean';
+import {
+  createTestApp,
+  TEST_USER_ID,
+  TEST_INTERNAL_API_KEY,
+} from '../helpers/test-app';
 
 // Skip integration tests unless RUN_INTEGRATION_TESTS=true
 const isIntegrationTestEnabled = () => {

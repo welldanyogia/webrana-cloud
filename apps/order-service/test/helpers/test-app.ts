@@ -1,9 +1,11 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { Test, TestingModule } from '@nestjs/testing';
+import * as jwt from 'jsonwebtoken';
+
 import { AppModule } from '../../src/app/app.module';
 import { HttpExceptionFilter } from '../../src/common/filters';
 import { PrismaService } from '../../src/prisma/prisma.service';
-import * as jwt from 'jsonwebtoken';
+
 
 // ============================================
 // Test Environment Configuration

@@ -1,8 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@/test/test-utils';
+
 import userEvent from '@testing-library/user-event';
-import { DepositModal } from './DepositModal';
 import { toast } from 'sonner';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+import { DepositModal } from './DepositModal';
 
 // Mock the hooks
 vi.mock('@/hooks/use-wallet', () => ({
@@ -36,8 +38,8 @@ vi.mock('@/hooks/use-billing', () => ({
   })),
 }));
 
-import { useWallet } from '@/hooks/use-wallet';
 import { usePaymentChannels } from '@/hooks/use-billing';
+import { useWallet } from '@/hooks/use-wallet';
 
 describe('DepositModal', () => {
   const mockOnClose = vi.fn();

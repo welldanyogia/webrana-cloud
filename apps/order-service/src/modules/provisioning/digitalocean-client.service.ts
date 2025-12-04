@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import axios, { AxiosInstance, AxiosError } from 'axios';
+
 import { DigitalOceanUnavailableException } from '../../common/exceptions';
 
 // DigitalOcean API Types

@@ -1,8 +1,9 @@
 'use client';
 
 import { Power, RotateCcw, PowerOff, Terminal, Loader2 } from 'lucide-react';
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
+
 import { Button } from '@/components/ui/button';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import type { VpsOrderStatus } from '@/services/vps.service';
 

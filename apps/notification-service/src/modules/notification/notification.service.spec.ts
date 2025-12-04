@@ -48,14 +48,25 @@ describe('NotificationService', () => {
   };
 
   const mockUserNotificationService = {
-    createNotification: jest.fn().mockResolvedValue({ id: 'notif-123' }),
+    create: jest.fn().mockResolvedValue({
+      id: 'notif-123',
+      userId: 'user-123',
+      title: 'Test Notification',
+      message: 'Test message',
+      type: 'ORDER_CREATED',
+      isRead: false,
+      createdAt: new Date(),
+    }),
     getNotifications: jest.fn().mockResolvedValue([]),
+    getUnreadCount: jest.fn().mockResolvedValue({ count: 1 }),
     markAsRead: jest.fn().mockResolvedValue(undefined),
   };
 
   const mockWebsocketService = {
     sendToUser: jest.fn(),
     broadcastToAll: jest.fn(),
+    pushNotification: jest.fn().mockResolvedValue(true),
+    updateUnreadCount: jest.fn().mockResolvedValue(true),
   };
 
   beforeEach(async () => {
@@ -134,9 +145,13 @@ describe('NotificationService', () => {
       );
 
       expect(result.success).toBe(true);
-      expect(result.notifications).toHaveLength(1);
-      expect(result.notifications[0].channel).toBe('EMAIL');
-      expect(result.notifications[0].status).toBe('SENT');
+      expect(result.notifications).toHaveLength(2); // EMAIL + IN_APP
+
+      const emailNotif = result.notifications.find((n) => n.channel === 'EMAIL');
+      const inAppNotif = result.notifications.find((n) => n.channel === 'IN_APP');
+
+      expect(emailNotif?.status).toBe('SENT');
+      expect(inAppNotif?.status).toBe('SENT');
 
       expect(mockEmailService.sendEmail).toHaveBeenCalledTimes(1);
       expect(mockTelegramService.sendMessage).not.toHaveBeenCalled();
@@ -159,13 +174,15 @@ describe('NotificationService', () => {
       );
 
       expect(result.success).toBe(true);
-      expect(result.notifications).toHaveLength(2);
+      expect(result.notifications).toHaveLength(3); // EMAIL + TELEGRAM + IN_APP
 
       const emailNotif = result.notifications.find((n) => n.channel === 'EMAIL');
       const telegramNotif = result.notifications.find((n) => n.channel === 'TELEGRAM');
+      const inAppNotif = result.notifications.find((n) => n.channel === 'IN_APP');
 
       expect(emailNotif?.status).toBe('SENT');
       expect(telegramNotif?.status).toBe('SENT');
+      expect(inAppNotif?.status).toBe('SENT');
 
       expect(mockEmailService.sendEmail).toHaveBeenCalledTimes(1);
       expect(mockTelegramService.sendMessage).toHaveBeenCalledTimes(1);
@@ -190,8 +207,9 @@ describe('NotificationService', () => {
         }
       );
 
-      expect(result.notifications).toHaveLength(1);
-      expect(result.notifications[0].channel).toBe('EMAIL');
+      expect(result.notifications).toHaveLength(2); // EMAIL + IN_APP
+      const emailNotif = result.notifications.find((n) => n.channel === 'EMAIL');
+      expect(emailNotif?.channel).toBe('EMAIL');
       expect(mockTelegramService.sendMessage).not.toHaveBeenCalled();
     });
 
@@ -211,9 +229,11 @@ describe('NotificationService', () => {
         }
       );
 
-      expect(result.success).toBe(false);
-      expect(result.notifications[0].status).toBe('SKIPPED');
-      expect(result.notifications[0].error).toBe('User not found');
+      // success is true because IN_APP notification still succeeds even when user lookup fails
+      expect(result.success).toBe(true);
+      const emailNotif = result.notifications.find((n) => n.channel === 'EMAIL');
+      expect(emailNotif?.status).toBe('SKIPPED');
+      expect(emailNotif?.error).toBe('User not found');
     });
 
     it('should throw InvalidNotificationEventException for unknown event', async () => {
@@ -241,9 +261,11 @@ describe('NotificationService', () => {
         }
       );
 
-      expect(result.success).toBe(false);
-      expect(result.notifications[0].status).toBe('FAILED');
-      expect(result.notifications[0].error).toBe('SMTP connection failed');
+      // success is true because IN_APP notification still succeeds even when email fails
+      expect(result.success).toBe(true);
+      const emailNotif = result.notifications.find((n) => n.channel === 'EMAIL');
+      expect(emailNotif?.status).toBe('FAILED');
+      expect(emailNotif?.error).toBe('SMTP connection failed');
     });
   });
 
@@ -420,13 +442,15 @@ describe('NotificationService', () => {
       );
 
       expect(result.success).toBe(true);
-      expect(result.notifications).toHaveLength(2);
+      expect(result.notifications).toHaveLength(3); // EMAIL + TELEGRAM + IN_APP
 
       const emailNotif = result.notifications.find((n) => n.channel === 'EMAIL');
       const telegramNotif = result.notifications.find((n) => n.channel === 'TELEGRAM');
+      const inAppNotif = result.notifications.find((n) => n.channel === 'IN_APP');
 
       expect(emailNotif?.status).toBe('SENT');
       expect(telegramNotif?.status).toBe('SENT');
+      expect(inAppNotif?.status).toBe('SENT');
 
       expect(mockEmailService.sendEmail).toHaveBeenCalledTimes(1);
       expect(mockTelegramService.sendMessage).toHaveBeenCalledTimes(1);
@@ -455,8 +479,9 @@ describe('NotificationService', () => {
         }
       );
 
-      expect(result.notifications).toHaveLength(1);
-      expect(result.notifications[0].channel).toBe('EMAIL');
+      expect(result.notifications).toHaveLength(2); // EMAIL + IN_APP
+      const emailNotif = result.notifications.find((n) => n.channel === 'EMAIL');
+      expect(emailNotif?.channel).toBe('EMAIL');
       expect(mockTelegramService.sendMessage).not.toHaveBeenCalled();
     });
   });
@@ -506,13 +531,15 @@ describe('NotificationService', () => {
       );
 
       expect(result.success).toBe(true);
-      expect(result.notifications).toHaveLength(2);
+      expect(result.notifications).toHaveLength(3); // EMAIL + TELEGRAM + IN_APP
 
       const emailNotif = result.notifications.find((n) => n.channel === 'EMAIL');
       const telegramNotif = result.notifications.find((n) => n.channel === 'TELEGRAM');
+      const inAppNotif = result.notifications.find((n) => n.channel === 'IN_APP');
 
       expect(emailNotif?.status).toBe('SENT');
       expect(telegramNotif?.status).toBe('SENT');
+      expect(inAppNotif?.status).toBe('SENT');
 
       expect(mockEmailService.sendEmail).toHaveBeenCalledTimes(1);
       expect(mockTelegramService.sendMessage).toHaveBeenCalledTimes(1);
@@ -536,8 +563,9 @@ describe('NotificationService', () => {
         }
       );
 
-      expect(result.notifications).toHaveLength(1);
-      expect(result.notifications[0].channel).toBe('EMAIL');
+      expect(result.notifications).toHaveLength(2); // EMAIL + IN_APP
+      const emailNotif = result.notifications.find((n) => n.channel === 'EMAIL');
+      expect(emailNotif?.channel).toBe('EMAIL');
       expect(mockTelegramService.sendMessage).not.toHaveBeenCalled();
     });
   });
@@ -591,14 +619,16 @@ describe('NotificationService', () => {
       );
 
       expect(result.success).toBe(true);
-      expect(result.notifications).toHaveLength(2);
+      expect(result.notifications).toHaveLength(3); // EMAIL + TELEGRAM + IN_APP
 
       const emailNotif = result.notifications.find((n) => n.channel === 'EMAIL');
       const telegramNotif = result.notifications.find((n) => n.channel === 'TELEGRAM');
+      const inAppNotif = result.notifications.find((n) => n.channel === 'IN_APP');
 
       expect(emailNotif?.status).toBe('SENT');
       expect(telegramNotif?.status).toBe('FAILED');
       expect(telegramNotif?.error).toBe('Bot blocked by user');
+      expect(inAppNotif?.status).toBe('SENT');
     });
 
     it('should report failure when both email and telegram fail', async () => {
@@ -623,8 +653,17 @@ describe('NotificationService', () => {
         }
       );
 
-      expect(result.success).toBe(false);
-      expect(result.message).toContain('0/2');
+      // success is true because IN_APP notification still succeeds even when email and telegram fail
+      expect(result.success).toBe(true);
+      expect(result.message).toContain('1/3'); // Only IN_APP succeeded
+
+      const emailNotif = result.notifications.find((n) => n.channel === 'EMAIL');
+      const telegramNotif = result.notifications.find((n) => n.channel === 'TELEGRAM');
+      const inAppNotif = result.notifications.find((n) => n.channel === 'IN_APP');
+
+      expect(emailNotif?.status).toBe('FAILED');
+      expect(telegramNotif?.status).toBe('FAILED');
+      expect(inAppNotif?.status).toBe('SENT');
     });
   });
 

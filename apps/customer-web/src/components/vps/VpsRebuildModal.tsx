@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
 import { RefreshCw, AlertTriangle, Check, Loader2 } from 'lucide-react';
+import { useState } from 'react';
+
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -10,10 +12,9 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { cn } from '@/lib/utils';
 import { useCatalog } from '@/hooks/use-catalog';
+import { cn } from '@/lib/utils';
 
 interface VpsRebuildModalProps {
   isOpen: boolean;

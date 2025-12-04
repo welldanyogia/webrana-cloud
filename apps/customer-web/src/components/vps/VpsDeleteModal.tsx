@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useCallback } from 'react';
 import { AlertTriangle, Trash2, ShieldAlert } from 'lucide-react';
+import { useState, useCallback } from 'react';
+
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -10,7 +12,6 @@ import {
   DialogDescription,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 

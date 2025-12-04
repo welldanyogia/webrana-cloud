@@ -1,6 +1,9 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
+import { DoAccount } from '@prisma/client';
+
 import { EncryptionService } from '../../common/services/encryption.service';
+import { PrismaService } from '../../prisma/prisma.service';
+
 import { DoApiClient } from './do-api.client';
 import {
   CreateDoAccountDto,
@@ -8,7 +11,7 @@ import {
   DoAccountResponseDto,
   DoAccountStatsDto,
 } from './dto';
-import { DoAccount } from '@prisma/client';
+
 
 // AccountHealth enum - matches Prisma schema
 // Note: Once Prisma client is regenerated, this can be imported from '@prisma/client'

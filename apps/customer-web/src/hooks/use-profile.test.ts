@@ -1,6 +1,8 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
 import { useProfile, useUpdateProfile, useChangePassword } from './use-profile';
+
 import { createWrapper } from '@/test/test-utils';
 
 // Mock the auth store

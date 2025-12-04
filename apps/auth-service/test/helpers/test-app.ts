@@ -1,16 +1,16 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER } from '@nestjs/core';
+import { Test, TestingModule } from '@nestjs/testing';
 import { ThrottlerModule, ThrottlerStorage } from '@nestjs/throttler';
-import helmet from 'helmet';
 import { Request, Response, NextFunction } from 'express';
+import helmet from 'helmet';
 
 import { AppModule } from '../../src/app/app.module';
 import { HttpExceptionFilter } from '../../src/common/filters/http-exception.filter';
 import { SanitizePipe } from '../../src/common/pipes/sanitize.pipe';
-import { PrismaService } from '../../src/prisma/prisma.service';
 import { ThrottlerRedisStorage } from '../../src/common/throttler/throttler-redis-storage';
+import { PrismaService } from '../../src/prisma/prisma.service';
 
 /**
  * Creates a test NestJS application with the same configuration as main.ts

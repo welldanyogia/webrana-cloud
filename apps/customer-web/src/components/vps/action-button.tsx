@@ -1,11 +1,12 @@
 'use client';
 
-import { forwardRef } from 'react';
-import { cn } from '@/lib/utils';
-import { Button, type ButtonProps } from '@/components/ui/button';
 import { RefreshCw, Power, PowerOff, Key } from 'lucide-react';
-import type { InstanceActionType } from '@/types';
+import { forwardRef } from 'react';
+
+import { Button, type ButtonProps } from '@/components/ui/button';
 import { ACTION_LABELS } from '@/hooks/use-instances';
+import { cn } from '@/lib/utils';
+import type { InstanceActionType } from '@/types';
 
 interface ActionButtonProps extends Omit<ButtonProps, 'onClick'> {
   actionType: InstanceActionType;

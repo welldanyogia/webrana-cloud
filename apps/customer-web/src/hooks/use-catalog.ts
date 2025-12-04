@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery, useMutation } from '@tanstack/react-query';
+
 import { catalogService } from '@/services/catalog.service';
 import type { VpsPlan, OsImage, CouponValidationResponse } from '@/types';
 

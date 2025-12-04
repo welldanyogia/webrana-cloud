@@ -1,6 +1,7 @@
+import { randomBytes, createHash } from 'crypto';
+
 import { PrismaClient, UserRole, UserStatus, VerificationTokenType } from '@prisma/client';
 import { hash } from 'bcryptjs';
-import { randomBytes, createHash } from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
 
 const BCRYPT_ROUNDS = 10; // Lower for tests (faster)

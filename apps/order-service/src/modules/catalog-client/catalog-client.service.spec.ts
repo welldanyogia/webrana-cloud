@@ -1,14 +1,16 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { HttpService } from '@nestjs/axios';
-import { of, throwError } from 'rxjs';
+import { Test, TestingModule } from '@nestjs/testing';
 import { AxiosResponse, AxiosError, AxiosHeaders } from 'axios';
-import { CatalogClientService, CatalogPlan, CatalogImage } from './catalog-client.service';
+import { of, throwError } from 'rxjs';
+
 import {
   CatalogServiceUnavailableException,
   InvalidPlanException,
   InvalidImageException,
   InvalidCouponException,
 } from '../../common/exceptions';
+
+import { CatalogClientService, CatalogPlan, CatalogImage } from './catalog-client.service';
 
 describe('CatalogClientService', () => {
   let service: CatalogClientService;

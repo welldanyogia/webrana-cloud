@@ -1,12 +1,16 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
+import { Test, TestingModule } from '@nestjs/testing';
+import axios, { AxiosError, AxiosHeaders } from 'axios';
+
+import { DigitalOceanUnavailableException } from '../../common/exceptions';
+
 import {
   DigitalOceanClientService,
   CreateDropletConfig,
   DropletResponse,
 } from './digitalocean-client.service';
-import { DigitalOceanUnavailableException } from '../../common/exceptions';
-import axios, { AxiosError, AxiosHeaders } from 'axios';
+
+
 
 jest.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;

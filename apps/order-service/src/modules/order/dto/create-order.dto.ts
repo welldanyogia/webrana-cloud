@@ -1,3 +1,5 @@
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { PlanDuration, BillingPeriod } from '@prisma/client';
 import {
   IsNotEmpty,
   IsString,
@@ -6,8 +8,6 @@ import {
   IsEnum,
   IsBoolean,
 } from 'class-validator';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { PlanDuration, BillingPeriod } from '@prisma/client';
 
 export class CreateOrderDto {
   @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440000', description: 'UUID of the VPS plan' })

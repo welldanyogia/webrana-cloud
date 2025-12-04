@@ -1,3 +1,4 @@
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsString,
   IsBoolean,
@@ -5,7 +6,6 @@ import {
   MaxLength,
   IsEmail,
 } from 'class-validator';
-import { ApiPropertyOptional } from '@nestjs/swagger';
 
 /**
  * DTO for updating a DigitalOcean account

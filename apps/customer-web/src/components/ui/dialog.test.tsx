@@ -1,5 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
+
+import { Button } from './button';
 import {
   Dialog,
   DialogTrigger,
@@ -10,7 +12,6 @@ import {
   DialogDescription,
   DialogClose,
 } from './dialog';
-import { Button } from './button';
 
 describe('Dialog', () => {
   const TestDialog = ({ 

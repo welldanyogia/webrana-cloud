@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
-import { ValidateCouponDto } from './dto';
+import { DiscountType } from '@prisma/client';
+
 import {
   CouponNotFoundException,
   CouponExpiredException,
@@ -12,7 +12,9 @@ import {
   CouponUserNotAllowedException,
   CouponMinAmountNotMetException,
 } from '../../common/exceptions';
-import { DiscountType } from '@prisma/client';
+import { PrismaService } from '../../prisma/prisma.service';
+
+import { ValidateCouponDto } from './dto';
 
 export type CouponValidationFailReason =
   | 'NOT_FOUND'

@@ -1,7 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
-import { ImageNotFoundException, DuplicateEntryException } from '../../common/exceptions';
 import { ImageCategory } from '@prisma/client';
+
+import { ImageNotFoundException, DuplicateEntryException } from '../../common/exceptions';
+import { PrismaService } from '../../prisma/prisma.service';
 
 export interface CreateImageInput {
   provider: string;

@@ -1,6 +1,6 @@
+import { AuthClientService, UserInfo } from '../../src/modules/auth-client/auth-client.service';
 import { EmailService } from '../../src/modules/email/email.service';
 import { TelegramService } from '../../src/modules/telegram/telegram.service';
-import { AuthClientService, UserInfo } from '../../src/modules/auth-client/auth-client.service';
 
 /**
  * Create a mock user info

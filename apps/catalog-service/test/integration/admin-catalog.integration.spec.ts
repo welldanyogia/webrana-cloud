@@ -1,9 +1,14 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import request from 'supertest';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER } from '@nestjs/core';
+import { Test, TestingModule } from '@nestjs/testing';
 import { PlanDuration, DiscountType } from '@prisma/client';
+import request from 'supertest';
+
+import { HttpExceptionFilter } from '../../src/common/filters/http-exception.filter';
+import { CatalogModule } from '../../src/modules/catalog/catalog.module';
+import { PrismaModule } from '../../src/prisma/prisma.module';
+import { PrismaService } from '../../src/prisma/prisma.service';
 import {
   startDatabase,
   stopDatabase,
@@ -16,10 +21,6 @@ import {
   createTestPricing,
   createTestImage,
 } from '../helpers/test-fixtures';
-import { PrismaModule } from '../../src/prisma/prisma.module';
-import { CatalogModule } from '../../src/modules/catalog/catalog.module';
-import { HttpExceptionFilter } from '../../src/common/filters/http-exception.filter';
-import { PrismaService } from '../../src/prisma/prisma.service';
 
 describe('Admin Catalog Integration Tests', () => {
   let app: INestApplication;

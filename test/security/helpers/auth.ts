@@ -5,8 +5,9 @@
  * including valid, expired, malformed, and algorithm-confused tokens.
  */
 
-import * as jwt from 'jsonwebtoken';
 import * as crypto from 'crypto';
+
+import * as jwt from 'jsonwebtoken';
 import { v4 as uuidv4 } from 'uuid';
 
 /**

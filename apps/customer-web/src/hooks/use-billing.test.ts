@@ -1,5 +1,6 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
 import {
   useInvoice,
   useInvoiceByOrderId,
@@ -7,6 +8,7 @@ import {
   usePaymentChannels,
   useInitiatePayment,
 } from './use-billing';
+
 import { createWrapper } from '@/test/test-utils';
 
 // Mock the billing service

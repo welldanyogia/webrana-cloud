@@ -1,26 +1,27 @@
-import request from 'supertest';
 import { INestApplication } from '@nestjs/common';
-import { PrismaService } from '../../src/prisma/prisma.service';
-import { EmailService } from '../../src/modules/email/email.service';
-import { TelegramService } from '../../src/modules/telegram/telegram.service';
+import request from 'supertest';
+
 import { AuthClientService } from '../../src/modules/auth-client/auth-client.service';
+import { EmailService } from '../../src/modules/email/email.service';
 import { QueueService } from '../../src/modules/queue/queue.service';
-import {
-  setupTestDatabase,
-  teardownTestDatabase,
-  isDockerAvailable,
-} from '../helpers/test-database';
-import {
-  createTestApp,
-  TEST_INTERNAL_API_KEY,
-  TEST_USER_ID,
-} from '../helpers/test-app';
+import { TelegramService } from '../../src/modules/telegram/telegram.service';
+import { PrismaService } from '../../src/prisma/prisma.service';
 import {
   createMockEmailService,
   createMockTelegramService,
   createMockAuthClientService,
   createMockUserInfo,
 } from '../helpers/mock-services';
+import {
+  createTestApp,
+  TEST_INTERNAL_API_KEY,
+  TEST_USER_ID,
+} from '../helpers/test-app';
+import {
+  setupTestDatabase,
+  teardownTestDatabase,
+  isDockerAvailable,
+} from '../helpers/test-database';
 
 // Skip integration tests unless RUN_INTEGRATION_TESTS=true
 const runIntegrationTests = process.env.RUN_INTEGRATION_TESTS === 'true';

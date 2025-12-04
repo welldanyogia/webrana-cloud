@@ -1,4 +1,5 @@
 import { UserRole, UserStatus, VerificationTokenType } from '@prisma/client';
+
 import {
   startDatabase,
   stopDatabase,

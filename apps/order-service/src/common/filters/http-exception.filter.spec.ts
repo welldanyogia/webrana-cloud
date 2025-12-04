@@ -1,5 +1,5 @@
 import { HttpException, HttpStatus, ArgumentsHost } from '@nestjs/common';
-import { HttpExceptionFilter } from './http-exception.filter';
+
 import {
   OrderNotFoundException,
   OrderAccessDeniedException,
@@ -12,6 +12,8 @@ import {
   InvalidImageException,
   InvalidCouponException,
 } from '../exceptions';
+
+import { HttpExceptionFilter } from './http-exception.filter';
 
 describe('HttpExceptionFilter', () => {
   let filter: HttpExceptionFilter;

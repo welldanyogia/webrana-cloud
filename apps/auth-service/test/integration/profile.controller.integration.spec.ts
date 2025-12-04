@@ -1,9 +1,15 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
-import request from 'supertest';
 import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER } from '@nestjs/core';
+import { Test, TestingModule } from '@nestjs/testing';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { UserStatus } from '@prisma/client';
+import request from 'supertest';
+
+import { HttpExceptionFilter } from '../../src/common/filters/http-exception.filter';
+import { AuthModule } from '../../src/modules/auth/auth.module';
+import { PrismaModule } from '../../src/prisma/prisma.module';
+import { PrismaService } from '../../src/prisma/prisma.service';
 import {
   startDatabase,
   stopDatabase,
@@ -12,11 +18,6 @@ import {
   isDockerAvailable,
 } from '../helpers/test-database';
 import { createTestUser } from '../helpers/test-fixtures';
-import { UserStatus } from '@prisma/client';
-import { PrismaModule } from '../../src/prisma/prisma.module';
-import { AuthModule } from '../../src/modules/auth/auth.module';
-import { HttpExceptionFilter } from '../../src/common/filters/http-exception.filter';
-import { PrismaService } from '../../src/prisma/prisma.service';
 
 describe('Profile Controller Integration Tests', () => {
   let app: INestApplication;

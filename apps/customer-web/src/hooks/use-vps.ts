@@ -1,8 +1,9 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { toast } from 'sonner';
 import { AxiosError } from 'axios';
+import { toast } from 'sonner';
+
 import { vpsService, VpsOrder, VpsListResponse, VpsListParams } from '@/services/vps.service';
 import type { ApiError } from '@/types';
 

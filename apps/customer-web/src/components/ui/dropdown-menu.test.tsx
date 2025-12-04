@@ -1,5 +1,7 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
+
+import { Button } from './button';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -9,7 +11,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuShortcut,
 } from './dropdown-menu';
-import { Button } from './button';
 
 describe('DropdownMenu', () => {
   const TestDropdownMenu = ({ 

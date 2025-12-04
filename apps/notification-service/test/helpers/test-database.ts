@@ -1,7 +1,8 @@
-import { PostgreSqlContainer, StartedPostgreSqlContainer } from '@testcontainers/postgresql';
-import { GenericContainer, StartedTestContainer } from 'testcontainers';
 import { execSync } from 'child_process';
 import { join } from 'path';
+
+import { PostgreSqlContainer, StartedPostgreSqlContainer } from '@testcontainers/postgresql';
+import { GenericContainer, StartedTestContainer } from 'testcontainers';
 
 let pgContainer: StartedPostgreSqlContainer | null = null;
 let redisContainer: StartedTestContainer | null = null;

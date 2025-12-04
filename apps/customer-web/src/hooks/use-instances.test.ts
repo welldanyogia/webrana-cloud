@@ -1,6 +1,8 @@
 import { renderHook, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
 import { useInstances, useInstance, useTriggerAction, ACTION_LABELS } from './use-instances';
+
 import { createWrapper } from '@/test/test-utils';
 
 // Mock the instance service

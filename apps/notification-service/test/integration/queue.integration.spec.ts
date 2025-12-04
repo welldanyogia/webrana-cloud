@@ -1,13 +1,14 @@
 import { INestApplication } from '@nestjs/common';
-import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { Test, TestingModule } from '@nestjs/testing';
 import Redis from 'ioredis';
+
+import { QueueService, NotificationJob } from '../../src/modules/queue/queue.service';
 import {
   setupTestRedis,
   teardownTestRedis,
   isDockerAvailable,
 } from '../helpers/test-database';
-import { QueueService, NotificationJob } from '../../src/modules/queue/queue.service';
 
 // Skip integration tests unless RUN_INTEGRATION_TESTS=true
 const runIntegrationTests = process.env.RUN_INTEGRATION_TESTS === 'true';

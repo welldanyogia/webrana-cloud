@@ -1,7 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
-import { firstValueFrom, catchError } from 'rxjs';
+import { Injectable, Logger } from '@nestjs/common';
 import { AxiosError } from 'axios';
+import { firstValueFrom, catchError } from 'rxjs';
+
 import {
   CatalogServiceUnavailableException,
   InvalidPlanException,

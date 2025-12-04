@@ -1,13 +1,16 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { ConfigService } from '@nestjs/config';
 import { NotFoundException } from '@nestjs/common';
-import { DoAccountService } from './do-account.service';
-import { PrismaService } from '../../prisma/prisma.service';
+import { ConfigService } from '@nestjs/config';
+import { Test, TestingModule } from '@nestjs/testing';
+
+
 import { EncryptionService } from '../../common/services/encryption.service';
+import { PrismaService } from '../../prisma/prisma.service';
+
 import {
   NoAvailableAccountException,
   AllAccountsFullException,
 } from './do-account.exceptions';
+import { DoAccountService } from './do-account.service';
 
 // Define AccountHealth locally to avoid Prisma client dependency issues in tests
 const AccountHealth = {

@@ -1,8 +1,9 @@
 'use client';
 
-import type { WalletTransaction } from '@/services/wallet.service';
 import { ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+
 import { formatCurrency, formatDate, cn } from '@/lib/utils';
+import type { WalletTransaction } from '@/services/wallet.service';
 
 interface TransactionListProps {
   transactions: WalletTransaction[];
