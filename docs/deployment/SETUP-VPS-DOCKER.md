@@ -4,6 +4,7 @@ Panduan deployment WeBrana Cloud menggunakan Docker + CI/CD pada VPS baru (Ubunt
 
 ## Daftar Isi
 
+- [Arsitektur Subdomain](#arsitektur-subdomain)
 1. [Requirements](#1-requirements)
 2. [Setup VPS](#2-setup-vps)
 3. [Install Docker](#3-install-docker)
@@ -15,6 +16,26 @@ Panduan deployment WeBrana Cloud menggunakan Docker + CI/CD pada VPS baru (Ubunt
 9. [Monitoring & Logging](#9-monitoring--logging)
 10. [Maintenance Commands](#10-maintenance-commands)
 11. [Troubleshooting](#11-troubleshooting)
+12. [Default Accounts](#12-default-accounts)
+
+---
+
+## Arsitektur Subdomain
+
+WeBrana Cloud menggunakan arsitektur subdomain untuk memisahkan landing page dan console:
+
+| Domain | Fungsi | Access |
+|--------|--------|--------|
+| `webrana.cloud` | Landing page, login, register | Public |
+| `console.webrana.cloud` | Dashboard, VPS management, billing | Protected (login required) |
+| `admin.webrana.cloud` | Admin dashboard | Admin only |
+| `api.webrana.cloud` | API Gateway | API endpoints |
+
+**Flow:**
+1. User mengunjungi `webrana.cloud` (landing page)
+2. User klik Login/Register
+3. Setelah login, redirect otomatis ke `console.webrana.cloud/dashboard`
+4. Logout akan redirect kembali ke `webrana.cloud`
 
 ---
 
@@ -34,12 +55,16 @@ Panduan deployment WeBrana Cloud menggunakan Docker + CI/CD pada VPS baru (Ubunt
 Setup DNS records sebelum deployment:
 
 ```
-A     @              YOUR_SERVER_IP
-A     api            YOUR_SERVER_IP
-A     app            YOUR_SERVER_IP
-A     admin          YOUR_SERVER_IP
-A     monitor        YOUR_SERVER_IP (optional)
+A     @              YOUR_SERVER_IP     # webrana.cloud (landing)
+A     api            YOUR_SERVER_IP     # api.webrana.cloud
+A     console        YOUR_SERVER_IP     # console.webrana.cloud (dashboard)
+A     admin          YOUR_SERVER_IP     # admin.webrana.cloud
+A     monitor        YOUR_SERVER_IP     # (optional) monitoring
 ```
+
+> **Arsitektur:**
+> - `webrana.cloud` → Landing page (public)
+> - `console.webrana.cloud` → Console/Dashboard (protected)
 
 ### GitHub Repository Access
 - Repository: `github.com/welldanyogia/webrana-cloud`
@@ -306,9 +331,18 @@ NEXT_PUBLIC_API_URL=https://api.webrana.cloud
 NEXT_PUBLIC_WS_URL=wss://api.webrana.cloud
 
 # ═══════════════════════════════════════════════════════════════
+# SUBDOMAIN CONFIGURATION
+# Landing page (webrana.cloud) vs Console (console.webrana.cloud)
+# ═══════════════════════════════════════════════════════════════
+NEXT_PUBLIC_LANDING_DOMAIN=webrana.cloud
+NEXT_PUBLIC_CONSOLE_DOMAIN=console.webrana.cloud
+NEXT_PUBLIC_LANDING_URL=https://webrana.cloud
+NEXT_PUBLIC_CONSOLE_URL=https://console.webrana.cloud
+
+# ═══════════════════════════════════════════════════════════════
 # CORS
 # ═══════════════════════════════════════════════════════════════
-CORS_ORIGINS=https://app.webrana.cloud,https://admin.webrana.cloud
+CORS_ORIGINS=https://webrana.cloud,https://console.webrana.cloud,https://admin.webrana.cloud
 ```
 
 ### 5.4 Create Database Init Script
@@ -407,11 +441,16 @@ docker compose -f docker/docker-compose.yml stop nginx
 ```bash
 sudo certbot certonly --standalone \
   -d api.webrana.cloud \
-  -d app.webrana.cloud \
+  -d webrana.cloud \
+  -d console.webrana.cloud \
   -d admin.webrana.cloud \
   --email admin@webrana.cloud \
   --agree-tos
 ```
+
+> **Note:** Arsitektur subdomain:
+> - `webrana.cloud` → Landing page (public)
+> - `console.webrana.cloud` → Dashboard/console (protected, setelah login)
 
 ### 7.4 Copy Certificates ke Docker
 
@@ -432,7 +471,7 @@ nano docker/nginx/conf.d/default.conf
 # HTTP redirect to HTTPS
 server {
     listen 80;
-    server_name api.webrana.cloud app.webrana.cloud admin.webrana.cloud;
+    server_name api.webrana.cloud webrana.cloud console.webrana.cloud admin.webrana.cloud;
     return 301 https://$server_name$request_uri;
 }
 
@@ -469,10 +508,31 @@ server {
     }
 }
 
-# Customer Web
+# Landing Page (webrana.cloud) - Public pages only
 server {
     listen 443 ssl http2;
-    server_name app.webrana.cloud;
+    server_name webrana.cloud;
+
+    ssl_certificate /etc/nginx/ssl/fullchain.pem;
+    ssl_certificate_key /etc/nginx/ssl/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+
+    location / {
+        proxy_pass http://customer-web:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+# Console (console.webrana.cloud) - Protected pages (dashboard, etc)
+server {
+    listen 443 ssl http2;
+    server_name console.webrana.cloud;
 
     ssl_certificate /etc/nginx/ssl/fullchain.pem;
     ssl_certificate_key /etc/nginx/ssl/privkey.pem;
