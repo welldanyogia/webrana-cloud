@@ -859,6 +859,50 @@ docker system prune -a
 
 ---
 
+## 12. Default Accounts
+
+### 12.1 Run Database Seed
+
+Setelah deployment pertama, jalankan seed untuk membuat akun default:
+
+```bash
+# Masuk ke container auth-service
+docker compose -f docker/docker-compose.yml exec auth-service sh
+
+# Run seed
+npx prisma db seed --schema=apps/auth-service/prisma/schema.prisma
+```
+
+### 12.2 Default Login Credentials
+
+| Role | Email | Default Password |
+|------|-------|------------------|
+| **Super Admin** | `superadmin@webrana.cloud` | `SuperAdmin123!` |
+| **Admin** | `admin@webrana.cloud` | `Admin123!` |
+| **Customer** (dev only) | `customer@webrana.cloud` | `Customer123!` |
+
+> ⚠️ **PENTING:** Segera ganti password setelah login pertama!
+
+### 12.3 Custom Password saat Seed (Production)
+
+```bash
+# Set custom password via environment
+docker compose -f docker/docker-compose.yml exec \
+  -e SUPER_ADMIN_PASSWORD="YourSecurePassword123!" \
+  -e ADMIN_PASSWORD="YourAdminPassword123!" \
+  auth-service npx prisma db seed --schema=apps/auth-service/prisma/schema.prisma
+```
+
+### 12.4 Role Permissions
+
+| Role | Customer Portal | Admin Panel | System Settings |
+|------|-----------------|-------------|-----------------|
+| `customer` | ✅ | ❌ | ❌ |
+| `admin` | ✅ | ✅ | ❌ |
+| `super_admin` | ✅ | ✅ | ✅ |
+
+---
+
 ## Support
 
 Jika mengalami masalah:
