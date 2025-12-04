@@ -1,18 +1,43 @@
 'use client';
 
-import Link from 'next/link';
 import { Cloud } from 'lucide-react';
-import { ThemeToggle } from '@/components/ui/theme-toggle';
-import { Button } from '@/components/ui/button';
+import dynamic from 'next/dynamic';
+import Link from 'next/link';
 
-// Landing Page Components
 import { HeroSection } from '@/components/landing/HeroSection';
-import { FeaturesSection } from '@/components/landing/FeaturesSection';
-import { PricingSection } from '@/components/landing/PricingSection';
-import { WhyUsSection } from '@/components/landing/WhyUsSection';
-import { TechSpecsSection } from '@/components/landing/TechSpecsSection';
-import { FooterSection } from '@/components/landing/FooterSection';
-import { FaqSection } from '@/components/landing/FaqSection';
+import { SectionSkeleton } from '@/components/landing/SectionSkeleton';
+import { Button } from '@/components/ui/button';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
+
+const FeaturesSection = dynamic(
+  () => import('@/components/landing/FeaturesSection').then((mod) => mod.FeaturesSection),
+  { loading: () => <SectionSkeleton /> }
+);
+
+const PricingSection = dynamic(
+  () => import('@/components/landing/PricingSection').then((mod) => mod.PricingSection),
+  { loading: () => <SectionSkeleton /> }
+);
+
+const WhyUsSection = dynamic(
+  () => import('@/components/landing/WhyUsSection').then((mod) => mod.WhyUsSection),
+  { loading: () => <SectionSkeleton /> }
+);
+
+const TechSpecsSection = dynamic(
+  () => import('@/components/landing/TechSpecsSection').then((mod) => mod.TechSpecsSection),
+  { loading: () => <SectionSkeleton /> }
+);
+
+const FaqSection = dynamic(
+  () => import('@/components/landing/FaqSection').then((mod) => mod.FaqSection),
+  { loading: () => <SectionSkeleton /> }
+);
+
+const FooterSection = dynamic(
+  () => import('@/components/landing/FooterSection').then((mod) => mod.FooterSection),
+  { loading: () => <SectionSkeleton /> }
+);
 
 export default function Home() {
   return (

@@ -1,8 +1,5 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
 import {
   ArrowLeft,
   ArrowRight,
@@ -15,10 +12,14 @@ import {
   AlertCircle,
   Loader2,
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import Link from 'next/link';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { useState, useEffect, useMemo } from 'react';
+
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePlans, useImages, useValidateCoupon } from '@/hooks/use-catalog';
 import { useCreateOrder } from '@/hooks/use-orders';
@@ -154,25 +155,20 @@ export default function NewOrderPage() {
     }
   }, [initialPlanId, plans]);
 
-  const validateHostname = (value: string): boolean => {
-    if (!value.trim()) {
-      setHostnameError('Hostname wajib diisi');
-      return false;
-    }
-    if (value.length < 3) {
-      setHostnameError('Hostname minimal 3 karakter');
-      return false;
-    }
-    if (value.length > 63) {
-      setHostnameError('Hostname maksimal 63 karakter');
-      return false;
-    }
+  const checkHostnameValidity = (value: string): string | null => {
+    if (!value.trim()) return 'Hostname wajib diisi';
+    if (value.length < 3) return 'Hostname minimal 3 karakter';
+    if (value.length > 63) return 'Hostname maksimal 63 karakter';
     if (!/^[a-z0-9]([a-z0-9-]*[a-z0-9])?$/i.test(value)) {
-      setHostnameError('Hostname hanya boleh huruf, angka, dan strip (-)');
-      return false;
+      return 'Hostname hanya boleh huruf, angka, dan strip (-)';
     }
-    setHostnameError('');
-    return true;
+    return null;
+  };
+
+  const validateHostname = (value: string): boolean => {
+    const error = checkHostnameValidity(value);
+    setHostnameError(error || '');
+    return !error;
   };
 
   const handleApplyCoupon = () => {
@@ -207,7 +203,7 @@ export default function NewOrderPage() {
       case 2:
         return !!selectedImageId;
       case 3:
-        return validateHostname(hostname);
+        return !checkHostnameValidity(hostname);
       case 4:
         return true; // Coupon is optional
       case 5:

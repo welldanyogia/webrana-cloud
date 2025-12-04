@@ -1,13 +1,21 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
 import { Download, Eye, Search, AlertCircle, FileText, Loader2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { useState } from 'react';
+
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { InvoiceTableSkeleton } from '@/components/skeletons/InvoiceTableSkeleton';
 import { useInvoices } from '@/hooks/use-billing';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import type { Invoice } from '@/types';
@@ -25,23 +33,6 @@ function getStatusBadge(status: string) {
     default:
       return <Badge variant="default">{status}</Badge>;
   }
-}
-
-function LoadingSkeleton() {
-  return (
-    <div className="space-y-8">
-      <div>
-        <Skeleton className="h-8 w-48 mb-2" />
-        <Skeleton className="h-4 w-64" />
-      </div>
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Skeleton className="h-24 rounded-xl" />
-        <Skeleton className="h-24 rounded-xl" />
-        <Skeleton className="h-24 rounded-xl" />
-      </div>
-      <Skeleton className="h-96 rounded-xl" />
-    </div>
-  );
 }
 
 function EmptyState() {
@@ -65,13 +56,13 @@ function EmptyState() {
 
 export default function InvoicesPage() {
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [page, setPage] = useState(1);
 
   const { data, isLoading, isError } = useInvoices({
     page,
     limit: 10,
-    status: statusFilter || undefined,
+    status: statusFilter === 'all' ? undefined : statusFilter,
   });
 
   const invoices = data?.data || [];
@@ -91,12 +82,19 @@ export default function InvoicesPage() {
     .reduce((sum, inv) => sum + inv.amount, 0);
 
   // Filter by search
-  const filteredInvoices = invoices.filter(inv =>
-    inv.invoiceNumber.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredInvoices = invoices.filter(inv => {
+    const matchesSearch = 
+      inv.invoiceNumber.toLowerCase().includes(search.toLowerCase()) ||
+      inv.orderId.toLowerCase().includes(search.toLowerCase());
+    
+    // Status is already filtered by API, but we double check for safety
+    const matchesStatus = statusFilter === 'all' || inv.status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
+  });
 
   if (isLoading) {
-    return <LoadingSkeleton />;
+    return <InvoiceTableSkeleton />;
   }
 
   if (isError) {
@@ -161,20 +159,21 @@ export default function InvoicesPage() {
         <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <CardTitle>Daftar Invoice</CardTitle>
           <div className="flex items-center gap-3">
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="h-9 px-3 rounded-lg border border-[var(--border)] bg-[var(--card-bg)] text-sm text-[var(--text-primary)]"
-            >
-              <option value="">Semua Status</option>
-              <option value="PENDING">Menunggu</option>
-              <option value="PAID">Lunas</option>
-              <option value="EXPIRED">Kadaluarsa</option>
-            </select>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Status</SelectItem>
+                <SelectItem value="PENDING">Menunggu</SelectItem>
+                <SelectItem value="PAID">Lunas</SelectItem>
+                <SelectItem value="EXPIRED">Kadaluarsa</SelectItem>
+              </SelectContent>
+            </Select>
             <div className="relative w-full sm:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-muted)]" />
               <Input
-                placeholder="Cari invoice..."
+                placeholder="Cari invoice / Order ID..."
                 className="pl-9 h-9"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}

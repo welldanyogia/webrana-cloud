@@ -1,7 +1,5 @@
 'use client';
 
-import { use } from 'react';
-import Link from 'next/link';
 import {
   ArrowLeft,
   Copy,
@@ -17,10 +15,13 @@ import {
   ExternalLink,
   CreditCard,
 } from 'lucide-react';
+import Link from 'next/link';
+import { use } from 'react';
 import { toast } from 'sonner';
+
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useOrder, useCancelOrder } from '@/hooks/use-orders';
 import {

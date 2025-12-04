@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
 import { Check, Cpu, HardDrive, Wifi, AlertCircle } from 'lucide-react';
+import Link from 'next/link';
+import { useState } from 'react';
+
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { usePlans } from '@/hooks/use-catalog';

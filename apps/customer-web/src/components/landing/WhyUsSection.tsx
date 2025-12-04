@@ -1,5 +1,6 @@
-import { TerminalDemo } from './TerminalDemo';
 import { Terminal, Sliders, Activity, Disc } from 'lucide-react';
+
+import { TerminalDemo } from './TerminalDemo';
 
 export function WhyUsSection() {
   const points = [

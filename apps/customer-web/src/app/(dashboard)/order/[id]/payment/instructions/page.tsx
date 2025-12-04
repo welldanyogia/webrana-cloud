@@ -1,8 +1,5 @@
 'use client';
 
-import { use, useState, useEffect } from 'react';
-import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ArrowLeft,
   Copy,
@@ -15,10 +12,14 @@ import {
   ChevronDown,
   ChevronUp,
 } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { use, useState, useEffect } from 'react';
 import { toast } from 'sonner';
+
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useInvoiceByOrderId, useInvoicePolling } from '@/hooks/use-billing';
 import { formatCurrency, formatDate } from '@/lib/utils';

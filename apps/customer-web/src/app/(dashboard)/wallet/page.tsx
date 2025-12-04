@@ -1,15 +1,16 @@
 'use client';
 
+import { Wallet, Plus, RefreshCw, History, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
 import { useState } from 'react';
-import { useWallet } from '@/hooks/use-wallet';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Wallet, Plus, RefreshCw, History, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
-import { formatCurrency } from '@/lib/utils';
 import { DepositModal, TransactionList } from '@/components/wallet';
+import { useWallet } from '@/hooks/use-wallet';
 import { useWalletTransactions } from '@/hooks/use-wallet';
+import { formatCurrency } from '@/lib/utils';
 
 export default function WalletPage() {
   const [showDepositModal, setShowDepositModal] = useState(false);

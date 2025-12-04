@@ -1,7 +1,5 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   User,
@@ -15,15 +13,19 @@ import {
   UserCircle,
   MessageCircle,
 } from 'lucide-react';
-import { useAuthStore } from '@/stores/auth-store';
-import { useUpdateProfile, useChangePassword } from '@/hooks/use-profile';
+import { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
 import { PasswordStrength } from '@/components/ui/password-strength';
+import { useUpdateProfile, useChangePassword } from '@/hooks/use-profile';
 import { formatDate } from '@/lib/utils';
-import { z } from 'zod';
+import { useAuthStore } from '@/stores/auth-store';
+
 
 const profileSchema = z.object({
   name: z

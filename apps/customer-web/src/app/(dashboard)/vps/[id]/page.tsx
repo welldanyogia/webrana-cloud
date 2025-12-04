@@ -1,7 +1,5 @@
 'use client';
 
-import { use } from 'react';
-import Link from 'next/link';
 import {
   ArrowLeft,
   Copy,
@@ -13,7 +11,11 @@ import {
   Terminal,
   MapPin,
 } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { use } from 'react';
 import { toast } from 'sonner';
+
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -43,7 +45,7 @@ import {
   useVpsRebuild,
 } from '@/hooks/use-vps';
 import { formatDate, formatCurrency } from '@/lib/utils';
-import { useRouter } from 'next/navigation';
+
 
 function copyToClipboard(text: string, label: string) {
   navigator.clipboard.writeText(text);

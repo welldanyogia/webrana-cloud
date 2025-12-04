@@ -1,13 +1,14 @@
 'use client';
 
-import { useState } from 'react';
-import Link from 'next/link';
 import { Plus, Server, AlertCircle, RefreshCw, Filter } from 'lucide-react';
+import Link from 'next/link';
+import { useState } from 'react';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { VpsCard, VpsEmptyState } from '@/components/vps';
+import { VpsCardSkeleton } from '@/components/skeletons/VpsCardSkeleton';
 import { useVpsList } from '@/hooks/use-vps';
 import type { VpsOrderStatus } from '@/services/vps.service';
 
@@ -20,34 +21,6 @@ const FILTER_TABS: { value: FilterTab; label: string; statuses?: VpsOrderStatus[
   { value: 'expiring', label: 'Segera Berakhir', statuses: ['EXPIRING_SOON', 'EXPIRED'] },
   { value: 'suspended', label: 'Ditangguhkan', statuses: ['SUSPENDED', 'TERMINATED'] },
 ];
-
-function VpsListSkeleton() {
-  return (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {[1, 2, 3].map((i) => (
-        <Card key={i} className="overflow-hidden">
-          <div className="h-1 bg-gradient-to-r from-slate-300 to-slate-200" />
-          <CardContent className="p-5 pt-6 space-y-4">
-            <div className="flex items-start gap-3">
-              <Skeleton className="w-12 h-12 rounded-xl" />
-              <div className="flex-1 space-y-2">
-                <Skeleton className="h-5 w-32" />
-                <Skeleton className="h-3 w-24" />
-              </div>
-              <Skeleton className="h-6 w-16 rounded-full" />
-            </div>
-            <Skeleton className="h-10 w-full rounded-lg" />
-            <Skeleton className="h-5 w-3/4" />
-            <Skeleton className="h-4 w-1/2" />
-            <div className="pt-2 border-t border-[var(--border)]">
-              <Skeleton className="h-9 w-full rounded-md" />
-            </div>
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  );
-}
 
 export default function VPSPage() {
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
@@ -161,7 +134,11 @@ export default function VPSPage() {
         {/* Loading State */}
         {isLoading && (
           <div className="mt-6">
-            <VpsListSkeleton />
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {[...Array(6)].map((_, i) => (
+                <VpsCardSkeleton key={i} />
+              ))}
+            </div>
           </div>
         )}
 

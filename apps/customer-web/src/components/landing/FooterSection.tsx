@@ -1,6 +1,7 @@
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
 import { ArrowRight, Cloud } from 'lucide-react';
+import Link from 'next/link';
+
+import { Button } from '@/components/ui/button';
 
 export function FooterSection() {
   return (
@@ -41,7 +42,7 @@ export function FooterSection() {
                 </span>
               </div>
               <p className="text-sm text-muted-foreground mb-4">
-                Cloud VPS performa tinggi untuk developer Indonesia.
+                Cloud VPS Indonesia – Cepat, Mudah, Terjangkau.
               </p>
             </div>
             

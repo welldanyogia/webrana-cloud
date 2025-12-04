@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
 import { Bell, CheckCheck, Filter, Loader2 } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useNotificationsList, useMarkAsRead, useMarkAllAsRead } from '@/hooks/use-notifications';
+import { useState, useEffect, useCallback, useRef } from 'react';
+
 import { NotificationItem, NotificationEmpty } from '@/components/notifications';
 import { Button } from '@/components/ui/button';
 import {
@@ -12,6 +11,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useNotificationsList, useMarkAsRead, useMarkAllAsRead } from '@/hooks/use-notifications';
+import { cn } from '@/lib/utils';
 
 type FilterType = 'all' | 'unread' | 'read';
 

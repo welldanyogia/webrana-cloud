@@ -1,8 +1,5 @@
 'use client';
 
-import { use, useState } from 'react';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import {
   ArrowLeft,
   CreditCard,
@@ -13,14 +10,18 @@ import {
   AlertCircle,
   CheckCircle,
 } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { use, useState } from 'react';
 import { toast } from 'sonner';
+
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { useOrder } from '@/hooks/use-orders';
 import { useInvoiceByOrderId, usePaymentChannels, useInitiatePayment } from '@/hooks/use-billing';
-import { useAuthStore } from '@/stores/auth-store';
+import { useOrder } from '@/hooks/use-orders';
 import { formatCurrency } from '@/lib/utils';
+import { useAuthStore } from '@/stores/auth-store';
 import type { PaymentChannel } from '@/types';
 
 function getChannelIcon(type: string) {
