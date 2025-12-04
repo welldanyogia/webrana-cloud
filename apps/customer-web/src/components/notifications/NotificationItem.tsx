@@ -1,6 +1,5 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import {
   ShoppingCart,
   CreditCard,
@@ -8,6 +7,8 @@ import {
   Bell,
   type LucideIcon,
 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+
 import { cn } from '@/lib/utils';
 import { formatRelativeTime } from '@/lib/utils';
 import type { Notification, NotificationType } from '@/types';

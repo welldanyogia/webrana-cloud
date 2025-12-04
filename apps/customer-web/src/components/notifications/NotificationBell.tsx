@@ -1,10 +1,13 @@
 'use client';
 
-import { useState, useCallback } from 'react';
 import { Bell } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { useNotifications } from '@/hooks/use-notifications';
+import { useState, useCallback } from 'react';
+
 import { NotificationDropdown } from './NotificationDropdown';
+
+import { useNotifications } from '@/hooks/use-notifications';
+import { cn } from '@/lib/utils';
+
 
 interface NotificationBellProps {
   className?: string;

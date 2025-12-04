@@ -1,12 +1,15 @@
 'use client';
 
-import { useRef, useEffect } from 'react';
-import Link from 'next/link';
 import { CheckCheck, Wifi, WifiOff } from 'lucide-react';
-import { cn } from '@/lib/utils';
-import { NotificationItem } from './NotificationItem';
+import Link from 'next/link';
+import { useRef, useEffect } from 'react';
+
+
 import { NotificationEmpty } from './NotificationEmpty';
+import { NotificationItem } from './NotificationItem';
+
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import type { Notification } from '@/types';
 
 interface NotificationDropdownProps {

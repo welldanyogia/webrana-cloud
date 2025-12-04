@@ -1,7 +1,8 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
 import { NotificationBell } from './NotificationBell';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
 // Mock the useNotifications hook
 vi.mock('@/hooks/use-notifications', () => ({

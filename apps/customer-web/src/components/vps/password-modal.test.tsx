@@ -1,7 +1,8 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { PasswordModal } from './password-modal';
 import { toast } from 'sonner';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+import { PasswordModal } from './password-modal';
 
 describe('PasswordModal', () => {
   const defaultProps = {
