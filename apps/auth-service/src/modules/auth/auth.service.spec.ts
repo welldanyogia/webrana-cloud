@@ -1,11 +1,6 @@
-import { AuthService } from './auth.service';
-import { PrismaService } from '../../prisma/prisma.service';
-import { UserService } from '../user/user.service';
-import { JwtTokenService } from '../../common/services/jwt.service';
-import { TokenService } from '../../common/services/token.service';
-import { PasswordService } from '../../common/services/password.service';
 import { ConfigService } from '@nestjs/config';
 import { UserRole, UserStatus, VerificationTokenType } from '@prisma/client';
+
 import {
   InvalidCredentialsException,
   AccountSuspendedException,
@@ -15,7 +10,15 @@ import {
   TokenUsedException,
   InvalidCurrentPasswordException,
   UserNotFoundException,
+  TokenReuseDetectedException,
 } from '../../common/exceptions/auth.exceptions';
+import { JwtTokenService } from '../../common/services/jwt.service';
+import { PasswordService } from '../../common/services/password.service';
+import { TokenService } from '../../common/services/token.service';
+import { PrismaService } from '../../prisma/prisma.service';
+import { UserService } from '../user/user.service';
+
+import { AuthService } from './auth.service';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -309,14 +312,17 @@ describe('AuthService', () => {
   });
 
   describe('refresh()', () => {
-    it('should refresh tokens successfully', async () => {
+    it('should refresh tokens successfully with token rotation', async () => {
       const dto = { refresh_token: 'valid-refresh-token' };
       const storedToken = {
         id: 'token-id',
         userId: mockUser.id,
         tokenHash: 'hashed-token',
+        familyId: 'family-id-123',
         expiresAt: new Date(Date.now() + 60000),
         revokedAt: null,
+        deviceInfo: 'Chrome/Windows',
+        ipAddress: '192.168.1.1',
         user: mockUser,
       };
 
@@ -335,7 +341,18 @@ describe('AuthService', () => {
 
       expect(result.data.access_token).toBe(mockTokenPair.accessToken);
       expect(result.data.refresh_token).toBe(mockTokenPair.refreshToken);
-      expect(prisma.refreshToken.update).toHaveBeenCalled(); // Revoke old token
+      // Verify old token is revoked
+      expect(prisma.refreshToken.update).toHaveBeenCalledWith({
+        where: { id: storedToken.id },
+        data: { revokedAt: expect.any(Date) },
+      });
+      // Verify new token is created with same familyId
+      expect(prisma.refreshToken.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          familyId: storedToken.familyId,
+          userId: mockUser.id,
+        }),
+      });
     });
 
     it('should throw InvalidTokenException for invalid JWT', async () => {
@@ -346,23 +363,34 @@ describe('AuthService', () => {
       ).rejects.toThrow(InvalidTokenException);
     });
 
-    it('should throw InvalidTokenException for revoked token', async () => {
+    it('should detect token reuse and revoke entire family', async () => {
       const revokedToken = {
         id: 'token-id',
         userId: mockUser.id,
         tokenHash: 'hashed-token',
+        familyId: 'family-id-123',
         expiresAt: new Date(Date.now() + 60000),
-        revokedAt: new Date(),
+        revokedAt: new Date(), // Token already revoked
         user: mockUser,
       };
 
       jwtTokenService.verifyRefreshToken.mockReturnValue({ sub: mockUser.id });
       tokenService.hashRefreshToken.mockReturnValue('hashed-token');
       prisma.refreshToken.findUnique.mockResolvedValue(revokedToken);
+      prisma.refreshToken.updateMany.mockResolvedValue({ count: 2 });
 
       await expect(
         service.refresh({ refresh_token: 'revoked' })
-      ).rejects.toThrow(InvalidTokenException);
+      ).rejects.toThrow(TokenReuseDetectedException);
+
+      // Verify entire family is revoked for security
+      expect(prisma.refreshToken.updateMany).toHaveBeenCalledWith({
+        where: {
+          familyId: revokedToken.familyId,
+          revokedAt: null,
+        },
+        data: { revokedAt: expect.any(Date) },
+      });
     });
 
     it('should throw AccountSuspendedException for suspended user', async () => {
@@ -371,6 +399,7 @@ describe('AuthService', () => {
         id: 'token-id',
         userId: suspendedUser.id,
         tokenHash: 'hashed-token',
+        familyId: 'family-id-123',
         expiresAt: new Date(Date.now() + 60000),
         revokedAt: null,
         user: suspendedUser,
@@ -382,6 +411,26 @@ describe('AuthService', () => {
 
       await expect(service.refresh({ refresh_token: 'valid' })).rejects.toThrow(
         AccountSuspendedException
+      );
+    });
+
+    it('should throw TokenExpiredException for expired token', async () => {
+      const expiredToken = {
+        id: 'token-id',
+        userId: mockUser.id,
+        tokenHash: 'hashed-token',
+        familyId: 'family-id-123',
+        expiresAt: new Date(Date.now() - 60000), // Expired
+        revokedAt: null,
+        user: mockUser,
+      };
+
+      jwtTokenService.verifyRefreshToken.mockReturnValue({ sub: mockUser.id });
+      tokenService.hashRefreshToken.mockReturnValue('hashed-token');
+      prisma.refreshToken.findUnique.mockResolvedValue(expiredToken);
+
+      await expect(service.refresh({ refresh_token: 'expired' })).rejects.toThrow(
+        TokenExpiredException
       );
     });
   });

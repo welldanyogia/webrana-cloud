@@ -1,17 +1,21 @@
+import * as path from 'path';
+
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerModule } from '@nestjs/throttler';
-import * as path from 'path';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { PrismaModule } from '../prisma/prisma.module';
-import { AuthModule } from '../modules/auth/auth.module';
+
+
 import { HttpExceptionFilter } from '../common/filters/http-exception.filter';
 import { ThrottlerExceptionFilter } from '../common/filters/throttler-exception.filter';
-import { ThrottlerRedisStorage } from '../common/throttler/throttler-redis-storage';
 import { CustomThrottlerGuard } from '../common/guards/custom-throttler.guard';
 import { LoggingInterceptor } from '../common/interceptors/logging.interceptor';
+import { ThrottlerRedisStorage } from '../common/throttler/throttler-redis-storage';
+import { AuthModule } from '../modules/auth/auth.module';
+import { PrismaModule } from '../prisma/prisma.module';
+
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 
 @Module({
   imports: [

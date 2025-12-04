@@ -95,3 +95,13 @@ export class RateLimitExceededException extends AuthException {
     super('RATE_LIMIT_EXCEEDED', 'Terlalu banyak permintaan. Silakan coba lagi nanti.', HttpStatus.TOO_MANY_REQUESTS);
   }
 }
+
+export class TokenReuseDetectedException extends AuthException {
+  constructor() {
+    super(
+      'TOKEN_REUSE_DETECTED',
+      'Token reuse terdeteksi. Semua sesi telah direvoke untuk keamanan.',
+      HttpStatus.UNAUTHORIZED
+    );
+  }
+}

@@ -1,12 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { User, UserRole, UserStatus } from '@prisma/client';
-import { PrismaService } from '../../prisma/prisma.service';
-import { PasswordService } from '../../common/services/password.service';
+
 import {
   EmailExistsException,
   UserNotFoundException,
   PasswordValidationException,
 } from '../../common/exceptions/auth.exceptions';
+import { PasswordService } from '../../common/services/password.service';
+import { PrismaService } from '../../prisma/prisma.service';
 
 export interface CreateUserData {
   email: string;

@@ -1,12 +1,14 @@
-import { UserService, CreateUserData, UpdateUserData } from './user.service';
-import { PrismaService } from '../../prisma/prisma.service';
-import { PasswordService } from '../../common/services/password.service';
 import { UserRole, UserStatus } from '@prisma/client';
+
 import {
   EmailExistsException,
   UserNotFoundException,
   PasswordValidationException,
 } from '../../common/exceptions/auth.exceptions';
+import { PasswordService } from '../../common/services/password.service';
+import { PrismaService } from '../../prisma/prisma.service';
+
+import { UserService, CreateUserData, UpdateUserData } from './user.service';
 
 describe('UserService', () => {
   let service: UserService;

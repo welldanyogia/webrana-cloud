@@ -1,6 +1,7 @@
+import { createHash, randomBytes } from 'crypto';
+
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createHash, randomBytes } from 'crypto';
 import { VerificationTokenType } from '@webrana-cloud/common';
 
 export interface GeneratedToken {

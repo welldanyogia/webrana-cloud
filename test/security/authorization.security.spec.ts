@@ -6,6 +6,7 @@
  */
 
 import * as jwt from 'jsonwebtoken';
+
 import {
   generateTestToken,
   TEST_USERS,

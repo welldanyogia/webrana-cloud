@@ -1,4 +1,5 @@
 import { ConfigService } from '@nestjs/config';
+
 import { PasswordService } from './password.service';
 
 describe('PasswordService', () => {

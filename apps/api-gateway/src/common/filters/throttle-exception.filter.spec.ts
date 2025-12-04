@@ -1,5 +1,6 @@
 import { ArgumentsHost } from '@nestjs/common';
 import { ThrottlerException } from '@nestjs/throttler';
+
 import { ThrottleExceptionFilter } from './throttle-exception.filter';
 
 describe('ThrottleExceptionFilter', () => {
@@ -14,11 +15,13 @@ describe('ThrottleExceptionFilter', () => {
     mockResponse = {
       status: jest.fn().mockReturnThis(),
       json: jest.fn().mockReturnThis(),
+      setHeader: jest.fn().mockReturnThis(),
     };
 
     mockRequest = {
       method: 'POST',
       url: '/api/v1/auth/login',
+      path: '/auth/login',
       ip: '192.168.1.100',
       headers: {},
       socket: { remoteAddress: '192.168.1.100' },
@@ -51,17 +54,29 @@ describe('ThrottleExceptionFilter', () => {
       
       filter.catch(exception, mockHost);
       
-      expect(mockResponse.json).toHaveBeenCalledWith({
-        error: {
-          code: 'RATE_LIMIT_EXCEEDED',
-          message: 'Terlalu banyak permintaan. Silakan coba lagi nanti.',
-          details: {
-            retryAfter: 60,
-            retryAfterUnit: 'seconds',
+      expect(mockResponse.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          statusCode: 429,
+          error: 'Too Many Requests',
+          message: 'Rate limit exceeded. Try again in 60 seconds.',
+          retryAfter: 60,
+          details: expect.objectContaining({
+            code: 'RATE_LIMIT_EXCEEDED',
             endpoint: '/api/v1/auth/login',
-          },
-        },
-      });
+          }),
+        }),
+      );
+    }
+
+    it('should set rate limit headers', () => {
+      const exception = new ThrottlerException('Rate limit exceeded');
+      
+      filter.catch(exception, mockHost);
+      
+      expect(mockResponse.setHeader).toHaveBeenCalledWith('Retry-After', '60');
+      expect(mockResponse.setHeader).toHaveBeenCalledWith('X-RateLimit-Limit', '5');
+      expect(mockResponse.setHeader).toHaveBeenCalledWith('X-RateLimit-Remaining', '0');
+      expect(mockResponse.setHeader).toHaveBeenCalledWith('X-RateLimit-Reset', expect.any(String));
     });
 
     it('should extract IP from x-forwarded-for header', () => {
@@ -115,6 +130,7 @@ describe('ThrottleExceptionFilter', () => {
 
     it('should include endpoint URL in response details', () => {
       mockRequest.url = '/api/v1/orders';
+      mockRequest.path = '/orders';
       
       const exception = new ThrottlerException('Rate limit exceeded');
       
@@ -122,30 +138,45 @@ describe('ThrottleExceptionFilter', () => {
       
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          error: expect.objectContaining({
-            details: expect.objectContaining({
-              endpoint: '/api/v1/orders',
-            }),
+          details: expect.objectContaining({
+            endpoint: '/api/v1/orders',
           }),
         }),
       );
     });
 
-    it('should include retryAfter in response details', () => {
+    it('should include retryAfter at root level', () => {
       const exception = new ThrottlerException('Rate limit exceeded');
       
       filter.catch(exception, mockHost);
       
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          error: expect.objectContaining({
-            details: expect.objectContaining({
-              retryAfter: 60,
-              retryAfterUnit: 'seconds',
-            }),
-          }),
+          retryAfter: 60,
         }),
       );
+    });
+    
+    it('should return correct rate limit for order POST endpoint', () => {
+      mockRequest.path = '/orders';
+      mockRequest.method = 'POST';
+      
+      const exception = new ThrottlerException('Rate limit exceeded');
+      
+      filter.catch(exception, mockHost);
+      
+      expect(mockResponse.setHeader).toHaveBeenCalledWith('X-RateLimit-Limit', '20');
+    });
+    
+    it('should return correct rate limit for instance actions', () => {
+      mockRequest.path = '/instances/123/reboot';
+      mockRequest.method = 'POST';
+      
+      const exception = new ThrottlerException('Rate limit exceeded');
+      
+      filter.catch(exception, mockHost);
+      
+      expect(mockResponse.setHeader).toHaveBeenCalledWith('X-RateLimit-Limit', '1');
     });
 
     it('should handle GET requests', () => {
@@ -170,29 +201,41 @@ describe('ThrottleExceptionFilter', () => {
       expect(mockResponse.status).toHaveBeenCalledWith(429);
     });
 
-    it('should return correct error code', () => {
+    it('should return correct error code in details', () => {
       const exception = new ThrottlerException('Rate limit exceeded');
       
       filter.catch(exception, mockHost);
       
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          error: expect.objectContaining({
+          details: expect.objectContaining({
             code: 'RATE_LIMIT_EXCEEDED',
           }),
         }),
       );
     });
 
-    it('should return Indonesian error message', () => {
+    it('should return English error message', () => {
       const exception = new ThrottlerException('Rate limit exceeded');
       
       filter.catch(exception, mockHost);
       
       expect(mockResponse.json).toHaveBeenCalledWith(
         expect.objectContaining({
-          error: expect.objectContaining({
-            message: 'Terlalu banyak permintaan. Silakan coba lagi nanti.',
+          message: expect.stringContaining('Rate limit exceeded'),
+        }),
+      );
+    });
+    
+    it('should include resetAt in ISO format in details', () => {
+      const exception = new ThrottlerException('Rate limit exceeded');
+      
+      filter.catch(exception, mockHost);
+      
+      expect(mockResponse.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          details: expect.objectContaining({
+            resetAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z$/),
           }),
         }),
       );

@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService as NestJwtService } from '@nestjs/jwt';
-import { v4 as uuidv4 } from 'uuid';
 import { UserRole, UserStatus, AccessTokenPayload, RefreshTokenPayload, TokenPair } from '@webrana-cloud/common';
+import { v4 as uuidv4 } from 'uuid';
 
 export interface TokenUser {
   id: string;

@@ -1,11 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { UserStatus, VerificationTokenType } from '@prisma/client';
-import { PrismaService } from '../../prisma/prisma.service';
-import { UserService } from '../user/user.service';
-import { JwtTokenService, TokenUser } from '../../common/services/jwt.service';
-import { TokenService } from '../../common/services/token.service';
-import { PasswordService } from '../../common/services/password.service';
+import { UserRole as CommonUserRole, UserStatus as CommonUserStatus } from '@webrana-cloud/common';
+import { v4 as uuidv4 } from 'uuid';
+
 import {
   InvalidCredentialsException,
   AccountSuspendedException,
@@ -14,9 +12,15 @@ import {
   TokenExpiredException,
   TokenUsedException,
   InvalidCurrentPasswordException,
-  UserNotFoundException,
+  TokenReuseDetectedException,
 } from '../../common/exceptions/auth.exceptions';
-import { UserRole as CommonUserRole, UserStatus as CommonUserStatus } from '@webrana-cloud/common';
+import { JwtTokenService, TokenUser } from '../../common/services/jwt.service';
+import { PasswordService } from '../../common/services/password.service';
+import { TokenService } from '../../common/services/token.service';
+import { PrismaService } from '../../prisma/prisma.service';
+import { UserService } from '../user/user.service';
+
+
 import {
   RegisterDto,
   LoginDto,
@@ -196,11 +200,14 @@ export class AuthService {
 
     const tokens = this.jwtTokenService.generateTokenPair(tokenUser);
 
+    // Create a new token family for this login session
+    const familyId = uuidv4();
     const refreshTokenHash = this.tokenService.hashRefreshToken(tokens.refreshToken);
     await this.prisma.refreshToken.create({
       data: {
         userId: user.id,
         tokenHash: refreshTokenHash,
+        familyId,
         deviceInfo: dto.device_info,
         ipAddress: ipAddress,
         expiresAt: new Date(Date.now() + this.jwtTokenService.getRefreshExpiryMs()),
@@ -241,8 +248,25 @@ export class AuthService {
       include: { user: true },
     });
 
-    if (!storedToken || storedToken.revokedAt) {
+    if (!storedToken) {
       throw new InvalidTokenException();
+    }
+
+    // Token reuse detection: if token is already revoked, someone is trying to reuse it
+    // This indicates potential token theft - revoke entire token family for security
+    if (storedToken.revokedAt) {
+      this.logger.warn(
+        `Token reuse detected for user: ${storedToken.userId}, family: ${storedToken.familyId}`
+      );
+      // Revoke all tokens in the same family
+      await this.prisma.refreshToken.updateMany({
+        where: {
+          familyId: storedToken.familyId,
+          revokedAt: null,
+        },
+        data: { revokedAt: new Date() },
+      });
+      throw new TokenReuseDetectedException();
     }
 
     if (storedToken.expiresAt < new Date()) {
@@ -259,6 +283,7 @@ export class AuthService {
       throw new AccountDeletedException();
     }
 
+    // Revoke the current token (rotation)
     await this.prisma.refreshToken.update({
       where: { id: storedToken.id },
       data: { revokedAt: new Date() },
@@ -273,11 +298,13 @@ export class AuthService {
 
     const tokens = this.jwtTokenService.generateTokenPair(tokenUser);
 
+    // Create new token with same familyId to maintain token chain
     const newRefreshTokenHash = this.tokenService.hashRefreshToken(tokens.refreshToken);
     await this.prisma.refreshToken.create({
       data: {
         userId: user.id,
         tokenHash: newRefreshTokenHash,
+        familyId: storedToken.familyId, // Maintain token family chain
         deviceInfo: storedToken.deviceInfo,
         ipAddress: storedToken.ipAddress,
         expiresAt: new Date(Date.now() + this.jwtTokenService.getRefreshExpiryMs()),

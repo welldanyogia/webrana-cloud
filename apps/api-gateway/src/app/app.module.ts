@@ -1,15 +1,20 @@
+import * as path from 'path';
+
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-import * as path from 'path';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
+
+
 import { HttpExceptionFilter } from '../common/filters/http-exception.filter';
 import { ThrottleExceptionFilter } from '../common/filters/throttle-exception.filter';
+import { RateLimitHeaderInterceptor } from '../common/interceptors/rate-limit-header.interceptor';
 import { AuthProxyModule } from '../modules/auth-proxy/auth-proxy.module';
-import { OrderProxyModule } from '../modules/order-proxy/order-proxy.module';
 import { InstanceProxyModule } from '../modules/instance-proxy/instance-proxy.module';
+import { OrderProxyModule } from '../modules/order-proxy/order-proxy.module';
+
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 
 @Module({
   imports: [
@@ -60,6 +65,10 @@ import { InstanceProxyModule } from '../modules/instance-proxy/instance-proxy.mo
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: RateLimitHeaderInterceptor,
     },
     {
       provide: APP_FILTER,

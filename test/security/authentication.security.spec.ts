@@ -5,8 +5,10 @@
  * and other authentication-related security measures.
  */
 
-import * as jwt from 'jsonwebtoken';
 import * as crypto from 'crypto';
+
+import * as jwt from 'jsonwebtoken';
+
 import {
   generateTestToken,
   generateExpiredToken,

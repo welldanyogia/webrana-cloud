@@ -1,0 +1,246 @@
+version: '3.8'
+
+services:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Infrastructure
+  # ─────────────────────────────────────────────────────────────────────────────
+  postgres-staging:
+    image: postgres:16-alpine
+    container_name: webrana-postgres-staging
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DATABASE_NAME}
+      POSTGRES_USER: ${DATABASE_USER}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_staging_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER} -d ${DATABASE_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - webrana-staging
+
+  redis-staging:
+    image: redis:7-alpine
+    container_name: webrana-redis-staging
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - webrana-staging
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Backend Services
+  # ─────────────────────────────────────────────────────────────────────────────
+  
+  api-gateway:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+      args:
+        SERVICE_NAME: api-gateway
+        HAS_PRISMA: "false"
+    container_name: webrana-api-gateway
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - redis-staging
+    networks:
+      - webrana-staging
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+      args:
+        SERVICE_NAME: auth-service
+        HAS_PRISMA: "true"
+    container_name: webrana-auth-service
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PORT: 3001
+      DATABASE_URL: ${DATABASE_URL_AUTH}
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres-staging:
+        condition: service_healthy
+    networks:
+      - webrana-staging
+
+  catalog-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+      args:
+        SERVICE_NAME: catalog-service
+        HAS_PRISMA: "true"
+    container_name: webrana-catalog-service
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PORT: 3002
+      DATABASE_URL: ${DATABASE_URL_CATALOG}
+    ports:
+      - "3002:3002"
+    depends_on:
+      postgres-staging:
+        condition: service_healthy
+    networks:
+      - webrana-staging
+
+  order-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+      args:
+        SERVICE_NAME: order-service
+        HAS_PRISMA: "true"
+    container_name: webrana-order-service
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PORT: 3003
+      DATABASE_URL: ${DATABASE_URL_ORDER}
+    ports:
+      - "3003:3003"
+    depends_on:
+      postgres-staging:
+        condition: service_healthy
+    networks:
+      - webrana-staging
+
+  billing-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+      args:
+        SERVICE_NAME: billing-service
+        HAS_PRISMA: "true"
+    container_name: webrana-billing-service
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PORT: 3004
+      DATABASE_URL: ${DATABASE_URL_BILLING}
+    ports:
+      - "3004:3004"
+    depends_on:
+      postgres-staging:
+        condition: service_healthy
+    networks:
+      - webrana-staging
+
+  instance-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+      args:
+        SERVICE_NAME: instance-service
+        HAS_PRISMA: "false"
+    container_name: webrana-instance-service
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PORT: 3005
+    ports:
+      - "3005:3005"
+    networks:
+      - webrana-staging
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+      args:
+        SERVICE_NAME: notification-service
+        HAS_PRISMA: "true"
+    container_name: webrana-notification-service
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PORT: 3006
+      DATABASE_URL: ${DATABASE_URL_NOTIFICATION}
+    ports:
+      - "3006:3006"
+    depends_on:
+      postgres-staging:
+        condition: service_healthy
+      redis-staging:
+        condition: service_healthy
+    networks:
+      - webrana-staging
+
+  provider-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.backend
+      args:
+        SERVICE_NAME: provider-service
+        HAS_PRISMA: "false"
+    container_name: webrana-provider-service
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PORT: 3007
+    ports:
+      - "3007:3007"
+    networks:
+      - webrana-staging
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Frontend Applications
+  # ─────────────────────────────────────────────────────────────────────────────
+
+  admin-web:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+      args:
+        APP_NAME: admin-web
+    container_name: webrana-admin-web
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "4200:3000"
+    depends_on:
+      - api-gateway
+    networks:
+      - webrana-staging
+
+  customer-web:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.frontend
+      args:
+        APP_NAME: customer-web
+    container_name: webrana-customer-web
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "4201:3000"
+    depends_on:
+      - api-gateway
+    networks:
+      - webrana-staging
+
+volumes:
+  postgres_staging_data:
+
+networks:
+  webrana-staging:
+    driver: bridge

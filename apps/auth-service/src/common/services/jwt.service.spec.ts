@@ -1,7 +1,8 @@
 import { ConfigService } from '@nestjs/config';
 import { JwtService as NestJwtService } from '@nestjs/jwt';
-import { JwtTokenService, TokenUser } from './jwt.service';
 import { UserRole, UserStatus } from '@webrana-cloud/common';
+
+import { JwtTokenService, TokenUser } from './jwt.service';
 
 describe('JwtTokenService', () => {
   let service: JwtTokenService;

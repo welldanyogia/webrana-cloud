@@ -7,9 +7,10 @@ import {
     HttpException,
     HttpStatus,
 } from '@nestjs/common';
+import { Request } from 'express';
 import { Observable, throwError } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
-import { Request } from 'express';
+
 import { maskEmail } from '../utils/email-mask.util';
 
 @Injectable()

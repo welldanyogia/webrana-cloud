@@ -1,6 +1,4 @@
 import { Controller, Post, Get, Patch, Body, Req, UseGuards, HttpCode } from '@nestjs/common';
-import { Request } from 'express';
-import { Throttle, SkipThrottle } from '@nestjs/throttler';
 import {
   ApiTags,
   ApiOperation,
@@ -8,11 +6,15 @@ import {
   ApiBearerAuth,
   ApiBody,
 } from '@nestjs/swagger';
-import { AuthService } from './auth.service';
-import { Public } from '../../common/decorators/public.decorator';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { Throttle, SkipThrottle } from '@nestjs/throttler';
 import { AuthUser } from '@webrana-cloud/common';
+import { Request } from 'express';
+
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { Public } from '../../common/decorators/public.decorator';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+
+import { AuthService } from './auth.service';
 import {
   RegisterDto,
   LoginDto,

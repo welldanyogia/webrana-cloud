@@ -11,6 +11,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+
 import { UserThrottlerGuard } from '../../common/guards/user-throttle.guard';
 
 /**
@@ -19,7 +20,7 @@ import { UserThrottlerGuard } from '../../common/guards/user-throttle.guard';
  * Proxies order requests to order-service with rate limiting.
  * 
  * Rate Limits:
- * - POST /orders: 10 per minute per user (order creation)
+ * - POST /orders: 20 per minute per user (heavy operation)
  * - GET /orders: 100 per minute per user (general API)
  * - GET /orders/:id: 100 per minute per user (general API)
  */
@@ -29,11 +30,11 @@ export class OrderProxyController {
   private readonly logger = new Logger(OrderProxyController.name);
 
   /**
-   * Create order - 10 requests per minute per user
+   * Create order - 20 requests per minute per user (heavy operation)
    */
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @Throttle({ default: { limit: 20, ttl: 60000 } })
   async createOrder(@Body() createOrderDto: any) {
     this.logger.log('Create order request received - would proxy to order-service');
     
@@ -41,7 +42,7 @@ export class OrderProxyController {
     return {
       data: {
         message: 'Create order endpoint - proxied to order-service',
-        note: 'Rate limited: 10 requests per minute per user',
+        note: 'Rate limited: 20 requests per minute per user',
       },
     };
   }

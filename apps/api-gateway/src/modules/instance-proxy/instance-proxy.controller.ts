@@ -8,8 +8,9 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { UserThrottlerGuard } from '../../common/guards/user-throttle.guard';
+
 import { InstanceThrottlerGuard } from '../../common/guards/instance-throttle.guard';
+import { UserThrottlerGuard } from '../../common/guards/user-throttle.guard';
 
 /**
  * Instance Proxy Controller

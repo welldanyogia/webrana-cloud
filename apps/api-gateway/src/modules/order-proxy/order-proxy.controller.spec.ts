@@ -54,7 +54,7 @@ describe('OrderProxyController', () => {
       const result = await controller.createOrder({ planId: 'test' });
 
       expect(result.data.note).toContain('Rate limited');
-      expect(result.data.note).toContain('10 requests per minute');
+      expect(result.data.note).toContain('20 requests per minute');
     });
 
     it('should handle various order payloads', async () => {
@@ -160,10 +160,10 @@ describe('OrderProxyController', () => {
       expect(guards.length).toBeGreaterThanOrEqual(1);
     });
 
-    it('createOrder should have throttle limit of 10', () => {
+    it('createOrder should have throttle limit of 20 (heavy operation)', () => {
       // Verify throttle decorator is applied
       const metadata = Reflect.getMetadata('THROTTLER:THROTTLES', controller.createOrder);
-      // Metadata structure may vary
+      // Metadata structure may vary - heavy operations get 20 req/min
     });
 
     it('listOrders should have throttle limit of 100', () => {

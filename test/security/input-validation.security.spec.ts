@@ -5,6 +5,8 @@
  * command injection, and other input validation security measures.
  */
 
+import { escape as escapeHtml } from 'html-escaper';
+
 import {
   SQL_INJECTION_PAYLOADS,
   XSS_PAYLOADS,
@@ -16,7 +18,6 @@ import {
   generateDeeplyNestedJson,
   isPayloadSanitized,
 } from './helpers';
-import { escape as escapeHtml } from 'html-escaper';
 
 describe('Input Validation Security', () => {
   describe('SQL Injection Prevention', () => {

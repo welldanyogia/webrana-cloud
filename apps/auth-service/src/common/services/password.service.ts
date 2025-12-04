@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import * as bcrypt from 'bcryptjs';
 import { PasswordValidationResult, PasswordPolicyConfig } from '@webrana-cloud/common';
+import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class PasswordService {

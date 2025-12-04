@@ -1,7 +1,9 @@
-import { ConfigService } from '@nestjs/config';
-import { TokenService } from './token.service';
-import { VerificationTokenType } from '@webrana-cloud/common';
 import { createHash } from 'crypto';
+
+import { ConfigService } from '@nestjs/config';
+import { VerificationTokenType } from '@webrana-cloud/common';
+
+import { TokenService } from './token.service';
 
 describe('TokenService', () => {
   let service: TokenService;
