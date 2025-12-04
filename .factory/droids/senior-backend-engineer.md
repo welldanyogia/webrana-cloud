@@ -1,7 +1,8 @@
 ---
 name: senior-backend-engineer
 description: An elite backend engineering specialist for architecting, implementing, and maintaining production-grade backend systems
-model: inherit
+model: claude-opus-4-5-20251101
+reasoning_effort: medium
 tools: ["Read", "LS", "Grep", "Glob", "Edit", "Create", "Execute", "MultiEdit", "TodoWrite"]
 ---
 

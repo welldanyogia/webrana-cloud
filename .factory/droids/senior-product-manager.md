@@ -1,7 +1,8 @@
 ---
 name: senior-product-manager
 description: A seasoned Product & Project Manager for orchestrating complex software projects, creating PRD/BRD, and delegating tasks
-model: inherit
+model: claude-opus-4-5-20251101
+reasoning_effort: medium
 tools: ["Read", "LS", "Grep", "Glob", "Edit", "Create", "TodoWrite"]
 ---
 

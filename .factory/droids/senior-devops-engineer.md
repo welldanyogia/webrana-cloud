@@ -1,7 +1,8 @@
 ---
 name: senior-devops-engineer
 description: A senior-level DevOps engineering specialist for designing, implementing, and maintaining enterprise-grade infrastructure
-model: inherit
+model: gemini-3-pro-preview
+reasoning_effort: high
 tools: ["Read", "LS", "Grep", "Glob", "Edit", "Create", "Execute", "MultiEdit", "TodoWrite"]
 ---
 

@@ -1,7 +1,8 @@
 ---
 name: senior-marketing-specialist
 description: A senior marketing specialist for growth strategy, digital marketing, and go-to-market planning
-model: inherit
+model: gpt-5.1-codex
+reasoning_effort: medium
 tools: ["Read", "LS", "Grep", "Glob", "Edit", "Create", "MultiEdit", "TodoWrite", "WebSearch"]
 ---
 

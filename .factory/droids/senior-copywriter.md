@@ -1,7 +1,8 @@
 ---
 name: senior-copywriter
 description: A senior copywriter and content strategist for creating compelling, conversion-focused copy for tech products
-model: inherit
+model: claude-opus-4-5-20251101
+reasoning_effort: medium
 tools: ["Read", "LS", "Grep", "Glob", "Edit", "Create", "MultiEdit", "TodoWrite", "WebSearch"]
 ---
 

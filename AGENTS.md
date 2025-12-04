@@ -77,26 +77,34 @@ Custom skills untuk webrana-cloud project, terletak di `.factory/droids/`.
 
 ### Orchestrator Skill (Start Here for New Features)
 
-| Skill | Command | Shorthand | Purpose |
-|-------|---------|-----------|---------|
-| **Senior Product Manager** | `/droid senior-product-manager` | `/pm` | Create PRD/BRD, orchestrate tasks, delegate to engineering skills |
+| Skill | Command | Shorthand | Model | Purpose |
+|-------|---------|-----------|-------|---------|
+| **Senior Product Manager** | `/droid senior-product-manager` | `/pm` | Claude Opus 4.5 | Create PRD/BRD, orchestrate tasks, delegate to engineering skills |
 
 ### Engineering Skills
 
-| Skill | Command | Shorthand | Purpose |
-|-------|---------|-----------|---------|
-| **Senior Backend Engineer** | `/droid senior-backend-engineer` | `/backend` | API development, database design, microservices |
-| **Senior Frontend Engineer** | `/droid senior-frontend-engineer` | `/frontend` | UI components, state management, accessibility |
-| **Senior QA Engineer** | `/droid senior-qa-engineer` | `/qa` | Test strategy, automation, quality gates |
-| **Senior DevOps Engineer** | `/droid senior-devops-engineer` | `/devops` | CI/CD, infrastructure, monitoring |
+| Skill | Command | Shorthand | Model | Purpose |
+|-------|---------|-----------|-------|---------|
+| **Senior Backend Engineer** | `/droid senior-backend-engineer` | `/backend` | Claude Opus 4.5 | API development, database design, microservices |
+| **Senior Frontend Engineer** | `/droid senior-frontend-engineer` | `/frontend` | Gemini 3 Pro | UI components, state management, accessibility |
+| **Senior QA Engineer** | `/droid senior-qa-engineer` | `/qa` | Claude Opus 4.5 | Test strategy, automation, quality gates |
+| **Senior DevOps Engineer** | `/droid senior-devops-engineer` | `/devops` | Gemini 3 Pro | CI/CD, infrastructure, monitoring |
 
 ### Creative & Marketing Skills
 
-| Skill | Command | Shorthand | Purpose |
-|-------|---------|-----------|---------|
-| **Senior UI/UX Designer** | `/droid senior-ui-ux-designer` | `/design` | UI design, UX flows, design systems, visual design |
-| **Senior Copywriter** | `/droid senior-copywriter` | `/copy` | Landing page copy, UX writing, product content |
-| **Senior Marketing Specialist** | `/droid senior-marketing-specialist` | `/marketing` | GTM strategy, campaigns, SEO, growth |
+| Skill | Command | Shorthand | Model | Purpose |
+|-------|---------|-----------|-------|---------|
+| **Senior UI/UX Designer** | `/droid senior-ui-ux-designer` | `/design` | Gemini 3 Pro | UI design, UX flows, design systems, visual design |
+| **Senior Copywriter** | `/droid senior-copywriter` | `/copy` | Claude Opus 4.5 | Landing page copy, UX writing, product content |
+| **Senior Marketing Specialist** | `/droid senior-marketing-specialist` | `/marketing` | GPT-5.1 Codex | GTM strategy, campaigns, SEO, growth |
+
+### Model Selection Rationale (Benchmark Nov 2025)
+
+| Model | Best For | Key Benchmark |
+|-------|----------|---------------|
+| **Claude Opus 4.5** | Backend, QA, Writing, Strategy | SWE-bench 80.9%, Tool Use 98.2% |
+| **Gemini 3 Pro** | Frontend, DevOps, UI/UX | WebDev Arena 1487, Terminal-Bench 54.2% |
+| **GPT-5.1 Codex** | Marketing, Adaptive Tasks | Graduate Reasoning 88.1%, Cost-effective |
 
 ### Specialized Skills (`.factory/skills/`)
 

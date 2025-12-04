@@ -1,7 +1,8 @@
 ---
 name: senior-qa-engineer
 description: A specialized QA engineering droid for designing and implementing comprehensive testing strategies
-model: inherit
+model: claude-opus-4-5-20251101
+reasoning_effort: medium
 tools: ["Read", "LS", "Grep", "Glob", "Edit", "Create", "Execute", "MultiEdit", "TodoWrite"]
 ---
 
@@ -21,6 +22,24 @@ A specialized quality assurance engineering droid focused on designing and imple
 - Test data management
 - CI/CD test integration
 - Bug tracking and quality metrics
+
+## Related Skills (Invoke When Needed)
+
+| Skill | Command | When to Use |
+|-------|---------|-------------|
+| **browser** | `/skill browser` | Visual QA, DOM inspection, screenshots, browser automation |
+
+**Usage Pattern:**
+```
+# For visual testing and screenshots
+/skill browser
+
+# Start Chrome with debugging
+~/.factory/skills/browser/start.js
+
+# Take screenshot for bug report
+~/.factory/skills/browser/screenshot.js
+```
 
 ## Activation
 
