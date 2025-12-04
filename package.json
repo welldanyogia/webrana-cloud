@@ -8,6 +8,7 @@
     "format": "npx prettier --write \"**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "format:check": "npx prettier --check \"**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "typecheck": "npx nx run-many -t typecheck",
+    "db:generate": "prisma generate --schema=apps/auth-service/prisma/schema.prisma && prisma generate --schema=apps/order-service/prisma/schema.prisma && prisma generate --schema=apps/billing-service/prisma/schema.prisma && prisma generate --schema=apps/catalog-service/prisma/schema.prisma && prisma generate --schema=apps/notification-service/prisma/schema.prisma",
     "db:migrate:dev": "npm run db:migrate:dev:auth && npm run db:migrate:dev:order && npm run db:migrate:dev:billing && npm run db:migrate:dev:catalog && npm run db:migrate:dev:notification",
     "db:migrate:deploy": "npm run db:migrate:deploy:auth && npm run db:migrate:deploy:order && npm run db:migrate:deploy:billing && npm run db:migrate:deploy:catalog && npm run db:migrate:deploy:notification",
     "db:migrate:dev:auth": "prisma migrate dev --schema=apps/auth-service/prisma/schema.prisma",
