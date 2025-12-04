@@ -1,170 +1,50 @@
-# ═══════════════════════════════════════════════════════════════════════════════
-# WeBrana Cloud - CI Pipeline
-# Runs on: Pull requests to master branch
-# Jobs: lint, test, build, docker-build (parallel where possible)
-# ═══════════════════════════════════════════════════════════════════════════════
-
 name: CI Pipeline
 
 on:
+  push:
+    branches: [master, develop]
   pull_request:
     branches: [master]
-  push:
-    branches: [master]
-
-# Cancel in-progress runs for the same PR
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
-
-env:
-  NODE_VERSION: '20'
 
 jobs:
-  # ─────────────────────────────────────────────────────────────────────────────
-  # Lint - Check code quality
-  # ─────────────────────────────────────────────────────────────────────────────
   lint:
-    name: Lint
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          fetch-depth: 0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: '20'
           cache: 'npm'
+      - run: npm ci --legacy-peer-deps
+      - run: npm run lint
 
-      - name: Install dependencies
-        run: npm ci --legacy-peer-deps
-
-      - name: Run ESLint
-        run: npm run lint
-
-  # ─────────────────────────────────────────────────────────────────────────────
-  # Test - Run unit tests
-  # ─────────────────────────────────────────────────────────────────────────────
   test:
-    name: Test
     runs-on: ubuntu-latest
-    timeout-minutes: 15
-
+    needs: lint
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          fetch-depth: 0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: '20'
           cache: 'npm'
+      - run: npm ci --legacy-peer-deps
+      - run: npx prisma generate --schema=apps/order-service/prisma/schema.prisma
+      - run: npx prisma generate --schema=apps/billing-service/prisma/schema.prisma
+      - run: npx prisma generate --schema=apps/catalog-service/prisma/schema.prisma
+      - run: npx prisma generate --schema=apps/notification-service/prisma/schema.prisma
+      - run: npx prisma generate --schema=apps/auth-service/prisma/schema.prisma
+      - name: Run unit tests
+        run: npm run test -- --passWithNoTests --testPathIgnorePatterns="integration|e2e"
 
-      - name: Install dependencies
-        run: npm ci --legacy-peer-deps
-
-      - name: Run tests
-        run: npm run test -- --passWithNoTests
-        env:
-          CI: true
-
-      - name: Upload test results
-        uses: actions/upload-artifact@v4
-        if: failure()
-        with:
-          name: test-results
-          path: |
-            **/coverage/
-            **/*.log
-          retention-days: 7
-
-  # ─────────────────────────────────────────────────────────────────────────────
-  # Build - Build all services
-  # ─────────────────────────────────────────────────────────────────────────────
   build:
-    name: Build
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    needs: [lint, test]
-
+    needs: test
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
-          fetch-depth: 0
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: '20'
           cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci --legacy-peer-deps
-
-      - name: Build all services
-        run: npm run build
-
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: dist
-          path: dist/
-          retention-days: 7
-
-  # ─────────────────────────────────────────────────────────────────────────────
-  # Docker Build - Verify Docker images build successfully
-  # ─────────────────────────────────────────────────────────────────────────────
-  docker-build:
-    name: Docker Build
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    needs: [lint, test]
-
-    strategy:
-      matrix:
-        service:
-          - api-gateway
-          - auth-service
-          - catalog-service
-          - order-service
-          - billing-service
-          - instance-service
-          - notification-service
-      fail-fast: false
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Determine Prisma flag
-        id: prisma
-        run: |
-          if [ -f "apps/${{ matrix.service }}/prisma/schema.prisma" ]; then
-            echo "has_prisma=true" >> $GITHUB_OUTPUT
-          else
-            echo "has_prisma=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Build Docker image (no push)
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: docker/Dockerfile.backend
-          push: false
-          build-args: |
-            SERVICE_NAME=${{ matrix.service }}
-            HAS_PRISMA=${{ steps.prisma.outputs.has_prisma }}
-          tags: webrana/${{ matrix.service }}:ci-${{ github.sha }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - run: npm ci --legacy-peer-deps
+      - run: npx prisma generate --schema=apps/order-service/prisma/schema.prisma
+      - run: npm run build

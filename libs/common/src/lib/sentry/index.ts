@@ -1,4 +1,4 @@
-export * from './sentry.module';
-export * from './sentry.service';
-export * from './sentry.interceptor';
-export * from './sentry.filter';
+export * from './sentry.module.js';
+export * from './sentry.service.js';
+export * from './sentry.filter.js';
+
