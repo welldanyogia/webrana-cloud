@@ -20,10 +20,12 @@ import {
   ApiParam,
   ApiQuery,
 } from '@nestjs/swagger';
-import { OrderService } from './order.service';
-import { CreateOrderDto, PaginationQueryDto } from './dto';
-import { JwtAuthGuard } from '../../common/guards';
+
 import { CurrentUser, CurrentUserData } from '../../common/decorators';
+import { JwtAuthGuard } from '../../common/guards';
+
+import { CreateOrderDto, PaginationQueryDto } from './dto';
+import { OrderService } from './order.service';
 
 @ApiTags('Orders')
 @ApiBearerAuth('bearer')

@@ -1,10 +1,14 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@nestjs/config';
+import { Test, TestingModule } from '@nestjs/testing';
+import { OrderStatus, ProvisioningStatus, PlanDuration } from '@prisma/client';
+
+import { OrderNotFoundException, PaymentStatusConflictException } from '../../common/exceptions';
+
 import { InternalOrderController } from './internal-order.controller';
 import { OrderService } from './order.service';
 import { PaymentService } from './payment.service';
-import { OrderStatus, ProvisioningStatus, PlanDuration } from '@prisma/client';
-import { OrderNotFoundException } from '../../common/exceptions';
+
+
 
 describe('InternalOrderController', () => {
   let controller: InternalOrderController;
@@ -86,6 +90,7 @@ describe('InternalOrderController', () => {
           useValue: {
             getAllOrders: jest.fn(),
             getOrderByIdAdmin: jest.fn(),
+            retryProvisioning: jest.fn(),
           },
         },
         {
@@ -264,6 +269,70 @@ describe('InternalOrderController', () => {
       await expect(
         controller.getOrderDetail('non-existent')
       ).rejects.toThrow(OrderNotFoundException);
+    });
+  });
+
+  describe('POST /internal/orders/:id/retry-provisioning', () => {
+    const mockFailedOrder = {
+      ...mockOrder,
+      status: OrderStatus.FAILED,
+      provisioningTask: {
+        ...mockActiveOrder.provisioningTask,
+        status: ProvisioningStatus.FAILED,
+        errorCode: 'DROPLET_CREATION_FAILED',
+        errorMessage: 'Failed to create droplet',
+      },
+    };
+
+    it('should initiate retry provisioning for failed order', async () => {
+      orderService.retryProvisioning.mockResolvedValue({
+        message: 'Provisioning retry initiated',
+        orderId: 'order-123',
+        newStatus: OrderStatus.PROCESSING,
+      });
+
+      const result = await controller.retryProvisioning('order-123');
+
+      expect(orderService.retryProvisioning).toHaveBeenCalledWith(
+        'order-123',
+        'admin'
+      );
+      expect(result.data).toMatchObject({
+        message: 'Provisioning retry initiated',
+        orderId: 'order-123',
+        newStatus: 'PROCESSING',
+      });
+      expect(result.data.retryInitiatedAt).toBeTruthy();
+    });
+
+    it('should throw OrderNotFoundException for non-existent order', async () => {
+      orderService.retryProvisioning.mockRejectedValue(
+        new OrderNotFoundException('non-existent')
+      );
+
+      await expect(
+        controller.retryProvisioning('non-existent')
+      ).rejects.toThrow(OrderNotFoundException);
+    });
+
+    it('should throw PaymentStatusConflictException for non-FAILED order', async () => {
+      orderService.retryProvisioning.mockRejectedValue(
+        new PaymentStatusConflictException('ACTIVE', 'PROCESSING')
+      );
+
+      await expect(
+        controller.retryProvisioning('order-123')
+      ).rejects.toThrow(PaymentStatusConflictException);
+    });
+
+    it('should throw error when order has no provisioning task', async () => {
+      orderService.retryProvisioning.mockRejectedValue(
+        new PaymentStatusConflictException('FAILED', 'PROCESSING')
+      );
+
+      await expect(
+        controller.retryProvisioning('order-123')
+      ).rejects.toThrow(PaymentStatusConflictException);
     });
   });
 });

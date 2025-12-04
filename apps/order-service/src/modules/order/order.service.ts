@@ -1,19 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { PrismaService } from '../../prisma/prisma.service';
 import {
-  CatalogClientService,
-  CatalogPlan,
-  CatalogImage,
-} from '../catalog-client/catalog-client.service';
-import { BillingClientService } from '../billing-client/billing-client.service';
-import { DoAccountService } from '../do-account/do-account.service';
-import { OrderStateMachine } from './order-state-machine';
-import {
-  CreateOrderDto,
-  PaginationQueryDto,
-  AdminPaginationQueryDto,
-  PaginatedResult,
-} from './dto';
+  Order,
+  OrderStatus,
+  PlanDuration,
+  BillingPeriod,
+  ItemType,
+  Prisma,
+} from '@prisma/client';
+
 import {
   OrderNotFoundException,
   OrderAccessDeniedException,
@@ -25,14 +19,22 @@ import {
   OrderNotActiveException,
   DropletNotReadyException,
 } from '../../common/exceptions';
+import { PrismaService } from '../../prisma/prisma.service';
+import { BillingClientService } from '../billing-client/billing-client.service';
 import {
-  Order,
-  OrderStatus,
-  PlanDuration,
-  BillingPeriod,
-  ItemType,
-  Prisma,
-} from '@prisma/client';
+  CatalogClientService,
+  CatalogPlan,
+  CatalogImage,
+} from '../catalog-client/catalog-client.service';
+import { DoAccountService } from '../do-account/do-account.service';
+
+import {
+  CreateOrderDto,
+  PaginationQueryDto,
+  AdminPaginationQueryDto,
+  PaginatedResult,
+} from './dto';
+import { OrderStateMachine } from './order-state-machine';
 
 // Type for order with relations
 export type OrderWithRelations = Order & {
@@ -945,5 +947,125 @@ export class OrderService {
     );
 
     this.logger.log(`Power action ${action} completed for order ${orderId}`);
+  }
+
+  // ========================================
+  // ADMIN RETRY PROVISIONING
+  // ========================================
+
+  /**
+   * Retry provisioning for a failed order (admin action)
+   * 
+   * This method allows admin to manually retry provisioning for orders
+   * that failed during the provisioning phase. It:
+   * 1. Verifies the order is in FAILED status
+   * 2. Verifies there's a failed provisioning task
+   * 3. Resets the order to PROCESSING status
+   * 4. Resets the provisioning task
+   * 5. Triggers provisioning again
+   * 
+   * @param orderId - The order ID to retry
+   * @param actor - The actor performing the retry (e.g., 'admin:user-id')
+   * @returns Object with message and order details
+   * @throws OrderNotFoundException if order doesn't exist
+   * @throws BadRequestException if order is not in FAILED status
+   */
+  async retryProvisioning(
+    orderId: string,
+    actor: string = 'admin'
+  ): Promise<{ message: string; orderId: string; newStatus: OrderStatus }> {
+    this.logger.log(`Retrying provisioning for order ${orderId} by ${actor}`);
+
+    // 1. Get order with provisioning task
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+      include: {
+        provisioningTask: true,
+      },
+    });
+
+    if (!order) {
+      throw new OrderNotFoundException(orderId);
+    }
+
+    // 2. Verify order is in FAILED status
+    if (order.status !== OrderStatus.FAILED) {
+      this.logger.warn(
+        `Cannot retry provisioning for order ${orderId}: status is ${order.status}, expected FAILED`
+      );
+      throw new PaymentStatusConflictException(order.status, 'PROCESSING');
+    }
+
+    // 3. Verify there was a provisioning attempt (provisioningTask exists)
+    if (!order.provisioningTask) {
+      this.logger.warn(
+        `Cannot retry provisioning for order ${orderId}: no provisioning task found`
+      );
+      throw new PaymentStatusConflictException(order.status, 'PROCESSING');
+    }
+
+    // 4. Reset order and provisioning task in a transaction
+    await this.prisma.$transaction(async (tx) => {
+      // Reset order status to PROCESSING
+      await tx.order.update({
+        where: { id: orderId },
+        data: {
+          status: OrderStatus.PROCESSING,
+          version: { increment: 1 },
+        },
+      });
+
+      // Reset provisioning task
+      await tx.provisioningTask.update({
+        where: { id: order.provisioningTask!.id },
+        data: {
+          status: 'PENDING',
+          errorCode: null,
+          errorMessage: null,
+          dropletId: null,
+          dropletName: null,
+          dropletStatus: null,
+          ipv4Public: null,
+          ipv4Private: null,
+          attempts: 0,
+          startedAt: null,
+          completedAt: null,
+        },
+      });
+
+      // Record status history
+      await tx.statusHistory.create({
+        data: {
+          orderId,
+          previousStatus: OrderStatus.FAILED,
+          newStatus: OrderStatus.PROCESSING,
+          actor,
+          reason: 'Admin triggered retry provisioning',
+          metadata: {
+            previousProvisioningError: order.provisioningTask?.errorMessage,
+            previousProvisioningErrorCode: order.provisioningTask?.errorCode,
+          },
+        },
+      });
+    });
+
+    this.logger.log(
+      `Order ${orderId} reset to PROCESSING for retry provisioning by ${actor}`
+    );
+
+    // 5. Trigger provisioning asynchronously
+    // Note: The provisioning service listens for PROCESSING orders
+    // and will pick this up, or we can trigger it directly
+    setImmediate(() => {
+      this.startProvisioningAsync(orderId).catch((err) => {
+        this.logger.error(`Failed to start retry provisioning for order ${orderId}:`, err);
+      });
+    });
+
+    return {
+      message: 'Provisioning retry initiated',
+      orderId,
+      newStatus: OrderStatus.PROCESSING,
+    };
   }
 }

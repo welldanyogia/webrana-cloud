@@ -1,11 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { OrderService } from './order.service';
-import { PrismaService } from '../../prisma/prisma.service';
-import { CatalogClientService } from '../catalog-client/catalog-client.service';
-import { BillingClientService } from '../billing-client/billing-client.service';
-import { DoAccountService } from '../do-account/do-account.service';
-import { OrderStateMachine } from './order-state-machine';
-import { CreateOrderDto } from './dto';
+import { OrderStatus, PlanDuration, BillingPeriod, ItemType } from '@prisma/client';
+
 import {
   OrderNotFoundException,
   OrderAccessDeniedException,
@@ -13,7 +8,16 @@ import {
   InvalidBillingPeriodException,
   PaymentStatusConflictException,
 } from '../../common/exceptions';
-import { OrderStatus, PlanDuration, BillingPeriod, ItemType } from '@prisma/client';
+import { PrismaService } from '../../prisma/prisma.service';
+import { BillingClientService } from '../billing-client/billing-client.service';
+import { CatalogClientService } from '../catalog-client/catalog-client.service';
+import { DoAccountService } from '../do-account/do-account.service';
+
+import { CreateOrderDto } from './dto';
+import { OrderStateMachine } from './order-state-machine';
+import { OrderService } from './order.service';
+
+
 
 describe('OrderService', () => {
   let service: OrderService;
@@ -452,8 +456,18 @@ describe('OrderStateMachine', () => {
       expect(OrderStateMachine.isTerminalState(OrderStatus.TERMINATED)).toBe(true);
     });
 
-    it('should identify FAILED as terminal', () => {
-      expect(OrderStateMachine.isTerminalState(OrderStatus.FAILED)).toBe(true);
+    it('should NOT identify FAILED as terminal (admin can retry provisioning)', () => {
+      // FAILED now allows transition to PROCESSING for admin retry
+      expect(OrderStateMachine.isTerminalState(OrderStatus.FAILED)).toBe(false);
+    });
+
+    it('should allow FAILED -> PROCESSING (admin retry)', () => {
+      expect(
+        OrderStateMachine.isValidTransition(
+          OrderStatus.FAILED,
+          OrderStatus.PROCESSING
+        )
+      ).toBe(true);
     });
 
     it('should identify CANCELED as terminal', () => {
@@ -468,6 +482,72 @@ describe('OrderStateMachine', () => {
       expect(
         OrderStateMachine.isTerminalState(OrderStatus.PENDING_PAYMENT)
       ).toBe(false);
+    });
+  });
+
+  describe('retryProvisioning', () => {
+    const mockFailedOrder = {
+      id: 'order-123',
+      userId: 'user-456',
+      status: OrderStatus.FAILED,
+      planId: 'plan-123',
+      finalPrice: 100000,
+      provisioningTask: {
+        id: 'task-789',
+        status: 'FAILED',
+        errorCode: 'DROPLET_CREATION_FAILED',
+        errorMessage: 'Failed to create droplet',
+      },
+    };
+
+    it('should reset order to PROCESSING and initiate retry', async () => {
+      prismaService.order.findUnique.mockResolvedValue(mockFailedOrder as any);
+      prismaService.$transaction.mockImplementation(async (fn) => fn(prismaService));
+      prismaService.order.update.mockResolvedValue({
+        ...mockFailedOrder,
+        status: OrderStatus.PROCESSING,
+      } as any);
+      prismaService.provisioningTask.update.mockResolvedValue({} as any);
+      prismaService.statusHistory.create.mockResolvedValue({} as any);
+
+      const result = await service.retryProvisioning('order-123', 'admin:test');
+
+      expect(result.message).toBe('Provisioning retry initiated');
+      expect(result.orderId).toBe('order-123');
+      expect(result.newStatus).toBe(OrderStatus.PROCESSING);
+      expect(prismaService.order.update).toHaveBeenCalled();
+      expect(prismaService.provisioningTask.update).toHaveBeenCalled();
+      expect(prismaService.statusHistory.create).toHaveBeenCalled();
+    });
+
+    it('should throw OrderNotFoundException for non-existent order', async () => {
+      prismaService.order.findUnique.mockResolvedValue(null);
+
+      await expect(
+        service.retryProvisioning('non-existent', 'admin')
+      ).rejects.toThrow('Order not found');
+    });
+
+    it('should throw error when order is not in FAILED status', async () => {
+      prismaService.order.findUnique.mockResolvedValue({
+        ...mockFailedOrder,
+        status: OrderStatus.ACTIVE,
+      } as any);
+
+      await expect(
+        service.retryProvisioning('order-123', 'admin')
+      ).rejects.toThrow();
+    });
+
+    it('should throw error when order has no provisioning task', async () => {
+      prismaService.order.findUnique.mockResolvedValue({
+        ...mockFailedOrder,
+        provisioningTask: null,
+      } as any);
+
+      await expect(
+        service.retryProvisioning('order-123', 'admin')
+      ).rejects.toThrow();
     });
   });
 });

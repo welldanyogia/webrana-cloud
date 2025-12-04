@@ -97,9 +97,11 @@ const VALID_TRANSITIONS: TransitionMap = {
     OrderStatus.PROVISIONING,
   ],
   
-  // Terminal states - no valid transitions
+  // Terminal states - no valid transitions (except admin retry)
   [OrderStatus.TERMINATED]: [],
-  [OrderStatus.FAILED]: [],
+  [OrderStatus.FAILED]: [
+    OrderStatus.PROCESSING,  // Admin retry provisioning (manual recovery)
+  ],
   [OrderStatus.CANCELED]: [],
 };
 
@@ -162,6 +164,9 @@ export class OrderStateMachine {
       [`${OrderStatus.PENDING_PAYMENT}->${OrderStatus.CANCELED}`]: 'Order canceled',
       [`${OrderStatus.PENDING_PAYMENT}->${OrderStatus.PROCESSING}`]: 'Migrated to balance-based flow',
       [`${OrderStatus.PAID}->${OrderStatus.PROVISIONING}`]: 'Provisioning started',
+      
+      // Admin retry
+      [`${OrderStatus.FAILED}->${OrderStatus.PROCESSING}`]: 'Admin triggered retry provisioning',
     };
     return transitions[`${from}->${to}`] || `Status changed from ${from} to ${to}`;
   }

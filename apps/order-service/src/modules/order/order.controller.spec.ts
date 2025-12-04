@@ -1,14 +1,17 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { OrderController } from './order.controller';
-import { OrderService } from './order.service';
 import { ConfigService } from '@nestjs/config';
+import { Test, TestingModule } from '@nestjs/testing';
 import { PlanDuration, OrderStatus, ProvisioningStatus } from '@prisma/client';
+
 import { 
   OrderNotFoundException, 
   OrderAccessDeniedException,
   OrderNotActiveException,
   DropletNotReadyException,
 } from '../../common/exceptions';
+
+import { OrderController } from './order.controller';
+import { OrderService } from './order.service';
+
 
 describe('OrderController', () => {
   let controller: OrderController;

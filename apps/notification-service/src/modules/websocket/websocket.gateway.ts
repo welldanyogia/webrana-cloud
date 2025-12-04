@@ -1,3 +1,5 @@
+import { Logger, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   WebSocketGateway,
   WebSocketServer,
@@ -5,10 +7,8 @@ import {
   OnGatewayDisconnect,
   OnGatewayInit,
 } from '@nestjs/websockets';
-import { Logger, UnauthorizedException } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { Server, Socket } from 'socket.io';
 import * as jwt from 'jsonwebtoken';
+import { Server, Socket } from 'socket.io';
 
 import { JwtPayload } from '../../common/guards/jwt-auth.guard';
 
