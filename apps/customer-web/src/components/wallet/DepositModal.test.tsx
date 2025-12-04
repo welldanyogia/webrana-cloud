@@ -50,7 +50,7 @@ describe('DepositModal', () => {
     vi.mocked(useWallet).mockReturnValue({
       createDeposit: mockCreateDeposit,
       isCreatingDeposit: false,
-    } as ReturnType<typeof useWallet>);
+    } as unknown as ReturnType<typeof useWallet>);
   });
 
   it('should render modal when open is true', () => {
@@ -166,7 +166,7 @@ describe('DepositModal', () => {
     vi.mocked(useWallet).mockReturnValue({
       createDeposit: mockCreateDeposit,
       isCreatingDeposit: true,
-    } as ReturnType<typeof useWallet>);
+    } as unknown as ReturnType<typeof useWallet>);
 
     render(<DepositModal open={true} onClose={mockOnClose} />);
 

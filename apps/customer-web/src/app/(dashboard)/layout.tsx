@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
-import { MainLayout } from '@/components/layouts/main-layout';
+import { SidebarLayout } from '@/components/layouts/sidebar-layout';
 import { useAuthStore } from '@/stores/auth-store';
 
 export default function DashboardLayout({
@@ -22,10 +22,10 @@ export default function DashboardLayout({
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[var(--surface)]">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
-          <div className="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="mt-4 text-sm text-[var(--text-muted)]">Memuat...</p>
+          <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+          <p className="mt-4 text-sm text-muted-foreground">Memuat...</p>
         </div>
       </div>
     );
@@ -35,5 +35,5 @@ export default function DashboardLayout({
     return null;
   }
 
-  return <MainLayout>{children}</MainLayout>;
+  return <SidebarLayout>{children}</SidebarLayout>;
 }

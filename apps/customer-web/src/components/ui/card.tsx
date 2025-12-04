@@ -3,8 +3,18 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
+/**
+ * Vercel-style Card Component
+ * 
+ * Design principles:
+ * - Subtle borders (#333 in dark mode)
+ * - Elevated surface (#111 in dark mode)
+ * - No heavy shadows
+ * - Clean, minimal hover states
+ * - Border glow effect on interaction
+ */
 const cardVariants = cva(
-  "rounded-xl border bg-card text-card-foreground shadow",
+  "rounded-lg border border-border bg-card text-card-foreground",
   {
     variants: {
       padding: {
@@ -14,15 +24,15 @@ const cardVariants = cva(
         lg: "p-6",
       },
       hover: {
-        true: "cursor-pointer transition-all duration-200 hover:border-primary/50",
+        true: "cursor-pointer transition-colors hover:border-muted-foreground/50",
         false: "",
       },
       highlighted: {
-        true: "border-primary/50 bg-primary/5",
+        true: "border-foreground/20 bg-secondary",
         false: "",
       },
       glow: {
-        true: "hover:shadow-[var(--glow-primary)]",
+        true: "border-glow",
         false: "",
       }
     },
@@ -47,11 +57,11 @@ const Card = React.forwardRef<
 ))
 Card.displayName = "Card"
 
-const cardHeaderVariants = cva("flex flex-col space-y-1.5 px-6 py-4", {
+const cardHeaderVariants = cva("flex flex-col space-y-1.5 px-5 py-4", {
   variants: {
     noBorder: {
       true: "",
-      false: "border-b",
+      false: "border-b border-border",
     }
   },
   defaultVariants: {
@@ -71,12 +81,13 @@ const CardHeader = React.forwardRef<
 ))
 CardHeader.displayName = "CardHeader"
 
+// Vercel style: tighter letter-spacing on titles
 const cardTitleVariants = cva("font-semibold leading-none tracking-tight", {
   variants: {
     size: {
-      sm: "text-base",
-      md: "text-lg",
-      lg: "text-xl",
+      sm: "text-sm",
+      md: "text-base",
+      lg: "text-lg",
     }
   },
   defaultVariants: {
@@ -112,11 +123,11 @@ const CardContent = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & { noPadding?: boolean }
 >(({ className, noPadding, ...props }, ref) => (
-  <div ref={ref} className={cn(noPadding ? "" : "px-6 py-5", className)} {...props} />
+  <div ref={ref} className={cn(noPadding ? "" : "px-5 py-4", className)} {...props} />
 ))
 CardContent.displayName = "CardContent"
 
-const cardFooterVariants = cva("flex items-center px-6 py-4 border-t", {
+const cardFooterVariants = cva("flex items-center px-5 py-4 border-t border-border", {
   variants: {
     align: {
       start: "justify-start",

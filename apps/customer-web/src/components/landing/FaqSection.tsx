@@ -33,7 +33,7 @@ export function FaqSection() {
     <section className="py-24 bg-background border-t border-border" id="faq">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold text-foreground mb-4">
+          <h2 className="text-3xl font-bold text-foreground mb-4 tracking-tight">
             Pertanyaan Umum
           </h2>
           <p className="text-muted-foreground">
@@ -41,11 +41,19 @@ export function FaqSection() {
           </p>
         </div>
 
-        <Accordion type="single" collapsible className="w-full">
+        <Accordion type="single" collapsible className="w-full space-y-4">
           {faqs.map((faq, index) => (
-            <AccordionItem key={index} value={`item-${index}`}>
-              <AccordionTrigger>{faq.question}</AccordionTrigger>
-              <AccordionContent>{faq.answer}</AccordionContent>
+            <AccordionItem 
+              key={index} 
+              value={`item-${index}`} 
+              className="border border-border rounded-lg px-6 data-[state=open]:bg-secondary/30 transition-colors"
+            >
+              <AccordionTrigger className="text-base font-medium hover:no-underline">
+                {faq.question}
+              </AccordionTrigger>
+              <AccordionContent className="text-muted-foreground leading-relaxed pb-4">
+                {faq.answer}
+              </AccordionContent>
             </AccordionItem>
           ))}
         </Accordion>

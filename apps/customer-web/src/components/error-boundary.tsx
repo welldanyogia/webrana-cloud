@@ -1,6 +1,7 @@
+'use client';
+
 import * as Sentry from '@sentry/react';
 import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
-import { useRouteError, isRouteErrorResponse } from 'react-router-dom';
 
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
@@ -8,9 +9,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 interface ErrorFallbackProps {
   error?: Error;
   resetError?: () => void;
+  statusCode?: number;
+  statusText?: string;
 }
 
-function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
+/**
+ * Generic error fallback component for displaying errors
+ * Works with both Sentry ErrorBoundary and Next.js error pages
+ */
+function ErrorFallback({ error, resetError, statusCode, statusText }: ErrorFallbackProps) {
+  const title = statusCode 
+    ? `${statusCode} ${statusText || 'Error'}` 
+    : 'Something went wrong';
+  
+  const description = statusCode === 404
+    ? "The page you're looking for doesn't exist."
+    : 'An unexpected error occurred. Our team has been notified.';
+
   return (
     <div className="min-h-screen flex items-center justify-center p-4 bg-background">
       <Card className="max-w-md w-full">
@@ -18,13 +33,11 @@ function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
           <div className="mx-auto w-12 h-12 bg-destructive/10 rounded-full flex items-center justify-center mb-4">
             <AlertTriangle className="h-6 w-6 text-destructive" />
           </div>
-          <CardTitle>Something went wrong</CardTitle>
-          <CardDescription>
-            An unexpected error occurred. Our team has been notified.
-          </CardDescription>
+          <CardTitle>{title}</CardTitle>
+          <CardDescription>{description}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {error && (
+          {error && process.env.NODE_ENV === 'development' && (
             <div className="p-3 bg-muted rounded-md">
               <code className="text-sm text-muted-foreground break-all">
                 {error.message}
@@ -49,45 +62,15 @@ function ErrorFallback({ error, resetError }: ErrorFallbackProps) {
   );
 }
 
-export function RouteErrorBoundary() {
-  const error = useRouteError();
-
-  if (isRouteErrorResponse(error)) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-        <Card className="max-w-md w-full">
-          <CardHeader className="text-center">
-            <div className="mx-auto w-12 h-12 bg-destructive/10 rounded-full flex items-center justify-center mb-4">
-              <AlertTriangle className="h-6 w-6 text-destructive" />
-            </div>
-            <CardTitle>{error.status} {error.statusText}</CardTitle>
-            <CardDescription>
-              {error.status === 404
-                ? "The page you're looking for doesn't exist."
-                : 'An error occurred while loading this page.'}
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex justify-center">
-            <Button onClick={() => window.location.href = '/'}>
-              <Home className="h-4 w-4 mr-2" />
-              Go Home
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  const errorInstance = error instanceof Error ? error : new Error('Unknown error');
-
-  return <ErrorFallback error={errorInstance} />;
-}
-
+/**
+ * Sentry-wrapped error boundary for client-side error catching
+ * Use this to wrap components that might throw errors
+ */
 export const SentryErrorBoundary = Sentry.withErrorBoundary(
   ({ children }: { children: React.ReactNode }) => <>{children}</>,
   {
     fallback: ({ error, resetError }) => (
-      <ErrorFallback error={error} resetError={resetError} />
+      <ErrorFallback error={error as Error} resetError={resetError} />
     ),
     showDialog: false,
   }

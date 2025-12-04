@@ -1,6 +1,6 @@
 "use client";
 
-import { Variants, Transition } from "framer-motion";
+import { Variants, Easing } from "framer-motion";
 
 /**
  * Standard Motion Configuration
@@ -8,17 +8,17 @@ import { Variants, Transition } from "framer-motion";
  */
 export const motionConfig = {
   transition: {
-    type: "spring",
+    type: "spring" as const,
     stiffness: 300,
     damping: 30,
   },
   transitionSlow: {
     duration: 0.5,
-    ease: "easeInOut",
+    ease: "easeInOut" as Easing,
   },
   transitionFast: {
     duration: 0.2,
-    ease: "easeInOut",
+    ease: "easeInOut" as Easing,
   },
 };
 

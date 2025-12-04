@@ -1,4 +1,5 @@
-import { motion } from 'framer-motion';
+"use client";
+
 import { Cpu, MemoryStick, HardDrive, Network } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -7,7 +8,6 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { staggerContainer, fadeInUp, scaleIn } from '@/lib/motion';
 
 export function PricingSection() {
   const [billingCycle, setBillingCycle] = useState<'daily' | 'monthly' | 'yearly'>('monthly');
@@ -66,13 +66,7 @@ export function PricingSection() {
       <div className="absolute inset-0 -z-10 bg-gradient-to-b from-transparent to-muted/30" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
-        <motion.div 
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true }}
-          variants={fadeInUp}
-          className="text-center mb-12"
-        >
+        <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
             Pilihan Paket Cloud VPS
           </h2>
@@ -87,17 +81,14 @@ export function PricingSection() {
               <TabsTrigger value="yearly">Tahunan (Hemat)</TabsTrigger>
             </TabsList>
           </Tabs>
-        </motion.div>
+        </div>
 
-        <motion.div 
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-50px" }}
-          variants={staggerContainer}
-          className="grid md:grid-cols-3 gap-8 items-start"
-        >
+        <div className="flex flex-nowrap md:grid md:grid-cols-3 gap-4 md:gap-8 items-start overflow-x-auto snap-x snap-mandatory pb-8 md:pb-0 -mx-4 px-4 md:mx-0 md:px-0">
           {plans.map((plan, index) => (
-            <motion.div key={index} variants={scaleIn}>
+            <div 
+              key={index} 
+              className="min-w-[85vw] sm:min-w-[350px] md:min-w-0 snap-center h-full"
+            >
               <Card
                 className={`relative flex flex-col h-full transition-all duration-300 ${
                   plan.highlight 
@@ -126,7 +117,7 @@ export function PricingSection() {
                     / {billingCycle === 'daily' ? 'hari' : billingCycle === 'monthly' ? 'bulan' : 'tahun'}
                   </p>
                   {billingCycle === 'yearly' && (
-                    <p className="text-xs text-emerald-500 font-medium mt-2">
+                    <p className="text-xs font-medium mt-2 text-green-600 dark:text-green-400">
                       Hemat 2 bulan pembayaran!
                     </p>
                   )}
@@ -185,9 +176,9 @@ export function PricingSection() {
                   </Link>
                 </CardFooter>
               </Card>
-            </motion.div>
+            </div>
           ))}
-        </motion.div>
+        </div>
       </div>
     </section>
   );

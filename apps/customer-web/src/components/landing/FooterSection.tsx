@@ -6,20 +6,19 @@ import { Button } from '@/components/ui/button';
 export function FooterSection() {
   return (
     <>
-      {/* CTA Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-brand to-indigo-600 text-white">
+      {/* CTA Section - Vercel Style (Clean Black/White High Contrast) */}
+      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-foreground text-background">
         <div className="max-w-3xl mx-auto text-center">
-          <h2 className="text-3xl sm:text-4xl font-bold mb-6">
+          <h2 className="text-3xl sm:text-4xl font-bold mb-6 tracking-tight text-background">
             Siap Membangun Projek Impian Anda?
           </h2>
-          <p className="text-lg text-white/90 mb-10 max-w-2xl mx-auto">
-            Bergabunglah dengan ribuan developer Indonesia yang memilih WeBrana Cloud.
+          <p className="text-lg text-background/80 mb-10 max-w-2xl mx-auto">
+            Bergabunglah dengan ribuan developer Indonesia yang memilih WeBrana Cloud untuk performa dan skalabilitas.
           </p>
           <Link href="/register">
             <Button 
               size="lg" 
-              variant="secondary" 
-              className="bg-white text-brand hover:bg-white/90 border-none font-bold h-12 px-8"
+              className="bg-background text-foreground hover:bg-background/90 font-bold h-12 px-8 rounded-md transition-all hover:scale-105"
             >
               Buat Akun Gratis Sekarang
               <ArrowRight className="ml-2 h-4 w-4" />
