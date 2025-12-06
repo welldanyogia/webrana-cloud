@@ -51,6 +51,9 @@ RUN if [ "${HAS_PRISMA}" = "true" ] && [ -f "apps/${SERVICE_NAME}/prisma/schema.
 # Build the service
 RUN npx nx build ${SERVICE_NAME} --configuration=production
 
+# Ensure prisma directory exists (even if empty) for consistent COPY in runner
+RUN mkdir -p apps/${SERVICE_NAME}/prisma && touch apps/${SERVICE_NAME}/prisma/.keep
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Stage 3: Production Runtime
 # ─────────────────────────────────────────────────────────────────────────────
@@ -74,17 +77,19 @@ COPY --from=builder --chown=nestjs:nodejs /app/apps/${SERVICE_NAME}/dist ./dist/
 # Copy node_modules (production only would be ideal, but for compatibility copy all)
 COPY --from=builder --chown=nestjs:nodejs /app/node_modules ./node_modules
 
-# Copy Prisma files if needed
-COPY --from=builder --chown=nestjs:nodejs /app/apps/${SERVICE_NAME}/prisma ./apps/${SERVICE_NAME}/prisma 2>/dev/null || true
-
 # Copy package.json for Prisma CLI
 COPY --from=builder --chown=nestjs:nodejs /app/package.json ./package.json
+
+# Copy Prisma files (directory always exists due to mkdir in builder)
+COPY --from=builder --chown=nestjs:nodejs /app/apps/${SERVICE_NAME}/prisma ./apps/${SERVICE_NAME}/prisma
 
 # Set environment
 ENV NODE_ENV=production
 ENV SERVICE_NAME=${SERVICE_NAME}
+ENV HAS_PRISMA=${HAS_PRISMA}
 
-# Switch to non-root user
+# Fix ownership and switch to non-root user
+RUN chown -R nestjs:nodejs /app
 USER nestjs
 
 # Expose port (will be overridden by compose)
