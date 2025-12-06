@@ -29,6 +29,10 @@ RUN npm ci --legacy-peer-deps
 FROM node:20-alpine AS builder
 
 ARG APP_NAME
+ARG NEXT_PUBLIC_API_BASE_URL=https://api.webrana.id/api/v1
+ARG NEXT_PUBLIC_API_URL=https://api.webrana.id
+ARG NEXT_PUBLIC_LANDING_URL=https://webrana.id
+ARG NEXT_PUBLIC_CONSOLE_URL=https://console.webrana.id
 
 WORKDIR /app
 
@@ -41,8 +45,12 @@ COPY . .
 # Enable standalone output for Docker deployment
 # Note: 'output: standalone' is now configured in the app's next.config.ts source file directly.
 
-# Set Next.js environment variables for build
+# Set Next.js environment variables for build (NEXT_PUBLIC_* must be available at build time)
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
+ENV NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+ENV NEXT_PUBLIC_LANDING_URL=${NEXT_PUBLIC_LANDING_URL}
+ENV NEXT_PUBLIC_CONSOLE_URL=${NEXT_PUBLIC_CONSOLE_URL}
 
 # Build the application using Nx from the root
 # This ensures all dependencies (including 'next') are found in /app/node_modules
