@@ -33,6 +33,10 @@ FROM node:20-alpine
 
 WORKDIR /usr/src/app
 
+# Security: Create non-root user
+RUN addgroup --system --gid 1001 nestjs && \
+    adduser --system --uid 1001 nestjs
+
 # 1. Copy node_modules dari builder
 COPY --from=builder /usr/src/app/node_modules ./node_modules
 
@@ -45,13 +49,19 @@ COPY --from=builder /usr/src/app/apps/order-service/prisma ./apps/order-service/
 # 4. Copy package.json (untuk prisma)
 COPY --from=builder /usr/src/app/package.json ./package.json
 
-# 5. Env default (bisa di override di docker-compose)
+# 5. Set ownership to non-root user
+RUN chown -R nestjs:nestjs /usr/src/app
+
+# 6. Switch to non-root user
+USER nestjs
+
+# 7. Env default (bisa di override di docker-compose)
 ENV NODE_ENV=production
 ENV PORT=3333
 
 EXPOSE 3333
 
-# 6. Entry command:
+# 8. Entry command:
 # - Jalankan prisma migrate deploy
 # - Lalu start NestJS
 CMD ["sh", "-c", "npx prisma migrate deploy --schema=apps/order-service/prisma/schema.prisma && node dist/apps/order-service/main.js"]

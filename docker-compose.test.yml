@@ -22,7 +22,8 @@ version: '3.8'
 services:
   # PostgreSQL Database for Test Environment
   postgres-test:
-    image: postgres:15-alpine
+    # Pinned to specific version for CVE-2024-7348 patch
+    image: postgres:15.10-alpine
     container_name: webrana-postgres-test
     environment:
       POSTGRES_DB: webrana_test
@@ -42,7 +43,8 @@ services:
 
   # Redis for Queue/Cache Testing
   redis-test:
-    image: redis:7-alpine
+    # Patched for CVE-2025-49844 (RediShell RCE)
+    image: redis:7.4-alpine
     container_name: webrana-redis-test
     ports:
       - "6380:6379"
