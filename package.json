@@ -60,6 +60,7 @@
     "@types/jest": "^30.0.0",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "20.19.9",
+    "@types/nodemailer": "^6.4.17",
     "@types/passport-jwt": "^4.0.1",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
@@ -103,6 +104,13 @@
   ],
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
+    "@radix-ui/react-label": "^2.0.2",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^2.3.0",
+    "tailwindcss-animate": "^1.0.7",
+    "@tailwindcss/postcss": "^4",
+    "eslint-config-next": "16.0.7",
     "@nestjs/axios": "^4.0.1",
     "@nestjs/common": "^11.0.0",
     "@nestjs/config": "^4.0.2",
@@ -154,6 +162,7 @@
     "ioredis": "^5.8.2",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.555.0",
+    "next": "16.0.7",
     "next-themes": "^0.4.6",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
@@ -177,6 +186,8 @@
     "tailwindcss": "^4.1.17",
     "uuid": "^13.0.0",
     "zod": "^4.1.13",
-    "zustand": "^5.0.8"
+    "zustand": "^5.0.8",
+    "nodemailer": "^6.9.16",
+    "telegraf": "^4.16.3"
   }
 }

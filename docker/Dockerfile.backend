@@ -48,6 +48,9 @@ RUN if [ "${HAS_PRISMA}" = "true" ] && [ -f "apps/${SERVICE_NAME}/prisma/schema.
         npx prisma generate --schema=apps/${SERVICE_NAME}/prisma/schema.prisma; \
     fi
 
+# Build common library first (required by services that use @webrana-cloud/common)
+RUN npx nx build @webrana-cloud/common || true
+
 # Build the service
 RUN npx nx build ${SERVICE_NAME} --configuration=production
 
