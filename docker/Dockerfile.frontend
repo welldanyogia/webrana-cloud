@@ -39,14 +39,14 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Enable standalone output for Docker deployment
-RUN echo "import type { NextConfig } from 'next';\nconst nextConfig: NextConfig = { output: 'standalone' };\nexport default nextConfig;" > apps/${APP_NAME}/next.config.ts
+# Note: 'output: standalone' is now configured in the app's next.config.ts source file directly.
 
 # Set Next.js environment variables for build
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Build the application using Next.js directly from the app directory
-WORKDIR /app/apps/${APP_NAME}
-RUN npm run build
+# Build the application using Nx from the root
+# This ensures all dependencies (including 'next') are found in /app/node_modules
+RUN npx nx build ${APP_NAME}
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Stage 3: Production Runtime
