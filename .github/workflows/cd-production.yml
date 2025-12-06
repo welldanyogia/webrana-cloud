@@ -81,26 +81,32 @@ jobs:
             type=ref,event=tag
             type=raw,value=latest,enable={{is_default_branch}}
 
-      - name: Set Build Args
-        id: build-args
-        run: |
-          if [ "${{ matrix.service.type }}" == "backend" ]; then
-            echo "ARGS=SERVICE_NAME=${{ matrix.service.name }} HAS_PRISMA=${{ matrix.service.has_prisma }}" >> $GITHUB_OUTPUT
-            echo "DOCKERFILE=docker/Dockerfile.backend" >> $GITHUB_OUTPUT
-          else
-            echo "ARGS=APP_NAME=${{ matrix.service.name }}" >> $GITHUB_OUTPUT
-            echo "DOCKERFILE=docker/Dockerfile.frontend" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Build and push Docker image
+      - name: Build and push Docker image (Backend)
+        if: matrix.service.type == 'backend'
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ${{ steps.build-args.outputs.DOCKERFILE }}
+          file: docker/Dockerfile.backend
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: ${{ steps.build-args.outputs.ARGS }}
+          build-args: |
+            SERVICE_NAME=${{ matrix.service.name }}
+            HAS_PRISMA=${{ matrix.service.has_prisma }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build and push Docker image (Frontend)
+        if: matrix.service.type == 'frontend'
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile.frontend
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            APP_NAME=${{ matrix.service.name }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
