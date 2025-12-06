@@ -5,14 +5,28 @@ import {
   BadRequestException,
   UnauthorizedException,
   NotFoundException,
+  ForbiddenException,
+  ConflictException,
+  ServiceUnavailableException,
+  GatewayTimeoutException,
 } from '@nestjs/common';
 
 import { HttpExceptionFilter } from './http-exception.filter';
 
+interface MockResponse {
+  status: jest.Mock;
+  json: jest.Mock;
+}
+
+interface MockRequest {
+  method: string;
+  url: string;
+}
+
 describe('HttpExceptionFilter', () => {
   let filter: HttpExceptionFilter;
-  let mockResponse: any;
-  let mockRequest: any;
+  let mockResponse: MockResponse;
+  let mockRequest: MockRequest;
   let mockHost: ArgumentsHost;
 
   beforeEach(() => {
@@ -154,7 +168,6 @@ describe('HttpExceptionFilter', () => {
     });
 
     it('should handle ForbiddenException', () => {
-      const { ForbiddenException } = require('@nestjs/common');
       const exception = new ForbiddenException('Access denied');
       
       filter.catch(exception, mockHost);
@@ -169,7 +182,6 @@ describe('HttpExceptionFilter', () => {
     });
 
     it('should handle ConflictException', () => {
-      const { ConflictException } = require('@nestjs/common');
       const exception = new ConflictException('Resource already exists');
       
       filter.catch(exception, mockHost);
@@ -184,7 +196,6 @@ describe('HttpExceptionFilter', () => {
     });
 
     it('should handle ServiceUnavailableException', () => {
-      const { ServiceUnavailableException } = require('@nestjs/common');
       const exception = new ServiceUnavailableException('Service is down');
       
       filter.catch(exception, mockHost);
@@ -199,7 +210,6 @@ describe('HttpExceptionFilter', () => {
     });
 
     it('should handle GatewayTimeoutException', () => {
-      const { GatewayTimeoutException } = require('@nestjs/common');
       const exception = new GatewayTimeoutException('Gateway timeout');
       
       filter.catch(exception, mockHost);
@@ -261,7 +271,7 @@ describe('HttpExceptionFilter', () => {
     });
 
     it('should handle HttpException with null response', () => {
-      const exception = new HttpException(null as any, HttpStatus.INTERNAL_SERVER_ERROR);
+      const exception = new HttpException(null as unknown as string, HttpStatus.INTERNAL_SERVER_ERROR);
       
       filter.catch(exception, mockHost);
       

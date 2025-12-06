@@ -265,7 +265,7 @@ export default function OrderDetailPage() {
                       key={history.id}
                       className="flex items-start gap-3 relative"
                     >
-                      {index < order.statusHistory!.length - 1 && (
+                      {index < (order.statusHistory?.length ?? 0) - 1 && (
                         <div className="absolute left-[11px] top-6 bottom-0 w-0.5 bg-[var(--border)]" />
                       )}
                       <div className="w-6 h-6 rounded-full bg-[var(--primary-muted)] flex items-center justify-center shrink-0">

@@ -20,7 +20,7 @@ describe('AuthThrottlerGuard', () => {
     storageService = {
       increment: jest.fn(),
       get: jest.fn(),
-    } as any;
+    } as unknown as ThrottlerStorageService;
 
     guard = new AuthThrottlerGuard(
       mockOptions,
@@ -41,7 +41,7 @@ describe('AuthThrottlerGuard', () => {
         socket: { remoteAddress: '192.168.1.1' },
       };
 
-      const tracker = await (guard as any).getTracker(mockRequest);
+      const tracker = await (guard as unknown as { getTracker: (req: unknown) => Promise<string> }).getTracker(mockRequest);
       expect(tracker).toBe('192.168.1.1');
     });
 
@@ -54,7 +54,7 @@ describe('AuthThrottlerGuard', () => {
         socket: { remoteAddress: '127.0.0.1' },
       };
 
-      const tracker = await (guard as any).getTracker(mockRequest);
+      const tracker = await (guard as unknown as { getTracker: (req: unknown) => Promise<string> }).getTracker(mockRequest);
       expect(tracker).toBe('203.0.113.195');
     });
 
@@ -67,7 +67,7 @@ describe('AuthThrottlerGuard', () => {
         socket: { remoteAddress: '127.0.0.1' },
       };
 
-      const tracker = await (guard as any).getTracker(mockRequest);
+      const tracker = await (guard as unknown as { getTracker: (req: unknown) => Promise<string> }).getTracker(mockRequest);
       expect(tracker).toBe('203.0.113.195');
     });
 
@@ -78,7 +78,7 @@ describe('AuthThrottlerGuard', () => {
         socket: { remoteAddress: '10.0.0.1' },
       };
 
-      const tracker = await (guard as any).getTracker(mockRequest);
+      const tracker = await (guard as unknown as { getTracker: (req: unknown) => Promise<string> }).getTracker(mockRequest);
       expect(tracker).toBe('10.0.0.1');
     });
 
@@ -89,7 +89,7 @@ describe('AuthThrottlerGuard', () => {
         socket: { remoteAddress: undefined },
       };
 
-      const tracker = await (guard as any).getTracker(mockRequest);
+      const tracker = await (guard as unknown as { getTracker: (req: unknown) => Promise<string> }).getTracker(mockRequest);
       expect(tracker).toBe('unknown');
     });
   });
@@ -104,7 +104,7 @@ describe('AuthThrottlerGuard', () => {
         }),
       } as ExecutionContext;
 
-      const key = (guard as any).generateKey(mockContext, 'test-suffix', 'default');
+      const key = (guard as unknown as { generateKey: (ctx: ExecutionContext, suffix: string, name: string) => string }).generateKey(mockContext, 'test-suffix', 'default');
       expect(key).toContain('auth_throttle');
       expect(key).toContain('test-suffix');
     });

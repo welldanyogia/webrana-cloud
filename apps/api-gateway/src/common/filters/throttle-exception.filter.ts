@@ -36,7 +36,7 @@ export class ThrottleExceptionFilter implements ExceptionFilter {
 
     // Extract client identifier for logging
     const clientIp = this.getClientIp(request);
-    const userId = (request as any).user?.sub || 'anonymous';
+    const userId = (request as Request & { user?: { sub?: string } }).user?.sub || 'anonymous';
     const endpoint = `${request.method} ${request.url}`;
 
     // Calculate retry after time and reset timestamp

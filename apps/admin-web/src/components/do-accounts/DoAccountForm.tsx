@@ -89,7 +89,7 @@ export function DoAccountForm({ account, mode, onSuccess }: DoAccountFormProps) 
           isActive: formData.isActive,
           isPrimary: formData.isPrimary,
         };
-        result = await updateDoAccount(account!.id, updateData);
+        result = await updateDoAccount(account?.id ?? '', updateData);
         toast.success('DO account updated successfully');
       }
 

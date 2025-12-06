@@ -213,7 +213,9 @@ describe('DoAccountsPage', () => {
       });
 
       const syncButton = screen.getByText('Sync All').closest('button');
-      fireEvent.click(syncButton!);
+      if (syncButton) {
+        fireEvent.click(syncButton);
+      }
 
       await waitFor(() => {
         expect(doAccountsApi.syncAllDoAccounts).toHaveBeenCalled();
