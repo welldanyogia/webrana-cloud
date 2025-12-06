@@ -46,9 +46,9 @@ jobs:
           - name: notification-service
             type: backend
             has_prisma: true
-          - name: provider-service
-            type: backend
-            has_prisma: false
+          # - name: provider-service  # disabled - not ready yet
+          #   type: backend
+          #   has_prisma: false
           - name: admin-web
             type: frontend
             has_prisma: false

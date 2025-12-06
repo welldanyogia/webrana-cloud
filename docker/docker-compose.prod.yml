@@ -117,13 +117,13 @@ services:
     networks:
       - webrana-prod
 
-  provider-service:
-    image: ${IMAGE_PREFIX}/provider-service:${IMAGE_TAG}
-    container_name: webrana-provider-service
-    restart: always
-    env_file: .env.production
-    networks:
-      - webrana-prod
+  # provider-service: (disabled - not built yet)
+  #   image: ${IMAGE_PREFIX}/provider-service:${IMAGE_TAG}
+  #   container_name: webrana-provider-service
+  #   restart: always
+  #   env_file: .env.production
+  #   networks:
+  #     - webrana-prod
 
   # ─────────────────────────────────────────────────────────────────────────────
   # Frontend Applications

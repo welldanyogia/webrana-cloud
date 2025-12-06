@@ -22,11 +22,16 @@ else
 fi
 
 # 2. Environment Setup
-if [ ! -f .env.production ]; then
-    echo "⚠️  .env.production not found! Copying .env.example..."
-    cp .env.example .env.production
-    echo "❌ PLEASE CONFIGURE .env.production BEFORE DEPLOYING"
+if [ ! -f docker/.env.production ]; then
+    echo "⚠️  docker/.env.production not found! Copying docker/.env.example..."
+    cp docker/.env.example docker/.env.production
+    echo "❌ PLEASE CONFIGURE docker/.env.production BEFORE DEPLOYING"
     exit 1
+fi
+
+# Symlink for docker-compose compatibility
+if [ ! -f docker/.env ]; then
+    ln -sf .env.production docker/.env
 fi
 
 # 3. Pull New Images
