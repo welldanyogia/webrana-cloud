@@ -1,0 +1,138 @@
+name: Production CI/CD
+
+on:
+  push:
+    branches: [master]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Job 1: Build and Push Docker Images
+  # ─────────────────────────────────────────────────────────────────────────────
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - name: api-gateway
+            type: backend
+            has_prisma: false
+          - name: auth-service
+            type: backend
+            has_prisma: true
+          - name: catalog-service
+            type: backend
+            has_prisma: true
+          - name: order-service
+            type: backend
+            has_prisma: true
+          - name: billing-service
+            type: backend
+            has_prisma: true
+          - name: instance-service
+            type: backend
+            has_prisma: false
+          - name: notification-service
+            type: backend
+            has_prisma: true
+          - name: provider-service
+            type: backend
+            has_prisma: false
+          - name: admin-web
+            type: frontend
+            has_prisma: false
+          - name: customer-web
+            type: frontend
+            has_prisma: false
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service.name }}
+          tags: |
+            type=sha,format=long
+            type=ref,event=branch
+            type=ref,event=tag
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - name: Set Build Args
+        id: build-args
+        run: |
+          if [ "${{ matrix.service.type }}" == "backend" ]; then
+            echo "ARGS=SERVICE_NAME=${{ matrix.service.name }} HAS_PRISMA=${{ matrix.service.has_prisma }}" >> $GITHUB_OUTPUT
+            echo "DOCKERFILE=docker/Dockerfile.backend" >> $GITHUB_OUTPUT
+          else
+            echo "ARGS=APP_NAME=${{ matrix.service.name }}" >> $GITHUB_OUTPUT
+            echo "DOCKERFILE=docker/Dockerfile.frontend" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ${{ steps.build-args.outputs.DOCKERFILE }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: ${{ steps.build-args.outputs.ARGS }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Job 2: Deploy to Production VPS
+  # ─────────────────────────────────────────────────────────────────────────────
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            export IMAGE_PREFIX=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+            export IMAGE_TAG=sha-$(echo ${{ github.sha }} | head -c 40) # Use full SHA as tagged by metadata-action 'long' format? 
+            # Actually metadata-action 'sha' uses short sha by default? No, 'format=long' uses full sha.
+            # Let's stick to the sha tag we generated: sha-<full_sha>
+            
+            export GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+            export GITHUB_USER=${{ github.actor }}
+            
+            # Navigate to project
+            cd ${{ secrets.DEPLOY_PATH || '/home/deploy/webrana-cloud' }}
+            
+            # Update codebase (for scripts and compose files)
+            git fetch origin master
+            git checkout master
+            git pull origin master
+            
+            # Run Deployment Script
+            chmod +x scripts/deploy-prod.sh
+            ./scripts/deploy-prod.sh
