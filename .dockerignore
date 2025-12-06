@@ -1,13 +1,14 @@
 # Dependencies
-node_modules
+**/node_modules
 .npm
 .pnpm-store
 
 # Build outputs
-dist
+**/dist
 .nx
 .cache
 coverage
+.next
 
 # IDE
 .idea
@@ -29,6 +30,7 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+.env.staging.example
 
 # Test files
 *.spec.ts
@@ -39,6 +41,9 @@ test
 # Docs
 *.md
 !README.md
+docs
+tasks
+backup-docs
 
 # Docker
 Dockerfile*
