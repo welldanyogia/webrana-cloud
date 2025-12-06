@@ -71,8 +71,8 @@ ENV HOSTNAME="0.0.0.0"
 
 # Copy built application (standalone output)
 COPY --from=builder --chown=nextjs:nodejs /app/apps/${APP_NAME}/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/apps/${APP_NAME}/.next/static ./.next/static
-COPY --from=builder --chown=nextjs:nodejs /app/apps/${APP_NAME}/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/apps/${APP_NAME}/.next/static ./apps/${APP_NAME}/.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/apps/${APP_NAME}/public ./apps/${APP_NAME}/public
 
 # Switch to non-root user
 USER nextjs
@@ -84,5 +84,8 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:${PORT:-3000}/ || exit 1
 
-# Start Next.js standalone server
-CMD ["node", "server.js"]
+# Set APP_NAME as environment variable for CMD
+ENV APP_NAME=${APP_NAME}
+
+# Start Next.js standalone server (path adjusted for nx monorepo structure)
+CMD node apps/${APP_NAME}/server.js

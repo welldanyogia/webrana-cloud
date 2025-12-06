@@ -52,6 +52,7 @@ sleep 30
 
 # 6. Health Check
 if [ -f "scripts/health-check.sh" ]; then
+    chmod +x scripts/health-check.sh
     ./scripts/health-check.sh
 else
     echo "⚠️  Health check script not found, skipping..."

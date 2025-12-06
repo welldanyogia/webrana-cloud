@@ -44,13 +44,16 @@ services:
   api-gateway:
     image: ${IMAGE_PREFIX}/api-gateway:${IMAGE_TAG}
     container_name: webrana-api-gateway
+    hostname: api-gateway
     restart: always
     env_file: .env.production
     depends_on:
       redis:
         condition: service_healthy
     networks:
-      - webrana-prod
+      webrana-prod:
+        aliases:
+          - api-gateway
 
   auth-service:
     image: ${IMAGE_PREFIX}/auth-service:${IMAGE_TAG}
@@ -132,22 +135,30 @@ services:
   admin-web:
     image: ${IMAGE_PREFIX}/admin-web:${IMAGE_TAG}
     container_name: webrana-admin-web
+    hostname: admin-web
     restart: always
     env_file: .env.production
+    command: ["node", "apps/admin-web/server.js"]
     depends_on:
       - api-gateway
     networks:
-      - webrana-prod
+      webrana-prod:
+        aliases:
+          - admin-web
 
   customer-web:
     image: ${IMAGE_PREFIX}/customer-web:${IMAGE_TAG}
     container_name: webrana-customer-web
+    hostname: customer-web
     restart: always
     env_file: .env.production
+    command: ["node", "apps/customer-web/server.js"]
     depends_on:
       - api-gateway
     networks:
-      - webrana-prod
+      webrana-prod:
+        aliases:
+          - customer-web
 
   # ─────────────────────────────────────────────────────────────────────────────
   # Reverse Proxy (Nginx)
