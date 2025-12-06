@@ -45,3 +45,6 @@ Thumbs.db
 
 vite.config.*.timestamp*
 test-output
+
+# Claude AI local settings
+.claude/
