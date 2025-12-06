@@ -14,9 +14,10 @@ This guide details the production deployment pipeline for WeBrana Cloud, leverag
 | Service | Domain |
 |---------|--------|
 | Landing Page | `webrana.id` |
-| Customer App | `app.webrana.id` |
+| Customer Console | `console.webrana.id` |
 | Admin Panel | `admin.webrana.id` |
 | API Gateway | `api.webrana.id` |
+| Monitoring (Grafana) | `monitor.webrana.id` |
 
 ---
 
@@ -155,7 +156,157 @@ If a deployment fails, you can manually deploy a previous stable tag or image.
 
 ---
 
-## 7. Security Notes
+## 7. Cloudflare Setup Guide
+
+### Step 1: Add Domain to Cloudflare
+
+1. Login ke [Cloudflare Dashboard](https://dash.cloudflare.com)
+2. Klik **"Add a Site"** → masukkan `webrana.id`
+3. Pilih plan **Free** (cukup untuk production)
+4. Cloudflare akan scan DNS records existing
+5. **Update Nameservers** di registrar domain kamu ke Cloudflare NS:
+   ```
+   ns1.cloudflare.com
+   ns2.cloudflare.com
+   ```
+   > Propagasi DNS bisa 1-24 jam
+
+### Step 2: Configure DNS Records
+
+Setelah nameserver aktif, tambahkan DNS records:
+
+| Type | Name | Content | Proxy Status | TTL |
+|------|------|---------|--------------|-----|
+| A | `@` | `<VPS-IP>` | ✅ Proxied | Auto |
+| A | `console` | `<VPS-IP>` | ✅ Proxied | Auto |
+| A | `admin` | `<VPS-IP>` | ✅ Proxied | Auto |
+| A | `api` | `<VPS-IP>` | ✅ Proxied | Auto |
+| A | `monitor` | `<VPS-IP>` | ✅ Proxied | Auto |
+
+> **Penting**: Pastikan semua record dalam status **Proxied** (orange cloud) untuk mendapat proteksi DDoS dan SSL.
+
+### Step 3: SSL/TLS Configuration
+
+1. Pergi ke **SSL/TLS** → **Overview**
+2. Set encryption mode ke **Full (strict)**
+   
+   ```
+   ┌─────────┐      HTTPS      ┌────────────┐      HTTPS      ┌─────────┐
+   │ Browser │ ◄──────────────► │ Cloudflare │ ◄──────────────► │   VPS   │
+   └─────────┘                  └────────────┘                  └─────────┘
+                                     Full (strict) = encrypted both sides
+   ```
+
+3. **Generate Origin Certificate**:
+   - Pergi ke **SSL/TLS** → **Origin Server**
+   - Klik **"Create Certificate"**
+   - Pilih:
+     - Private key type: **RSA (2048)**
+     - Hostnames: `webrana.id, *.webrana.id`
+     - Validity: **15 years** (recommended)
+   - Klik **"Create"**
+   - **PENTING**: Copy dan simpan:
+     - **Origin Certificate** → simpan sebagai `cloudflare-origin.pem`
+     - **Private Key** → simpan sebagai `cloudflare-origin.key`
+   
+   > ⚠️ Private key hanya ditampilkan SEKALI. Simpan dengan aman!
+
+4. **Upload Certificate ke VPS**:
+   ```bash
+   # SSH ke VPS sebagai deploy user
+   ssh deploy@<VPS-IP>
+   cd ~/webrana-cloud
+   mkdir -p docker/nginx/ssl
+   
+   # Paste certificate
+   nano docker/nginx/ssl/cloudflare-origin.pem
+   # [Paste Origin Certificate, lalu Ctrl+X, Y, Enter]
+   
+   # Paste private key
+   nano docker/nginx/ssl/cloudflare-origin.key
+   # [Paste Private Key, lalu Ctrl+X, Y, Enter]
+   
+   # Secure the key file
+   chmod 600 docker/nginx/ssl/cloudflare-origin.key
+   ```
+
+### Step 4: Edge Certificates (Optional but Recommended)
+
+1. **SSL/TLS** → **Edge Certificates**
+2. Enable:
+   - ✅ **Always Use HTTPS** - Redirect semua HTTP ke HTTPS
+   - ✅ **Automatic HTTPS Rewrites** - Fix mixed content
+   - ✅ **TLS 1.3** - Enable latest TLS
+   - Minimum TLS Version: **TLS 1.2**
+
+### Step 5: Security Settings
+
+1. **Security** → **Settings**:
+   - Security Level: **Medium** (atau High jika banyak attack)
+   - Challenge Passage: **30 minutes**
+   - Browser Integrity Check: ✅ **On**
+
+2. **Security** → **WAF** (Web Application Firewall):
+   - Managed Rules: **On** (Free plan sudah include basic rules)
+
+3. **Security** → **Bots**:
+   - Bot Fight Mode: ✅ **On**
+
+### Step 6: Performance Settings (Recommended)
+
+1. **Speed** → **Optimization**:
+   - ✅ Auto Minify: JavaScript, CSS, HTML
+   - ✅ Brotli compression
+
+2. **Caching** → **Configuration**:
+   - Caching Level: **Standard**
+   - Browser Cache TTL: **4 hours**
+
+3. **Caching** → **Cache Rules** (untuk API):
+   Buat rule untuk bypass cache di API:
+   ```
+   If: Hostname equals "api.webrana.id"
+   Then: Bypass cache
+   ```
+
+### Step 7: Page Rules (Optional)
+
+Buat Page Rules untuk konfigurasi spesifik:
+
+| Rule | URL Pattern | Settings |
+|------|-------------|----------|
+| API No Cache | `api.webrana.id/*` | Cache Level: Bypass |
+| Force HTTPS | `*webrana.id/*` | Always Use HTTPS: On |
+
+### Verification Checklist
+
+Setelah setup selesai, verifikasi:
+
+```bash
+# Test SSL dari luar (tunggu propagasi selesai)
+curl -I https://webrana.id
+curl -I https://console.webrana.id
+curl -I https://admin.webrana.id
+curl -I https://api.webrana.id/health
+curl -I https://monitor.webrana.id
+
+# Expected: HTTP/2 200 dengan header Cloudflare
+# cf-ray: xxxxx-SIN (atau lokasi terdekat)
+```
+
+### Troubleshooting Cloudflare
+
+| Issue | Solution |
+|-------|----------|
+| Error 521 (Web server down) | VPS nginx tidak running, cek `docker ps` |
+| Error 522 (Connection timed out) | Firewall VPS block port 443, cek `ufw status` |
+| Error 525 (SSL handshake failed) | Origin certificate salah atau expired |
+| Error 526 (Invalid SSL cert) | SSL mode bukan "Full (strict)" atau cert tidak match domain |
+| Mixed content warnings | Enable "Automatic HTTPS Rewrites" |
+
+---
+
+## 8. Security Notes
 
 - **Firewall**: Only ports 22, 80, 443 are open.
 - **Database**: Port 5432 is exposed to Docker network only, not public internet.
