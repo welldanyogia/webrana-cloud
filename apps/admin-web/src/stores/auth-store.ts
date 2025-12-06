@@ -28,6 +28,12 @@ const initialState: AuthState = {
   isLoading: true,
 };
 
+const isAdminRole = (role: string | undefined): boolean => {
+  if (!role) return false;
+  const normalizedRole = role.toUpperCase();
+  return normalizedRole === 'ADMIN' || normalizedRole === 'SUPER_ADMIN';
+};
+
 /**
  * Admin Auth store with Zustand
  * Persists token and user data to localStorage
@@ -41,7 +47,7 @@ export const useAuthStore = create<AuthStore>()(
       setUser: (user) =>
         set({
           user,
-          isAuthenticated: !!user && (user.role === 'ADMIN' || user.role === 'SUPER_ADMIN'),
+          isAuthenticated: !!user && isAdminRole(user.role),
         }),
 
       setToken: (token) =>
@@ -51,8 +57,8 @@ export const useAuthStore = create<AuthStore>()(
         }),
 
       setAuth: (user, token) => {
-        // Validate admin role
-        if (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN') {
+        // Validate admin role (case-insensitive)
+        if (!isAdminRole(user.role)) {
           console.error('User is not an admin');
           return;
         }
@@ -76,7 +82,7 @@ export const useAuthStore = create<AuthStore>()(
 
       isAdmin: () => {
         const user = get().user;
-        return user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
+        return isAdminRole(user?.role);
       },
     }),
     {

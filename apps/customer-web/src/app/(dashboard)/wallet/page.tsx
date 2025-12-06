@@ -73,8 +73,7 @@ export default function WalletPage() {
             <Button
               onClick={() => setShowDepositModal(true)}
               size="lg"
-              variant="secondary"
-              className="bg-white text-[var(--primary)] hover:bg-white/90"
+              className="bg-white text-[#6366f1] hover:bg-white/90 font-semibold shadow-lg"
               data-testid="topup-button"
             >
               <Plus className="h-4 w-4 mr-2" />

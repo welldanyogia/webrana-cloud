@@ -82,6 +82,8 @@ services:
     container_name: webrana-order-service
     restart: always
     env_file: .env.production
+    environment:
+      - DATABASE_URL=${DATABASE_URL_ORDER}
     depends_on:
       postgres:
         condition: service_healthy

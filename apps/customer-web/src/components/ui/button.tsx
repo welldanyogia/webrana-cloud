@@ -53,9 +53,22 @@ export interface ButtonProps
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, leftIcon, rightIcon, isLoading, children, disabled, ...props }, ref) => {
-    const Comp = asChild ? Slot : "button"
+    // When asChild is true, Slot expects a single child element
+    // We cannot render leftIcon/rightIcon/loading spinner alongside children
+    if (asChild) {
+      return (
+        <Slot
+          className={cn(buttonVariants({ variant, size, className }))}
+          ref={ref}
+          {...props}
+        >
+          {children}
+        </Slot>
+      )
+    }
+
     return (
-      <Comp
+      <button
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
         disabled={disabled || isLoading}
@@ -69,7 +82,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         ) : leftIcon}
         {children}
         {!isLoading && rightIcon}
-      </Comp>
+      </button>
     )
   }
 )

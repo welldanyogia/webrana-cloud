@@ -21,10 +21,11 @@ export default function DashboardLayout({
     }
   }, [isLoading, isAuthenticated, router]);
 
-  // Check for admin role
+  // Check for admin role (case-insensitive)
   useEffect(() => {
     if (!isLoading && isAuthenticated && user) {
-      if (user.role !== 'ADMIN' && user.role !== 'SUPER_ADMIN') {
+      const role = user.role?.toUpperCase();
+      if (role !== 'ADMIN' && role !== 'SUPER_ADMIN') {
         router.push('/login');
       }
     }

@@ -32,14 +32,16 @@ export function useLogin() {
       return response.data.data;
     },
     onSuccess: (data) => {
-      // Validate admin role
-      if (data.user.role !== 'ADMIN' && data.user.role !== 'SUPER_ADMIN') {
+      // Validate admin role (case-insensitive)
+      const role = data.user.role?.toUpperCase();
+      if (role !== 'ADMIN' && role !== 'SUPER_ADMIN') {
         toast.error('Akses ditolak. Hanya admin yang dapat masuk.');
         logout();
         return;
       }
       
-      setAuth(data.user, data.token);
+      const token = data.access_token || data.token || '';
+      setAuth(data.user, token);
       queryClient.invalidateQueries({ queryKey: ['currentUser'] });
       toast.success('Login berhasil!');
       router.push('/dashboard');

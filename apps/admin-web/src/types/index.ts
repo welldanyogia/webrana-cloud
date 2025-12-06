@@ -2,11 +2,13 @@
 export interface User {
   id: string;
   email: string;
-  name: string;
-  role: 'CUSTOMER' | 'ADMIN' | 'SUPER_ADMIN';
-  isActive: boolean;
-  createdAt: string;
-  updatedAt: string;
+  name?: string;
+  full_name?: string;
+  role: string;
+  isActive?: boolean;
+  status?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // Auth types
@@ -17,7 +19,9 @@ export interface LoginRequest {
 
 export interface AuthResponse {
   user: User;
-  token: string;
+  token?: string;
+  access_token?: string;
+  refresh_token?: string;
 }
 
 // API Response types

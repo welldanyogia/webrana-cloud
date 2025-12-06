@@ -111,14 +111,9 @@ export function MainLayout({ children }: MainLayoutProps) {
                 <span className="text-sm font-medium text-[var(--text-primary)]">
                   {isLoadingWallet ? '...' : formatCurrency(walletData?.balance ?? 0)}
                 </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-6 px-2 text-xs bg-[var(--primary)] text-white hover:bg-[var(--primary-hover)] hover:text-white"
-                  asChild
-                >
-                  <span>Top Up</span>
-                </Button>
+                <span className="h-6 px-2 text-xs bg-[var(--primary)] text-white hover:bg-[var(--primary-hover)] rounded-md inline-flex items-center justify-center font-medium">
+                  Top Up
+                </span>
               </Link>
 
               {/* Theme Toggle */}
