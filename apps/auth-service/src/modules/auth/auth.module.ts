@@ -23,12 +23,23 @@ import { AuthService } from './auth.service';
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
-      useFactory: (configService: ConfigService) => ({
-        secret: configService.get<string>('AUTH_JWT_SECRET'),
-        signOptions: {
-          issuer: configService.get<string>('AUTH_JWT_ISSUER', 'webrana-cloud'),
-        },
-      }),
+      useFactory: (configService: ConfigService) => {
+        const secret = configService.get<string>('AUTH_JWT_SECRET') 
+          || configService.get<string>('JWT_SECRET');
+        
+        if (!secret) {
+          throw new Error(
+            'JWT secret not configured. Set AUTH_JWT_SECRET or JWT_SECRET environment variable.'
+          );
+        }
+
+        return {
+          secret,
+          signOptions: {
+            issuer: configService.get<string>('AUTH_JWT_ISSUER', 'webrana-cloud'),
+          },
+        };
+      },
     }),
   ],
   controllers: [AuthController],
