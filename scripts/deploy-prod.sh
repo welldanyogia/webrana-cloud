@@ -34,7 +34,15 @@ if [ ! -f docker/.env ]; then
     ln -sf .env.production docker/.env
 fi
 
-# 3. Pull New Images
+# 3. Stop Existing Containers (prevent name conflicts)
+echo "🛑 Stopping existing containers..."
+docker compose -f "$COMPOSE_FILE" down --remove-orphans || true
+
+# 4. Cleanup Orphan Containers
+echo "🧹 Cleaning up orphan containers..."
+docker ps -a --filter "name=webrana" --format "{{.ID}}" | xargs -r docker rm -f 2>/dev/null || true
+
+# 5. Pull New Images
 echo "📦 Pulling images..."
 # We need to explicitly export variables for docker-compose interpolation
 export IMAGE_PREFIX
@@ -42,15 +50,15 @@ export IMAGE_TAG
 
 docker compose -f "$COMPOSE_FILE" pull
 
-# 4. Deploy Services
-echo "🚀 updating services..."
-docker compose -f "$COMPOSE_FILE" up -d --remove-orphans
+# 6. Deploy Services
+echo "🚀 Deploying services..."
+docker compose -f "$COMPOSE_FILE" up -d
 
-# 5. Wait for Health
+# 7. Wait for Health
 echo "⏳ Waiting for services to stabilize..."
 sleep 30
 
-# 6. Health Check
+# 8. Health Check
 if [ -f "scripts/health-check.sh" ]; then
     chmod +x scripts/health-check.sh
     ./scripts/health-check.sh
@@ -58,7 +66,7 @@ else
     echo "⚠️  Health check script not found, skipping..."
 fi
 
-# 7. Cleanup
+# 9. Cleanup Old Images
 echo "🧹 Cleaning up old images..."
 docker image prune -a -f --filter "until=24h"
 
