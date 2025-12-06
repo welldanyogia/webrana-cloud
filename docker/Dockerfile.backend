@@ -69,7 +69,7 @@ RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nestjs
 
 # Copy built application
-COPY --from=builder --chown=nestjs:nodejs /app/dist/apps/${SERVICE_NAME} ./dist/apps/${SERVICE_NAME}
+COPY --from=builder --chown=nestjs:nodejs /app/apps/${SERVICE_NAME}/dist ./dist/apps/${SERVICE_NAME}
 
 # Copy node_modules (production only would be ideal, but for compatibility copy all)
 COPY --from=builder --chown=nestjs:nodejs /app/node_modules ./node_modules
