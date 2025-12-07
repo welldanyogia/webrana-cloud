@@ -14,15 +14,22 @@ interface ThemeActions {
 
 type ThemeStore = ThemeState & ThemeActions;
 
+const getSystemTheme = (): Theme => {
+  if (typeof window !== 'undefined' && window.matchMedia) {
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  }
+  return 'dark'; // Default to dark if SSR or no preference
+};
+
 /**
  * Theme store with Zustand
- * Default theme is DARK
+ * Default theme respects system preference
  * Persists theme preference to localStorage
  */
 export const useThemeStore = create<ThemeStore>()(
   persist(
     (set, get) => ({
-      theme: 'dark', // DEFAULT DARK
+      theme: getSystemTheme(),
 
       setTheme: (theme) => set({ theme }),
 

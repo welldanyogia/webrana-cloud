@@ -14,15 +14,10 @@ interface ThemeActions {
 
 type ThemeStore = ThemeState & ThemeActions;
 
-/**
- * Theme store with Zustand
- * Default theme is DARK
- * Persists theme preference to localStorage
- */
 export const useThemeStore = create<ThemeStore>()(
   persist(
     (set, get) => ({
-      theme: 'dark', // DEFAULT DARK
+      theme: 'dark', // Will be overridden by persist middleware
 
       setTheme: (theme) => set({ theme }),
 
@@ -32,6 +27,17 @@ export const useThemeStore = create<ThemeStore>()(
     {
       name: 'theme-storage',
       storage: createJSONStorage(() => localStorage),
+      onRehydrateStorage: () => (state) => {
+        // After hydration, check if we should use system preference
+        if (state && typeof window !== 'undefined') {
+          const stored = localStorage.getItem('theme-storage');
+          if (!stored) {
+            // No stored preference, use system
+            const systemTheme = window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+            state.setTheme(systemTheme);
+          }
+        }
+      },
     }
   )
 );

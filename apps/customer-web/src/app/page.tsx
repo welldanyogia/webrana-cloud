@@ -2,16 +2,32 @@
 
 import { Cloud } from 'lucide-react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 
-import { FaqSection } from '@/components/landing/FaqSection';
-import { FeaturesSection } from '@/components/landing/FeaturesSection';
 import { FooterSection } from '@/components/landing/FooterSection';
 import { HeroSection } from '@/components/landing/HeroSection';
-import { PricingSection } from '@/components/landing/PricingSection';
-import { TechSpecsSection } from '@/components/landing/TechSpecsSection';
-import { WhyUsSection } from '@/components/landing/WhyUsSection';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+
+const FeaturesSection = dynamic(() => import('@/components/landing/FeaturesSection').then(mod => ({ default: mod.FeaturesSection })), {
+  loading: () => <div className="min-h-[400px]" />,
+});
+
+const PricingSection = dynamic(() => import('@/components/landing/PricingSection').then(mod => ({ default: mod.PricingSection })), {
+  loading: () => <div className="min-h-[600px]" />,
+});
+
+const WhyUsSection = dynamic(() => import('@/components/landing/WhyUsSection').then(mod => ({ default: mod.WhyUsSection })), {
+  loading: () => <div className="min-h-[400px]" />,
+});
+
+const TechSpecsSection = dynamic(() => import('@/components/landing/TechSpecsSection').then(mod => ({ default: mod.TechSpecsSection })), {
+  loading: () => <div className="min-h-[400px]" />,
+});
+
+const FaqSection = dynamic(() => import('@/components/landing/FaqSection').then(mod => ({ default: mod.FaqSection })), {
+  loading: () => <div className="min-h-[400px]" />,
+});
 
 export default function Home() {
   return (

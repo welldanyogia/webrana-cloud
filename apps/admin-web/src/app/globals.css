@@ -79,6 +79,29 @@
     --radius: 0.5rem;
     --brand: 243 75% 59%;
     --brand-foreground: 0 0% 98%;
+
+    /* ADD THESE - Text colors */
+    --text-primary: var(--foreground);
+    --text-secondary: 0 0% 40%;
+    --text-muted: var(--muted-foreground);
+    
+    /* ADD THESE - Interactive states */
+    --hover-bg: 0 0% 96%;
+    --primary-muted: 243 75% 95%;
+    --primary-hover: 243 75% 50%;
+    
+    /* ADD THESE - Surfaces */
+    --card-bg: var(--card);
+    --dropdown-bg: var(--popover);
+    --surface: 0 0% 98%;
+    
+    /* ADD THESE - Semantic colors */
+    --error: 0 84% 60%;
+    --error-bg: 0 84% 95%;
+    --success: 142 76% 36%;
+    --success-bg: 142 76% 95%;
+    --warning: 38 92% 50%;
+    --warning-bg: 38 92% 95%;
   }
 
   .dark {
@@ -103,6 +126,29 @@
     --ring: 240 4.9% 83.9%;
     --brand: 243 75% 59%;
     --brand-foreground: 0 0% 98%;
+
+    /* ADD THESE - Text colors for dark mode */
+    --text-primary: var(--foreground);
+    --text-secondary: 0 0% 70%;
+    --text-muted: var(--muted-foreground);
+    
+    /* ADD THESE - Interactive states for dark mode */
+    --hover-bg: 0 0% 15%;
+    --primary-muted: 243 75% 20%;
+    --primary-hover: 243 75% 70%;
+    
+    /* ADD THESE - Surfaces for dark mode */
+    --card-bg: var(--card);
+    --dropdown-bg: var(--popover);
+    --surface: 0 0% 10%;
+    
+    /* ADD THESE - Semantic colors for dark mode */
+    --error: 0 62% 50%;
+    --error-bg: 0 62% 15%;
+    --success: 142 70% 45%;
+    --success-bg: 142 70% 15%;
+    --warning: 38 92% 60%;
+    --warning-bg: 38 92% 15%;
   }
 
   * {

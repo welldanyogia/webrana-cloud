@@ -48,3 +48,14 @@ test-output
 
 # Claude AI local settings
 .claude/
+
+# Docker sensitive files
+docker/.env
+docker/.env.*
+docker/nginx/logs/
+docker/nginx/ssl/*.key
+docker/nginx/ssl/*.pem
+
+# Factory skills cache
+.factory/skills/*/node_modules/
+.factory/skills/*/package-lock.json

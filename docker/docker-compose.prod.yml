@@ -60,6 +60,8 @@ services:
     container_name: webrana-auth-service
     restart: always
     env_file: .env.production
+    environment:
+      - DATABASE_URL=${DATABASE_URL_AUTH}
     depends_on:
       postgres:
         condition: service_healthy
@@ -71,6 +73,8 @@ services:
     container_name: webrana-catalog-service
     restart: always
     env_file: .env.production
+    environment:
+      - DATABASE_URL=${DATABASE_URL_CATALOG}
     depends_on:
       postgres:
         condition: service_healthy
@@ -95,6 +99,8 @@ services:
     container_name: webrana-billing-service
     restart: always
     env_file: .env.production
+    environment:
+      - DATABASE_URL=${DATABASE_URL_BILLING}
     depends_on:
       postgres:
         condition: service_healthy
@@ -114,6 +120,8 @@ services:
     container_name: webrana-notification-service
     restart: always
     env_file: .env.production
+    environment:
+      - DATABASE_URL=${DATABASE_URL_NOTIFICATION}
     depends_on:
       postgres:
         condition: service_healthy

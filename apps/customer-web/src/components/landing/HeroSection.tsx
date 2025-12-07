@@ -35,7 +35,7 @@ export function HeroSection() {
 
           <motion.h1 
             variants={fadeInUp}
-            className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-foreground leading-[1.1]"
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-foreground leading-[1.15] break-words"
           >
             Deploy Cloud VPS Indonesia <span className="text-brand">Performa Tinggi</span> dalam 30 Detik
           </motion.h1>
