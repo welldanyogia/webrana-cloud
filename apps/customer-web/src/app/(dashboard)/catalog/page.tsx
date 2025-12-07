@@ -9,30 +9,42 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { usePlans } from '@/hooks/use-catalog';
 import type { VpsPlan, DurationUnit } from '@/types';
 
-function formatRam(ramMb: number): string {
-  if (ramMb >= 1024) {
-    return `${ramMb / 1024} GB`;
+function formatMemory(memoryMb: number): string {
+  if (memoryMb >= 1024) {
+    return `${(memoryMb / 1024).toFixed(0)} GB`;
   }
-  return `${ramMb} MB`;
+  return `${memoryMb} MB`;
 }
 
-function formatBandwidth(bandwidthGb: number): string {
-  if (bandwidthGb >= 1000) {
-    return `${bandwidthGb / 1000} TB`;
-  }
-  return `${bandwidthGb} GB`;
+function formatBandwidth(bandwidthTb: number): string {
+  return `${bandwidthTb} TB`;
 }
 
 function getPlanPrice(plan: VpsPlan, billingCycle: DurationUnit): number {
+  // Use direct pricing fields first
+  if (billingCycle === 'MONTHLY' && plan.priceMonthly) {
+    return plan.priceMonthly;
+  }
+  if (billingCycle === 'YEARLY' && plan.priceYearly) {
+    return plan.priceYearly;
+  }
+  
+  // Fallback to legacy pricing
   const pricing = plan.pricing?.find((p) => p.duration === billingCycle);
   return pricing?.price ?? plan.priceMonthly ?? 0;
+}
+
+function isPeriodAllowed(plan: VpsPlan, billingCycle: DurationUnit): boolean {
+  if (billingCycle === 'MONTHLY') return plan.allowMonthly !== false;
+  if (billingCycle === 'YEARLY') return plan.allowYearly !== false;
+  return true;
 }
 
 export default function CatalogPage() {
   const [billingCycle, setBillingCycle] = useState<DurationUnit>('MONTHLY');
   const { data: plans, isLoading, error } = usePlans();
 
-  const activePlans = plans?.filter((p) => p.isActive) ?? [];
+  const activePlans = plans?.filter((p) => p.isActive && isPeriodAllowed(p, billingCycle)) ?? [];
 
   return (
     <div className="space-y-6">
@@ -121,7 +133,7 @@ export default function CatalogPage() {
                 {/* Plan Name */}
                 <div className="mb-3">
                   <h3 className="text-base font-semibold text-[var(--text-primary)]">
-                    {plan.name}
+                    {plan.displayName || plan.name}
                   </h3>
                   {plan.description && (
                     <p className="text-xs text-[var(--text-muted)] mt-0.5 line-clamp-2">
@@ -161,19 +173,19 @@ export default function CatalogPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
                       </svg>
                     </div>
-                    {formatRam(plan.ram)}
+                    {formatMemory(plan.memoryMb)}
                   </li>
                   <li className="flex items-center gap-2.5 text-sm text-[var(--text-secondary)]">
                     <div className="w-7 h-7 bg-[var(--surface)] rounded-md flex items-center justify-center shrink-0">
                       <HardDrive className="h-3.5 w-3.5 text-[var(--text-muted)]" />
                     </div>
-                    {plan.ssd} GB SSD
+                    {plan.diskGb} GB SSD
                   </li>
                   <li className="flex items-center gap-2.5 text-sm text-[var(--text-secondary)]">
                     <div className="w-7 h-7 bg-[var(--surface)] rounded-md flex items-center justify-center shrink-0">
                       <Wifi className="h-3.5 w-3.5 text-[var(--text-muted)]" />
                     </div>
-                    {formatBandwidth(plan.bandwidth)}
+                    {formatBandwidth(plan.bandwidthTb)}
                   </li>
                 </ul>
 

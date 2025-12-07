@@ -246,4 +246,90 @@ export class DoAccountController {
       },
     };
   }
+
+  // ===========================================
+  // DO Catalog Endpoints (Sizes, Regions, Images)
+  // ===========================================
+
+  /**
+   * Get all available droplet sizes from DigitalOcean
+   *
+   * GET /internal/do-accounts/catalog/sizes
+   */
+  @Get('catalog/sizes')
+  @ApiOperation({ summary: 'Get all available DigitalOcean droplet sizes' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of available sizes with specs and pricing',
+  })
+  async getDoSizes() {
+    const sizes = await this.doAccountService.getDoSizes();
+    return { data: sizes };
+  }
+
+  /**
+   * Get all available regions from DigitalOcean
+   *
+   * GET /internal/do-accounts/catalog/regions
+   */
+  @Get('catalog/regions')
+  @ApiOperation({ summary: 'Get all available DigitalOcean regions' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of available regions',
+  })
+  async getDoRegions() {
+    const regions = await this.doAccountService.getDoRegions();
+    return { data: regions };
+  }
+
+  /**
+   * Get all available OS images from DigitalOcean
+   *
+   * GET /internal/do-accounts/catalog/images
+   */
+  @Get('catalog/images')
+  @ApiOperation({ summary: 'Get all available DigitalOcean OS images' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of available distribution images',
+  })
+  async getDoImages() {
+    const images = await this.doAccountService.getDoImages();
+    return { data: images };
+  }
+
+  /**
+   * Get regions available for a specific size
+   *
+   * GET /internal/do-accounts/catalog/sizes/:sizeSlug/regions
+   */
+  @Get('catalog/sizes/:sizeSlug/regions')
+  @ApiOperation({ summary: 'Get regions available for a specific size' })
+  @ApiParam({ name: 'sizeSlug', type: 'string', example: 's-1vcpu-1gb' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of regions where this size is available',
+  })
+  async getDoRegionsForSize(@Param('sizeSlug') sizeSlug: string) {
+    const regions = await this.doAccountService.getDoRegionsForSize(sizeSlug);
+    return { data: regions };
+  }
+
+  /**
+   * Get images available for a specific region
+   *
+   * GET /internal/do-accounts/catalog/regions/:regionSlug/images
+   */
+  @Get('catalog/regions/:regionSlug/images')
+  @ApiOperation({ summary: 'Get images available for a specific region' })
+  @ApiParam({ name: 'regionSlug', type: 'string', example: 'sgp1' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of images available in this region',
+  })
+  async getDoImagesForRegion(@Param('regionSlug') regionSlug: string) {
+    const images = await this.doAccountService.getDoImagesForRegion(regionSlug);
+    return { data: images };
+  }
 }

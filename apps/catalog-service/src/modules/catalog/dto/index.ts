@@ -188,6 +188,40 @@ export class CreatePlanDto {
   @IsString({ each: true, message: 'Setiap tag harus berupa string' })
   tags?: string[];
 
+  // Pricing fields
+  @IsOptional()
+  @IsInt({ message: 'priceHourly harus berupa integer' })
+  @Min(0, { message: 'priceHourly tidak boleh negatif' })
+  priceHourly?: number;
+
+  @IsOptional()
+  @IsInt({ message: 'priceDaily harus berupa integer' })
+  @Min(0, { message: 'priceDaily tidak boleh negatif' })
+  priceDaily?: number;
+
+  @IsOptional()
+  @IsInt({ message: 'priceMonthly harus berupa integer' })
+  @Min(0, { message: 'priceMonthly tidak boleh negatif' })
+  priceMonthly?: number;
+
+  @IsOptional()
+  @IsInt({ message: 'priceYearly harus berupa integer' })
+  @Min(0, { message: 'priceYearly tidak boleh negatif' })
+  priceYearly?: number;
+
+  // Period availability
+  @IsOptional()
+  @IsBoolean({ message: 'allowDaily harus berupa boolean' })
+  allowDaily?: boolean;
+
+  @IsOptional()
+  @IsBoolean({ message: 'allowMonthly harus berupa boolean' })
+  allowMonthly?: boolean;
+
+  @IsOptional()
+  @IsBoolean({ message: 'allowYearly harus berupa boolean' })
+  allowYearly?: boolean;
+
   @IsOptional()
   @IsArray({ message: 'Pricings harus berupa array' })
   @ValidateNested({ each: true })
@@ -258,6 +292,40 @@ export class UpdatePlanDto {
   @IsArray({ message: 'Tags harus berupa array' })
   @IsString({ each: true, message: 'Setiap tag harus berupa string' })
   tags?: string[];
+
+  // Pricing fields
+  @IsOptional()
+  @IsInt({ message: 'priceHourly harus berupa integer' })
+  @Min(0, { message: 'priceHourly tidak boleh negatif' })
+  priceHourly?: number;
+
+  @IsOptional()
+  @IsInt({ message: 'priceDaily harus berupa integer' })
+  @Min(0, { message: 'priceDaily tidak boleh negatif' })
+  priceDaily?: number;
+
+  @IsOptional()
+  @IsInt({ message: 'priceMonthly harus berupa integer' })
+  @Min(0, { message: 'priceMonthly tidak boleh negatif' })
+  priceMonthly?: number;
+
+  @IsOptional()
+  @IsInt({ message: 'priceYearly harus berupa integer' })
+  @Min(0, { message: 'priceYearly tidak boleh negatif' })
+  priceYearly?: number;
+
+  // Period availability
+  @IsOptional()
+  @IsBoolean({ message: 'allowDaily harus berupa boolean' })
+  allowDaily?: boolean;
+
+  @IsOptional()
+  @IsBoolean({ message: 'allowMonthly harus berupa boolean' })
+  allowMonthly?: boolean;
+
+  @IsOptional()
+  @IsBoolean({ message: 'allowYearly harus berupa boolean' })
+  allowYearly?: boolean;
 }
 
 export class AddPlanImageDto {

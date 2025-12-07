@@ -31,11 +31,11 @@ import {
 } from '@/lib/utils';
 import type { OrderStatus } from '@/types';
 
-function formatRam(ramMb: number): string {
-  if (ramMb >= 1024) {
-    return `${ramMb / 1024} GB`;
+function formatMemory(memoryMb: number): string {
+  if (memoryMb >= 1024) {
+    return `${(memoryMb / 1024).toFixed(0)} GB`;
   }
-  return `${ramMb} MB`;
+  return `${memoryMb} MB`;
 }
 
 function getStatusBadgeVariant(
@@ -352,23 +352,21 @@ export default function OrderDetailPage({
                   <div className="bg-[var(--surface)] rounded-lg p-3 text-center">
                     <Server className="h-5 w-5 text-[var(--text-muted)] mx-auto mb-1" />
                     <p className="font-semibold text-[var(--text-primary)]">
-                      {formatRam(order.plan.ram)}
+                      {formatMemory(order.plan.memoryMb)}
                     </p>
                     <p className="text-xs text-[var(--text-muted)]">Memory</p>
                   </div>
                   <div className="bg-[var(--surface)] rounded-lg p-3 text-center">
                     <HardDrive className="h-5 w-5 text-[var(--text-muted)] mx-auto mb-1" />
                     <p className="font-semibold text-[var(--text-primary)]">
-                      {order.plan.ssd} GB
+                      {order.plan.diskGb} GB
                     </p>
                     <p className="text-xs text-[var(--text-muted)]">SSD Storage</p>
                   </div>
                   <div className="bg-[var(--surface)] rounded-lg p-3 text-center">
                     <Wifi className="h-5 w-5 text-[var(--text-muted)] mx-auto mb-1" />
                     <p className="font-semibold text-[var(--text-primary)]">
-                      {order.plan.bandwidth >= 1000
-                        ? `${order.plan.bandwidth / 1000} TB`
-                        : `${order.plan.bandwidth} GB`}
+                      {order.plan.bandwidthTb} TB
                     </p>
                     <p className="text-xs text-[var(--text-muted)]">Bandwidth</p>
                   </div>

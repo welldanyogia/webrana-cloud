@@ -74,6 +74,52 @@ export interface DropletAction {
 }
 
 /**
+ * DigitalOcean Size (Droplet plan)
+ */
+export interface DoSize {
+  slug: string;
+  memory: number;
+  vcpus: number;
+  disk: number;
+  transfer: number;
+  price_monthly: number;
+  price_hourly: number;
+  regions: string[];
+  available: boolean;
+  description: string;
+}
+
+/**
+ * DigitalOcean Region
+ */
+export interface DoRegion {
+  slug: string;
+  name: string;
+  sizes: string[];
+  available: boolean;
+  features: string[];
+}
+
+/**
+ * DigitalOcean Image (OS)
+ */
+export interface DoImage {
+  id: number;
+  name: string;
+  distribution: string;
+  slug: string | null;
+  public: boolean;
+  regions: string[];
+  created_at: string;
+  min_disk_size: number;
+  type: string;
+  size_gigabytes: number;
+  description: string | null;
+  tags: string[];
+  status: string;
+}
+
+/**
  * DigitalOcean API Client for account and droplet management operations
  *
  * Supports:
@@ -312,6 +358,122 @@ export class DoApiClient {
     } catch (error) {
       this.handleApiError(error, 'getDropletConsole');
     }
+  }
+
+  // ===========================================
+  // Catalog Operations (Sizes, Regions, Images)
+  // ===========================================
+
+  /**
+   * Get all available droplet sizes from DigitalOcean
+   * @returns List of available sizes with pricing and specs
+   */
+  async getSizes(): Promise<DoSize[]> {
+    this.logger.log('Fetching available DO sizes');
+
+    try {
+      const sizes: DoSize[] = [];
+      let page = 1;
+      let hasMore = true;
+
+      while (hasMore) {
+        const response = await this.client.get('/sizes', {
+          params: { per_page: 100, page },
+        });
+
+        sizes.push(...response.data.sizes);
+
+        const total = response.data.meta?.total || 0;
+        hasMore = sizes.length < total;
+        page++;
+      }
+
+      this.logger.log(`Fetched ${sizes.length} DO sizes`);
+      return sizes.filter((s) => s.available);
+    } catch (error) {
+      this.handleApiError(error, 'getSizes');
+    }
+  }
+
+  /**
+   * Get all available regions from DigitalOcean
+   * @returns List of available regions
+   */
+  async getRegions(): Promise<DoRegion[]> {
+    this.logger.log('Fetching available DO regions');
+
+    try {
+      const response = await this.client.get('/regions', {
+        params: { per_page: 100 },
+      });
+
+      const regions = response.data.regions as DoRegion[];
+      this.logger.log(`Fetched ${regions.length} DO regions`);
+
+      return regions.filter((r) => r.available);
+    } catch (error) {
+      this.handleApiError(error, 'getRegions');
+    }
+  }
+
+  /**
+   * Get all available distribution images (OS) from DigitalOcean
+   * @returns List of available OS images
+   */
+  async getImages(): Promise<DoImage[]> {
+    this.logger.log('Fetching available DO images');
+
+    try {
+      const images: DoImage[] = [];
+      let page = 1;
+      let hasMore = true;
+
+      while (hasMore) {
+        const response = await this.client.get('/images', {
+          params: { type: 'distribution', per_page: 100, page },
+        });
+
+        images.push(...response.data.images);
+
+        const total = response.data.meta?.total || 0;
+        hasMore = images.length < total;
+        page++;
+      }
+
+      this.logger.log(`Fetched ${images.length} DO images`);
+      return images.filter((i) => i.status === 'available');
+    } catch (error) {
+      this.handleApiError(error, 'getImages');
+    }
+  }
+
+  /**
+   * Get regions available for a specific size
+   * @param sizeSlug The size slug to check
+   * @returns List of regions where this size is available
+   */
+  async getRegionsForSize(sizeSlug: string): Promise<DoRegion[]> {
+    const [sizes, regions] = await Promise.all([
+      this.getSizes(),
+      this.getRegions(),
+    ]);
+
+    const size = sizes.find((s) => s.slug === sizeSlug);
+    if (!size) {
+      throw new Error(`Size ${sizeSlug} not found`);
+    }
+
+    return regions.filter((r) => size.regions.includes(r.slug));
+  }
+
+  /**
+   * Get images available for a specific region
+   * @param regionSlug The region slug to check
+   * @returns List of images available in this region
+   */
+  async getImagesForRegion(regionSlug: string): Promise<DoImage[]> {
+    const images = await this.getImages();
+    return images.filter((i) => i.regions.includes(regionSlug));
   }
 
   // ===========================================

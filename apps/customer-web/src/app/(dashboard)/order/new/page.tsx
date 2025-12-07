@@ -33,24 +33,38 @@ const STEPS = [
   { id: 5, name: 'Review', description: 'Konfirmasi pesanan' },
 ];
 
-function formatRam(ramMb: number): string {
-  if (ramMb >= 1024) {
-    return `${ramMb / 1024} GB`;
+function formatMemory(memoryMb: number): string {
+  if (memoryMb >= 1024) {
+    return `${(memoryMb / 1024).toFixed(0)} GB`;
   }
-  return `${ramMb} MB`;
+  return `${memoryMb} MB`;
 }
 
-function formatBandwidth(bandwidthGb: number): string {
-  if (bandwidthGb >= 1000) {
-    return `${bandwidthGb / 1000} TB`;
-  }
-  return `${bandwidthGb} GB`;
+function formatBandwidth(bandwidthTb: number): string {
+  return `${bandwidthTb} TB`;
 }
 
 function getPlanPrice(plan: VpsPlan | undefined, billingCycle: DurationUnit): number {
   if (!plan) return 0;
+  
+  // Use direct pricing fields first
+  if (billingCycle === 'MONTHLY' && plan.priceMonthly) {
+    return plan.priceMonthly;
+  }
+  if (billingCycle === 'YEARLY' && plan.priceYearly) {
+    return plan.priceYearly;
+  }
+  
+  // Fallback to legacy pricing
   const pricing = plan.pricing?.find((p) => p.duration === billingCycle);
-  return pricing?.price ?? 0;
+  return pricing?.price ?? plan.priceMonthly ?? 0;
+}
+
+function isPeriodAllowed(plan: VpsPlan | undefined, billingCycle: DurationUnit): boolean {
+  if (!plan) return false;
+  if (billingCycle === 'MONTHLY') return plan.allowMonthly !== false;
+  if (billingCycle === 'YEARLY') return plan.allowYearly !== false;
+  return true;
 }
 
 function StepIndicator({
@@ -305,7 +319,7 @@ export default function NewOrderPage() {
             ) : (
               <div className="grid gap-4 sm:grid-cols-2">
                 {plans
-                  ?.filter((p) => p.isActive)
+                  ?.filter((p) => p.isActive && isPeriodAllowed(p, billingCycle))
                   .map((plan) => (
                     <button
                       key={plan.id}
@@ -318,7 +332,7 @@ export default function NewOrderPage() {
                     >
                       <div className="flex justify-between items-start mb-2">
                         <h3 className="font-semibold text-[var(--text-primary)]">
-                          {plan.name}
+                          {plan.displayName || plan.name}
                         </h3>
                         {selectedPlanId === plan.id && (
                           <div className="w-5 h-5 bg-[var(--primary)] rounded-full flex items-center justify-center">
@@ -327,17 +341,23 @@ export default function NewOrderPage() {
                         )}
                       </div>
                       <p className="text-lg font-bold text-[var(--primary)] mb-2">
-                        Rp {getPlanPrice(plan, billingCycle).toLocaleString('id-ID')}
-                        <span className="text-xs font-normal text-[var(--text-muted)]">
-                          /{billingCycle === 'MONTHLY' ? 'bln' : 'thn'}
-                        </span>
+                        {getPlanPrice(plan, billingCycle) > 0 ? (
+                          <>
+                            Rp {getPlanPrice(plan, billingCycle).toLocaleString('id-ID')}
+                            <span className="text-xs font-normal text-[var(--text-muted)]">
+                              /{billingCycle === 'MONTHLY' ? 'bln' : 'thn'}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="text-[var(--text-muted)]">Hubungi sales</span>
+                        )}
                       </p>
                       <div className="flex flex-wrap gap-2 text-xs text-[var(--text-secondary)]">
                         <span>{plan.cpu} vCPU</span>
                         <span>•</span>
-                        <span>{formatRam(plan.ram)}</span>
+                        <span>{formatMemory(plan.memoryMb)}</span>
                         <span>•</span>
-                        <span>{plan.ssd} GB SSD</span>
+                        <span>{plan.diskGb} GB SSD</span>
                       </div>
                     </button>
                   ))}
@@ -507,20 +527,20 @@ export default function NewOrderPage() {
                     <div className="flex justify-between items-center">
                       <div>
                         <p className="font-semibold text-[var(--text-primary)]">
-                          {selectedPlan.name}
+                          {selectedPlan.displayName || selectedPlan.name}
                         </p>
                         <div className="flex flex-wrap gap-2 text-xs text-[var(--text-secondary)] mt-1">
                           <span className="flex items-center gap-1">
                             <Cpu className="h-3 w-3" /> {selectedPlan.cpu} vCPU
                           </span>
                           <span className="flex items-center gap-1">
-                            <HardDrive className="h-3 w-3" /> {formatRam(selectedPlan.ram)}
+                            <HardDrive className="h-3 w-3" /> {formatMemory(selectedPlan.memoryMb)}
                           </span>
                           <span className="flex items-center gap-1">
-                            <HardDrive className="h-3 w-3" /> {selectedPlan.ssd} GB SSD
+                            <HardDrive className="h-3 w-3" /> {selectedPlan.diskGb} GB SSD
                           </span>
                           <span className="flex items-center gap-1">
-                            <Wifi className="h-3 w-3" /> {formatBandwidth(selectedPlan.bandwidth)}
+                            <Wifi className="h-3 w-3" /> {formatBandwidth(selectedPlan.bandwidthTb)}
                           </span>
                         </div>
                       </div>

@@ -4,7 +4,7 @@ import { DoAccount } from '@prisma/client';
 import { EncryptionService } from '../../common/services/encryption.service';
 import { PrismaService } from '../../prisma/prisma.service';
 
-import { DoApiClient } from './do-api.client';
+import { DoApiClient, DoSize, DoRegion, DoImage } from './do-api.client';
 import {
   CreateDoAccountDto,
   UpdateDoAccountDto,
@@ -829,5 +829,82 @@ export class DoAccountService {
       createdAt: account.createdAt,
       updatedAt: account.updatedAt,
     };
+  }
+
+  // ===========================================
+  // DO Catalog Operations (Sizes, Regions, Images)
+  // ===========================================
+
+  /**
+   * Get a DO API client using the first active account
+   * @private
+   */
+  private async getDoApiClient(): Promise<DoApiClient> {
+    const account = await this.prisma.doAccount.findFirst({
+      where: {
+        isActive: true,
+        healthStatus: { in: [AccountHealth.HEALTHY, AccountHealth.UNKNOWN] },
+      },
+      orderBy: { isPrimary: 'desc' },
+    });
+
+    if (!account) {
+      throw new NoAvailableAccountException();
+    }
+
+    const decryptedToken = this.encryptionService.decrypt(account.accessToken);
+    return new DoApiClient(decryptedToken);
+  }
+
+  /**
+   * Get all available droplet sizes from DigitalOcean
+   * @returns List of available sizes with pricing and specs
+   */
+  async getDoSizes(): Promise<DoSize[]> {
+    this.logger.log('Fetching DO sizes');
+    const client = await this.getDoApiClient();
+    return client.getSizes();
+  }
+
+  /**
+   * Get all available regions from DigitalOcean
+   * @returns List of available regions
+   */
+  async getDoRegions(): Promise<DoRegion[]> {
+    this.logger.log('Fetching DO regions');
+    const client = await this.getDoApiClient();
+    return client.getRegions();
+  }
+
+  /**
+   * Get all available OS images from DigitalOcean
+   * @returns List of available distribution images
+   */
+  async getDoImages(): Promise<DoImage[]> {
+    this.logger.log('Fetching DO images');
+    const client = await this.getDoApiClient();
+    return client.getImages();
+  }
+
+  /**
+   * Get regions available for a specific size
+   * @param sizeSlug The size slug to check
+   * @returns List of regions where this size is available
+   */
+  async getDoRegionsForSize(sizeSlug: string): Promise<DoRegion[]> {
+    this.logger.log(`Fetching regions for size: ${sizeSlug}`);
+    const client = await this.getDoApiClient();
+    return client.getRegionsForSize(sizeSlug);
+  }
+
+  /**
+   * Get images available for a specific region
+   * @param regionSlug The region slug to check
+   * @returns List of images available in this region
+   */
+  async getDoImagesForRegion(regionSlug: string): Promise<DoImage[]> {
+    this.logger.log(`Fetching images for region: ${regionSlug}`);
+    const client = await this.getDoApiClient();
+    return client.getImagesForRegion(regionSlug);
   }
 }

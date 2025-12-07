@@ -10,7 +10,10 @@ import { HttpExceptionFilter } from '../common/filters/http-exception.filter';
 import { ThrottleExceptionFilter } from '../common/filters/throttle-exception.filter';
 import { RateLimitHeaderInterceptor } from '../common/interceptors/rate-limit-header.interceptor';
 import { AuthProxyModule } from '../modules/auth-proxy/auth-proxy.module';
+import { BillingProxyModule } from '../modules/billing-proxy/billing-proxy.module';
+import { CatalogProxyModule } from '../modules/catalog-proxy/catalog-proxy.module';
 import { InstanceProxyModule } from '../modules/instance-proxy/instance-proxy.module';
+import { NotificationProxyModule } from '../modules/notification-proxy/notification-proxy.module';
 import { OrderProxyModule } from '../modules/order-proxy/order-proxy.module';
 
 import { AppController } from './app.controller';
@@ -56,8 +59,11 @@ import { AppService } from './app.service';
       }),
     }),
     AuthProxyModule,
-    OrderProxyModule,
+    BillingProxyModule,
+    CatalogProxyModule,
     InstanceProxyModule,
+    NotificationProxyModule,
+    OrderProxyModule,
   ],
   controllers: [AppController],
   providers: [

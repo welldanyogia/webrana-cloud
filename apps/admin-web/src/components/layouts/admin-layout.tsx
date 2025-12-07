@@ -12,6 +12,7 @@ import {
   Shield,
   ChevronLeft,
   Cloud,
+  Package,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -29,6 +30,7 @@ interface AdminLayoutProps {
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Pesanan', href: '/orders', icon: ShoppingCart },
+  { name: 'Paket VPS', href: '/plans', icon: Package },
   { name: 'Pengguna', href: '/users', icon: Users },
   { name: 'Analitik', href: '/analytics', icon: BarChart3 },
   { name: 'DO Accounts', href: '/settings/do-accounts', icon: Cloud },

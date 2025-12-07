@@ -98,13 +98,27 @@ export interface PlanPricing {
 export interface VpsPlan {
   id: string;
   name: string;
-  cpu: number;
-  ram: number;
-  ssd: number;
-  bandwidth: number;
-  priceMonthly: number;
+  displayName: string;
   description?: string;
+  cpu: number;
+  memoryMb: number;
+  diskGb: number;
+  bandwidthTb: number;
+  provider: string;
+  providerSizeSlug: string;
   isActive: boolean;
+  sortOrder: number;
+  tags: string[];
+  // Direct pricing fields
+  priceHourly?: number;
+  priceDaily?: number;
+  priceMonthly?: number;
+  priceYearly?: number;
+  // Period availability
+  allowDaily?: boolean;
+  allowMonthly?: boolean;
+  allowYearly?: boolean;
+  // Legacy pricing
   pricing?: PlanPricing[];
 }
 

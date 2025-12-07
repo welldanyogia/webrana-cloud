@@ -44,6 +44,15 @@ export interface CreatePlanInput {
   isActive?: boolean;
   sortOrder?: number;
   tags?: string[];
+  // Direct pricing fields
+  priceHourly?: number;
+  priceDaily?: number;
+  priceMonthly?: number;
+  priceYearly?: number;
+  allowDaily?: boolean;
+  allowMonthly?: boolean;
+  allowYearly?: boolean;
+  // Legacy pricing
   pricings?: PricingInput[];
   promos?: PromoInput[];
 }
@@ -61,6 +70,14 @@ export interface UpdatePlanInput {
   isActive?: boolean;
   sortOrder?: number;
   tags?: string[];
+  // Direct pricing fields
+  priceHourly?: number;
+  priceDaily?: number;
+  priceMonthly?: number;
+  priceYearly?: number;
+  allowDaily?: boolean;
+  allowMonthly?: boolean;
+  allowYearly?: boolean;
 }
 
 export interface PlanWithPricingAndPromo {
@@ -193,6 +210,15 @@ export class VpsPlanService {
         isActive: input.isActive ?? true,
         sortOrder: input.sortOrder ?? 0,
         tags: input.tags ?? [],
+        // Direct pricing fields
+        priceHourly: input.priceHourly,
+        priceDaily: input.priceDaily,
+        priceMonthly: input.priceMonthly,
+        priceYearly: input.priceYearly,
+        allowDaily: input.allowDaily ?? false,
+        allowMonthly: input.allowMonthly ?? true,
+        allowYearly: input.allowYearly ?? true,
+        // Legacy pricings
         pricings: input.pricings
           ? {
               create: input.pricings.map((p) => ({
@@ -246,6 +272,14 @@ export class VpsPlanService {
         isActive: input.isActive,
         sortOrder: input.sortOrder,
         tags: input.tags,
+        // Direct pricing fields
+        priceHourly: input.priceHourly,
+        priceDaily: input.priceDaily,
+        priceMonthly: input.priceMonthly,
+        priceYearly: input.priceYearly,
+        allowDaily: input.allowDaily,
+        allowMonthly: input.allowMonthly,
+        allowYearly: input.allowYearly,
       },
       include: {
         pricings: true,
